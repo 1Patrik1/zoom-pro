@@ -1,0 +1,32 @@
+{
+  "name": "pwa-vzt-system",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "env:init": "node scripts/init-env.mjs",
+    "dev": "concurrently -n frontend,backend -c cyan,green \"npm run dev -w apps/frontend\" \"npm run dev -w apps/backend\"",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "dev:backend": "npm run dev -w apps/backend",
+    "build": "npm run build -w apps/frontend",
+    "start": "npm run start -w apps/backend",
+    "db:migrate:new": "node scripts/db-run-sql.mjs 001_initial_schema.sql 002_seed_permissions.sql 003_seed_default_module_settings.sql 007_project_geo_and_gallery.sql 008_invoice_automation_and_permissions.sql 009_attendance_geo_guard_and_log_media.sql",
+    "db:migrate:legacy": "node scripts/db-run-sql.mjs 002_seed_permissions.sql 003_seed_default_module_settings.sql 004_upgrade_legacy_in_place.sql 007_project_geo_and_gallery.sql 008_invoice_automation_and_permissions.sql 009_attendance_geo_guard_and_log_media.sql",
+    "db:seed:platform": "node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql",
+    "db:seed:demo": "node scripts/db-run-sql.mjs 006_seed_demo_profiles_and_records.sql",
+    "db:setup:new": "npm run db:migrate:new && npm run db:seed:platform && npm run db:seed:demo",
+    "docker:prod:up": "docker compose -f docker-compose.prod.yml up -d --build",
+    "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
+    "docker:prod:logs": "docker compose -f docker-compose.prod.yml logs -f"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.3",
+    "concurrently": "^9.0.1"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  }
+}
