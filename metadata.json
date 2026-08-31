@@ -1,0 +1,6 @@
+{
+  "name": "ZOOM-PRO",
+  "description": "Enterprise VZT & HVAC construction platform with 3D duct configurator, GPS geofenced attendance, B2B purchasing & distribution, Gemini AI HVAC assistant with Google Maps grounding, audio transcription, image generation, and multi-tenant SaaS licensing.",
+  "requestFramePermissions": ["geolocation", "camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
