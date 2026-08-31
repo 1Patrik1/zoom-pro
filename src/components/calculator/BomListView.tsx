@@ -301,11 +301,31 @@ export const BomListView: React.FC<BomListViewProps> = ({
                       </td>
                       <td className="py-3 px-3 font-semibold text-white">{comp.type.replace('_', ' ')}</td>
                       <td className="py-3 px-3 font-mono text-cyan-300">
-                        {m === 'VZT'
-                          ? comp.type === 'Kruhové'
-                            ? `Ø${comp.diameter} mm`
-                            : `${comp.width}×${comp.height} mm`
-                          : `DN ${comp.dn || 25}`}
+                        {m === 'VZT' ? (
+                          <div className="flex flex-col">
+                            <span className="font-bold">
+                              {comp.shape === 'PRECHOD'
+                                ? `${comp.width}×${comp.height} → Ø${comp.diameter} mm`
+                                : comp.shape === 'KULATE' || comp.type === 'Kruhové'
+                                ? comp.type === 'Redukce' && comp.diameter2
+                                  ? `Ø${comp.diameter} → Ø${comp.diameter2} mm`
+                                  : `Ø${comp.diameter || 250} mm`
+                                : comp.type === 'Redukce' && comp.width2
+                                ? `${comp.width}×${comp.height} → ${comp.width2}×${comp.height2} mm`
+                                : `${comp.width || 800}×${comp.height || 400} mm`}
+                            </span>
+                            {comp.type === 'Koleno' && (
+                              <span className="text-[11px] text-amber-400">
+                                {comp.angle || 90}° (R = {comp.radius || comp.centerRadius || 'std'} mm)
+                              </span>
+                            )}
+                            <span className="text-[10px] text-slate-500 font-sans">
+                              {comp.shape === 'KULATE' || comp.type === 'Kruhové' ? '⚪ Spiro' : comp.shape === 'PRECHOD' ? '🔄 Přechod' : '🔲 4-HR'}
+                            </span>
+                          </div>
+                        ) : (
+                          `DN ${comp.dn || 25}`
+                        )}
                       </td>
                       <td className="py-3 px-3 font-mono">{comp.length} mm</td>
                       <td className="py-3 px-3 text-slate-400">{comp.material}</td>

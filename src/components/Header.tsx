@@ -16,6 +16,8 @@ interface HeaderProps {
   onSwitchRole: (role: UserRole) => void;
   onOpenQuickAttendance: () => void;
   onOpenCloudflareTunnel?: () => void;
+  onOpenSyncQueue?: () => void;
+  isOnline?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSwitchRole,
   onOpenQuickAttendance,
   onOpenCloudflareTunnel,
+  onOpenSyncQueue,
+  isOnline = true,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 py-3 flex items-center justify-between">
@@ -42,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Center GPS & Cloudflare 24/7 Status */}
+      {/* Center GPS & Cloudflare 24/7 & Offline Sync Status */}
       <div className="hidden md:flex items-center space-x-3 text-xs font-mono">
         <button
           type="button"
@@ -54,10 +58,23 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-bold">Cloudflare 24/7</span>
         </button>
 
-        <div className="flex items-center space-x-1.5 text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-800/30">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Online Sync</span>
-        </div>
+        <button
+          type="button"
+          onClick={onOpenSyncQueue}
+          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+            !isOnline
+              ? 'text-amber-300 bg-amber-950/60 border-amber-500/40 hover:bg-amber-900/60'
+              : 'text-emerald-400 bg-emerald-950/40 border-emerald-800/30 hover:bg-emerald-900/40'
+          }`}
+          title="Zobrazit frontu offline synchronizace a ruční odesílání"
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${
+              !isOnline ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'
+            }`}
+          ></span>
+          <span>{!isOnline ? 'Offline Queue' : 'Online Sync'}</span>
+        </button>
 
         <div className="flex items-center space-x-1 text-slate-400 bg-slate-900 px-2.5 py-1 rounded-full border border-slate-800">
           <MapPin className="w-3.5 h-3.5 text-cyan-400" />

@@ -9,6 +9,7 @@ import {
   handleGenerateOrEditImage,
   handleGetChatHistory,
   handleClearChatHistory,
+  handleAnalyzeCollisionImage,
 } from './server/geminiHandlers';
 
 const app = express();
@@ -1467,6 +1468,7 @@ app.get('/api/ai/chat/:sessionId', handleGetChatHistory);
 app.delete('/api/ai/chat/:sessionId', handleClearChatHistory);
 app.post('/api/ai/transcribe', handleTranscribeAudio);
 app.post('/api/ai/image', handleGenerateOrEditImage);
+app.post('/api/ai/analyze-collision-image', handleAnalyzeCollisionImage);
 
 // -----------------------------------------------------------------------------
 // Vite Server Integration

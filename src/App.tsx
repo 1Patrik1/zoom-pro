@@ -23,6 +23,9 @@ import { ReportsView } from './components/ReportsView';
 import { PrintView } from './components/PrintView';
 import { TroubleshootingDoctorView } from './components/TroubleshootingDoctorView';
 import { CloudflareTunnelModal } from './components/CloudflareTunnelModal';
+import { GoogleDriveView } from './components/GoogleDriveView';
+import { SyncQueueModal } from './components/SyncQueueModal';
+import { SyncQueueService } from './services/syncQueueService';
 
 import {
   User,
@@ -58,6 +61,7 @@ export const App: React.FC = () => {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [showCloudflareModal, setShowCloudflareModal] = useState<boolean>(false);
+  const [showSyncQueueModal, setShowSyncQueueModal] = useState<boolean>(false);
 
   // Connection listeners
   useEffect(() => {
@@ -358,6 +362,26 @@ export const App: React.FC = () => {
       reportedByName: 'Jan Novák (Vedoucí stavby)',
       photoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=1200&q=80',
       description: 'Potrubí 800x400 koliduje se spádovým odpadem ZTI. Navržena snížená přechodka 1000x300 při zachování ekvivalentního průřezu.',
+      collisionTag: 'KOL-2026-VZT-ZTI01',
+      coordinates3d: {
+        x: 14.0,
+        y: 12.0,
+        z: 2.7,
+        floor: '1.PP',
+        gridAxis: 'Osa B-4',
+      },
+      aiAnalysis: {
+        detectedObjects: ['Potrubí VZT čtyřhranné 800×400', 'Svod kanalizace ZTI DN110', 'ŽB sloup S-4', 'Závěsný C-profil'],
+        collisionTag: 'KOL-2026-VZT-ZTI01',
+        suggestedTitle: 'Křížení čtyřhranného potrubí VZT s ležatou kanalizací ZTI',
+        conflictingTrade: 'ZTI',
+        severity: 'HIGH',
+        description: 'Detekována prostorová kolize mezi čtyřhranným přívodním potrubím VZT a spádovým plastovým potrubím kanalizace ZTI. Světlá výška nedostačuje pro montážní izolaci.',
+        resolutionNote: 'Vyrobit sníženou přechodku 1000x300 nebo provést vyosení etážkou e=220 mm před sloupem S-4.',
+        complianceNotes: 'ČSN EN 1507, ČSN 73 0872 (odstupy rozvodů a požární bezpečnost)',
+        confidenceScore: 0.96,
+        analyzedAt: new Date(Date.now() - 24 * 3600000).toISOString(),
+      },
       createdAt: new Date(Date.now() - 24 * 3600000).toISOString(),
     },
     {
@@ -372,6 +396,26 @@ export const App: React.FC = () => {
       reportedByName: 'Martin Dvořák (Montér)',
       photoUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
       description: 'Silový kabelový žlab brání osazení požární klapky FD-MS. Vyžadována koordinace s hlavním inženýrem elektro.',
+      collisionTag: 'KOL-2026-VZT-EL02',
+      coordinates3d: {
+        x: 14.5,
+        y: 8.2,
+        z: 3.2,
+        floor: '2.NP',
+        gridAxis: 'Osa B-2',
+      },
+      aiAnalysis: {
+        detectedObjects: ['Kabelový žlab VN / rošt', 'Požární klapka VZT FD-MS', 'Železobetonová nosná stěna šachty'],
+        collisionTag: 'KOL-2026-VZT-EL02',
+        suggestedTitle: 'Kabelový rošt VN blokuje montáž požární klapky VZT',
+        conflictingTrade: 'ELEKTRO',
+        severity: 'CRITICAL',
+        description: 'Kabelový rošt kříží osu stoupačky v místě požadované požární dělící konstrukce. Není dodržena požární zóna ani revizní prostor pro servopohon klapky.',
+        resolutionNote: 'Požadavek na posun kabelového roštu o 250 mm vpravo koordinátorem elektro; klapku nelze přemístit z důvodu požárního úseku.',
+        complianceNotes: 'ČSN 73 0802, ČSN EN 1366-2 (požární odolnost klapek)',
+        confidenceScore: 0.93,
+        analyzedAt: new Date().toISOString(),
+      },
       createdAt: new Date().toISOString(),
     },
   ]);
@@ -572,6 +616,9 @@ export const App: React.FC = () => {
 
   const handleAddAttendance = async (data: any) => {
     try {
+      if (!isOnline) {
+        throw new Error('Zařízení je v offline režimu');
+      }
       const res = await fetch('/api/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -580,14 +627,43 @@ export const App: React.FC = () => {
       if (res.ok) {
         const newRec = await res.json();
         setAttendance(prev => [newRec, ...prev]);
+        return;
       }
-    } catch (e) {
-      console.error(e);
+      throw new Error(`Server vrátil chybu ${res.status}`);
+    } catch (e: any) {
+      console.warn('Offline attendance save:', e);
+      const offlineRec: AttendanceRecord = {
+        id: `att-offline-${Date.now()}`,
+        userId: data.userId || currentUser.id,
+        userName: data.userName || `${currentUser.firstName} ${currentUser.lastName}`,
+        companyId: currentUser.companyId,
+        projectId: data.projectId,
+        type: data.type || 'PRICHOD',
+        createdAt: data.timestamp || data.createdAt || new Date().toISOString(),
+        lat: data.lat || 50.0755,
+        lng: data.lng || 14.4378,
+        withinProjectRadius: true,
+        geoStatus: 'OK',
+        status: data.status || 'PRACE',
+        note: data.note ? `[OFFLINE] ${data.note}` : '[Uloženo v offline frontě]',
+      };
+      setAttendance(prev => [offlineRec, ...prev]);
+
+      SyncQueueService.enqueue({
+        type: 'ATTENDANCE',
+        action: 'CREATE',
+        title: `Docházka (${offlineRec.type}): ${offlineRec.userName}`,
+        description: `Stavba: ${offlineRec.projectId || 'Neuvedeno'}, čas ${new Date(offlineRec.createdAt).toLocaleTimeString('cs-CZ')}`,
+        payload: data,
+        endpoint: '/api/attendance',
+        method: 'POST',
+      });
     }
   };
 
   const handleAddProject = async (data: any) => {
     try {
+      if (!isOnline) throw new Error('Offline');
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -596,9 +672,32 @@ export const App: React.FC = () => {
       if (res.ok) {
         const newProj = await res.json();
         setProjects(prev => [newProj, ...prev]);
+        return;
       }
+      throw new Error(`Server error ${res.status}`);
     } catch (e) {
-      console.error(e);
+      const offlineProj: Project = {
+        id: `proj-offline-${Date.now()}`,
+        name: data.name || 'Nová stavba (Offline)',
+        code: data.code || `VZT-${Date.now().toString().slice(-4)}`,
+        clientName: data.clientName || 'Klient',
+        address: data.address || 'Česká republika',
+        radius: data.radius || 150,
+        status: 'ACTIVE',
+        companyId: currentUser.companyId,
+        createdAt: new Date().toISOString(),
+      };
+      setProjects(prev => [offlineProj, ...prev]);
+
+      SyncQueueService.enqueue({
+        type: 'PROJECT_UPDATE',
+        action: 'CREATE',
+        title: `Nová stavba: ${offlineProj.name}`,
+        description: `Kód: ${offlineProj.code}, adresa: ${offlineProj.address}`,
+        payload: data,
+        endpoint: '/api/projects',
+        method: 'POST',
+      });
     }
   };
 
@@ -657,6 +756,7 @@ export const App: React.FC = () => {
 
   const handleAddDailyLog = async (data: any) => {
     try {
+      if (!isOnline) throw new Error('Offline');
       const res = await fetch('/api/daily-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -665,9 +765,34 @@ export const App: React.FC = () => {
       if (res.ok) {
         const newLog = await res.json();
         setDailyLogs(prev => [newLog, ...prev]);
+        return;
       }
+      throw new Error(`Server error ${res.status}`);
     } catch (e) {
-      console.error(e);
+      const offlineLog: DailyLog = {
+        id: `log-offline-${Date.now()}`,
+        companyId: currentUser.companyId,
+        projectId: data.projectId || 'proj-001',
+        authorId: currentUser.id,
+        authorName: `${currentUser.firstName} ${currentUser.lastName}`,
+        logDate: data.date || data.logDate || new Date().toISOString().split('T')[0],
+        weather: data.weather || 'Jasno, 20°C',
+        content: data.workDescription || data.content || data.note || 'Zápis proveden v offline režimu',
+        workerCount: data.workerCount || 4,
+        isLocked: false,
+        createdAt: new Date().toISOString(),
+      };
+      setDailyLogs(prev => [offlineLog, ...prev]);
+
+      SyncQueueService.enqueue({
+        type: 'DAILY_LOG',
+        action: 'CREATE',
+        title: `Stavební deník: ${offlineLog.logDate}`,
+        description: `Stavba: ${offlineLog.projectId}, autor: ${offlineLog.authorName}`,
+        payload: data,
+        endpoint: '/api/daily-logs',
+        method: 'POST',
+      });
     }
   };
 
@@ -860,10 +985,17 @@ export const App: React.FC = () => {
         onSwitchRole={handleSwitchRole}
         onOpenQuickAttendance={() => setActiveTab('dochazka')}
         onOpenCloudflareTunnel={() => setShowCloudflareModal(true)}
+        onOpenSyncQueue={() => setShowSyncQueueModal(true)}
+        isOnline={isOnline}
       />
 
       {/* Navigation Ribbon */}
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isOnline={isOnline}
+        onOpenSyncQueue={() => setShowSyncQueueModal(true)}
+      />
 
       {/* Main Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8">
@@ -976,9 +1108,13 @@ export const App: React.FC = () => {
               <CollisionsQrView
                 collisions={collisions}
                 qrLabels={qrLabels}
+                projects={projects}
+                currentUser={currentUser}
                 onAddCollision={col => setCollisions(prev => [{ ...col, id: `col-${Date.now()}`, createdAt: new Date().toISOString() }, ...prev])}
                 onUpdateCollisionStatus={(id, status) => setCollisions(prev => prev.map(c => c.id === id ? { ...c, status } : c))}
                 onPrintQrLabel={id => setQrLabels(prev => prev.map(l => l.id === id ? { ...l, isPrinted: true } : l))}
+                onUpdateQrLabel={(id, updates) => setQrLabels(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l))}
+                onDeleteCollision={id => setCollisions(prev => prev.filter(c => c.id !== id))}
               />
             )}
 
@@ -999,6 +1135,13 @@ export const App: React.FC = () => {
                 documents={documents}
                 onAddDocument={handleAddDocument}
                 onApproveDocument={handleApproveDocument}
+              />
+            )}
+
+            {activeTab === 'gdrive' && (
+              <GoogleDriveView
+                projects={projects}
+                documents={documents}
               />
             )}
 
@@ -1062,6 +1205,14 @@ export const App: React.FC = () => {
       <CloudflareTunnelModal
         isOpen={showCloudflareModal}
         onClose={() => setShowCloudflareModal(false)}
+      />
+
+      {/* Offline Pending Sync Queue Modal */}
+      <SyncQueueModal
+        isOpen={showSyncQueueModal}
+        onClose={() => setShowSyncQueueModal(false)}
+        isOnline={isOnline}
+        onTriggerSync={fetchData}
       />
 
       {/* Footer */}

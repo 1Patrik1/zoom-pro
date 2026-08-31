@@ -8,9 +8,11 @@ import {
   Eye,
   FileSpreadsheet,
   FileCheck,
+  HardDrive,
 } from 'lucide-react';
 import { Document, Project, User } from '../types';
 import { SignatureModal } from './SignatureModal';
+import { GoogleDriveService } from '../services/googleDriveService';
 
 interface DocumentsViewProps {
   currentUser: User;
@@ -32,6 +34,36 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   const [type, setType] = useState<'PREDAVACI_PROTOKOL' | 'VYKAZ_PRACI' | 'ZKOUSEK_TESNOSTI' | 'REVIZNI_ZPRAVA'>('PREDAVACI_PROTOKOL');
   const [content, setContent] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [gdriveStatus, setGdriveStatus] = useState<string | null>(null);
+
+  const handleSaveToDrive = async (doc: Document) => {
+    setGdriveStatus(`Ukládám "${doc.title}" na Google Drive...`);
+    try {
+      const fileData = `=====================================================
+DOKUMENT ZOOM-PRO VZT & TZB
+=====================================================
+Název: ${doc.title}
+Typ: ${doc.type}
+Projekt: ${doc.projectName || 'Neuvedeno'}
+Stav: ${doc.status}
+Vytvořeno: ${new Date(doc.createdAt || Date.now()).toLocaleString('cs-CZ')}
+
+OBSAH:
+-----------------------------------------------------
+${doc.content || 'Předávací protokol VZT díla v souladu s ČSN EN 1507.'}
+`;
+      await GoogleDriveService.uploadFile(
+        `${doc.title.replace(/\s+/g, '_')}.txt`,
+        'text/plain',
+        fileData
+      );
+      setGdriveStatus(`✅ Protokol "${doc.title}" uložen na Google Drive.`);
+      setTimeout(() => setGdriveStatus(null), 3500);
+    } catch (err: any) {
+      setGdriveStatus(`❌ Chyba: ${err.message || 'Nepodařilo se uložit'}`);
+      setTimeout(() => setGdriveStatus(null), 4000);
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,18 +92,27 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             <span>Dokumenty, Protokoly & Zkoušky těsnosti</span>
           </h2>
           <p className="text-slate-400 text-sm mt-0.5">
-            Předávací protokoly VZT, výkazy provedených prací a revizní zprávy pro investora
+            Předávací protokoly VZT, výkazy provedených prací a revizní zprávy s ukládáním na Google Drive
           </p>
         </div>
 
         <button
           onClick={() => setShowModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 flex items-center space-x-2 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 flex items-center space-x-2 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Vytvořit nový protokol</span>
         </button>
       </div>
+
+      {gdriveStatus && (
+        <div className="p-3 bg-blue-950/80 border border-blue-500/50 rounded-xl text-blue-200 text-xs font-medium flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center space-x-2">
+            <HardDrive className="w-4 h-4 text-blue-400" />
+            <span>{gdriveStatus}</span>
+          </div>
+        </div>
+      )}
 
       {/* Documents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -119,6 +160,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     <span>Schválit</span>
                   </button>
                 )}
+                <button
+                  onClick={() => handleSaveToDrive(doc)}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-blue-900/60 text-blue-400 border border-slate-700 hover:border-blue-500/40 transition-colors cursor-pointer"
+                  title="Uložit na Google Drive"
+                >
+                  <HardDrive className="w-3.5 h-3.5" />
+                </button>
                 <button
                   onClick={() => alert(`Protokol "${doc.title}" stažen v PDF s razítkem.`)}
                   className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400"

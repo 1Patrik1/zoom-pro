@@ -144,6 +144,8 @@ export interface DailyLog {
 
 export type MediumType = 'VZT' | 'VODA' | 'TOPENI';
 
+export type VztProfileShape = 'HRANATE' | 'KULATE' | 'PRECHOD';
+
 export type VztComponentType =
   | 'Rovné'
   | 'Kruhové'
@@ -152,6 +154,9 @@ export type VztComponentType =
   | 'Odsazení'
   | 'T-Kus'
   | 'Odbočka'
+  | 'Klapka'
+  | 'Tlumic_Hluku'
+  | 'Zaslepka'
   | 'Trubka_Voda'
   | 'Trubka_Topeni'
   | 'Armatura_Ventil';
@@ -162,16 +167,23 @@ export interface VztComponent {
   projectId?: string;
   projectName?: string;
   medium?: MediumType;
+  shape?: VztProfileShape; // HRANATE (4HR) vs KULATE (Spiro) vs PRECHOD
   type: VztComponentType;
-  width?: number; // mm
-  height?: number; // mm
-  diameter?: number; // mm for circular / pipe DN
+  width?: number; // mm (Šířka A)
+  height?: number; // mm (Výška B)
+  diameter?: number; // mm for circular / pipe DN / Spiro ØD
+  diameter2?: number; // mm for circular reducer ØD2
   dn?: number; // Nominal diameter for water/heating
-  width2?: number; // for transition
-  height2?: number; // for transition
-  length: number; // mm
+  width2?: number; // for rectangular transition A2
+  height2?: number; // for rectangular transition B2
+  branchWidth?: number; // mm for rectangular branch
+  branchHeight?: number; // mm for rectangular branch
+  branchDiameter?: number; // mm for circular branch
+  length: number; // mm (Délka L)
   angle?: number; // for elbow: 90, 60, 45, 30, 15
-  offset?: number; // mm (změna osy)
+  radius?: number; // mm (Poloměr ohybu R kolena)
+  offset?: number; // mm (změna osy / etážka)
+  flangeType?: 'P20' | 'P30' | 'P40' | 'SPIRO_SPOJKA' | 'PRIRUBA_KRUHOVA' | 'BEZ_PRIRUBY';
   innerRadius?: number; // mm (vnitřní doměr)
   centerRadius?: number; // mm (střední doměr)
   outerRadius?: number; // mm (vnější doměr)
@@ -490,6 +502,14 @@ export interface PurchaseOrder {
   createdAt: string;
 }
 
+export interface CollisionCoordinates3D {
+  x: number; // pozice X v metrech (např. 14.5)
+  y: number; // pozice Y v metrech (např. 8.2)
+  z: number; // výška Z v metrech od podlahy (např. 3.2)
+  floor?: string; // např. "2.NP"
+  gridAxis?: string; // např. "Osa B-4"
+}
+
 // Collisions & QR Labels
 export interface SiteCollision {
   id: string;
@@ -504,6 +524,23 @@ export interface SiteCollision {
   photoUrl?: string;
   description: string;
   resolutionNote?: string;
+  gpsCoordinates?: string;
+  coordinates3d?: CollisionCoordinates3D;
+  sentChannels?: ('SYSTEM' | 'EMAIL' | 'WHATSAPP')[];
+  assignedTo?: string;
+  collisionTag?: string;
+  aiAnalysis?: {
+    detectedObjects: string[];
+    collisionTag: string;
+    suggestedTitle: string;
+    conflictingTrade: 'ZTI' | 'ELEKTRO' | 'STATIKA' | 'CHLAZENI' | 'ARCHITEKTURA';
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    description: string;
+    resolutionNote: string;
+    complianceNotes?: string;
+    confidenceScore?: number;
+    analyzedAt: string;
+  };
   createdAt: string;
 }
 
@@ -518,6 +555,10 @@ export interface QrLabelSpec {
   systemBranch: string;
   qrPayload: string;
   isPrinted: boolean;
+  installationStatus?: 'MANUFACTURED' | 'SHIPPED_TO_SITE' | 'INSTALLED' | 'INSPECTED' | 'COLLISION_REPORTED';
+  installedAt?: string;
+  installationPhotoUrl?: string;
+  installedByName?: string;
 }
 
 // Monter Invoices & Labour Logs
