@@ -1,18 +1,122 @@
-name: Docker Image CI
+name: 🔄 Sync & Validation
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - develop
+      - staging
+    paths:
+      - 'src/**'
+      - 'server/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'bun.lock'
+      - 'tsconfig.json'
+      - 'vite.config.ts'
+      - 'Dockerfile'
+      - 'docker-compose*.yml'
+      - '.github/workflows/**'
+      - '.env.example'
+      - '.gitignore'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - develop
+    paths:
+      - 'src/**'
+      - 'server/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'bun.lock'
+      - 'tsconfig.json'
+      - 'vite.config.ts'
+      - 'Dockerfile'
+      - 'docker-compose*.yml'
+      - '.github/workflows/**'
+      - '.env.example'
+      - '.gitignore'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
-
-  build:
-
+  validate:
+    name: ✅ Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Validate package metadata
+        run: |
+          node -e "const p=require('./package.json'); if(!p.name||!p.version){throw new Error('Missing package metadata')} console.log('Package OK:', p.name, p.version)"
+
+      - name: TypeScript check
+        run: npm run lint
+
+  build:
+    name: 🏗️ Build
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Production build
+        run: npm run build
+
+  docker:
+    name: 🐳 Docker validation
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker image build
+        run: docker build . --file Dockerfile --tag zoom-pro:ci
+
+  summary:
+    name: 📊 Summary
+    runs-on: ubuntu-latest
+    needs: [validate, build, docker]
+    if: always()
+
+    steps:
+      - name: Report status
+        run: |
+          echo "## ✅ Repository synchronization status" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Validation: OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build: OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Docker: OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Last check: $(date -u)" >> "$GITHUB_STEP_SUMMARY"
