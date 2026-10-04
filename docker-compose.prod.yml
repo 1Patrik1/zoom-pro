@@ -5,12 +5,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-vzt_system}
-      POSTGRES_USER: ${POSTGRES_USER:-vzt_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vzt_pass}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - zoom_pro_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-vzt_user} -d ${POSTGRES_DB:-vzt_system}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required} -d ${POSTGRES_DB:-vzt_system}']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -21,7 +21,7 @@ services:
     volumes:
       - .:/app
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-vzt_user}:${POSTGRES_PASSWORD:-vzt_pass}@postgres:5432/${POSTGRES_DB:-vzt_system}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-vzt_system}
     command: >
       sh -c "
         npm ci &&
@@ -41,7 +41,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "5000"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-vzt_user}:${POSTGRES_PASSWORD:-vzt_pass}@postgres:5432/${POSTGRES_DB:-vzt_system}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-vzt_system}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
       APP_NAME: zoom-pro
