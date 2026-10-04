@@ -105,7 +105,7 @@ export function AttendancePage({ db, onCreate }) {
             <span className="text-xs font-black uppercase tracking-widest text-slate-500">Projekt / stavba</span>
             <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
               <option value="">Bez projektu</option>
-              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+              {projects?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </label>
 

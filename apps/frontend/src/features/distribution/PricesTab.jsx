@@ -75,7 +75,7 @@ export function PricesTab({ token, selectedItem }) {
             <tr><th className="p-3">Dodavatel</th><th>SKU</th><th>Cena</th><th>Měna</th><th>MOQ</th><th>Dodání</th><th>Priorita</th></tr>
           </thead>
           <tbody>
-            {prices.map((p, i) => (
+            {prices?.map((p, i) => (
               <tr key={p.id} className={`border-t border-slate-100 ${i === 0 ? 'bg-emerald-50' : ''}`}>
                 <td className="p-3 font-black">{p.supplierName} {i === 0 && <span className="ml-2 rounded bg-emerald-600 px-2 py-0.5 text-[10px] text-white">TOP</span>}</td>
                 <td className="text-xs">{p.supplierSku || '—'}</td>

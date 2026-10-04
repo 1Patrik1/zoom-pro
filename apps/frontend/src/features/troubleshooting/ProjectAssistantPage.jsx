@@ -169,7 +169,7 @@ export function ProjectAssistantPage({ db, token }) {
             <div className="flex flex-wrap items-center gap-2">
               <select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-bold text-slate-100">
                 <option value="">Vyber projekt</option>
-                {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                {projects?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
               </select>
               <button disabled={busy} onClick={loadContext} className="rounded-2xl border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200">
                 <Compass className="mr-1 inline h-3 w-3" /> Načíst kontext
@@ -266,7 +266,7 @@ export function ProjectAssistantPage({ db, token }) {
           <Sparkles className="h-6 w-6 text-fuchsia-400" />
         </div>
 
-        {filteredIssues.length ? filteredIssues.map((issue) => (
+        {filteredIssues.length ? filteredIssues?.map((issue) => (
           <div key={issue.id} className={`rounded-3xl border p-4 ${severityClass(issue.severity)}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>

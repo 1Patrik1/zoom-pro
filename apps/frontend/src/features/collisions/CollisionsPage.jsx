@@ -136,7 +136,7 @@ export function CollisionsPage({ db, token }) {
       </div>
 
       <div className="space-y-3">
-        {filtered.length ? filtered.map((collision) => {
+        {filtered.length ? filtered?.map((collision) => {
           const detail = parseDetail(collision.detailJson);
           const status = (collision.status || 'OPEN').toUpperCase();
           return (
@@ -153,7 +153,7 @@ export function CollisionsPage({ db, token }) {
                     {detail.overrun ? <span className="rounded-full bg-rose-500/20 px-3 py-1">Překročení: {detail.overrun} CZK</span> : null}
                     {Array.isArray(detail.items) && detail.items.length ? (
                       <span className="rounded-full bg-amber-500/20 px-3 py-1">
-                        Materiál: {detail.items.map((it) => `${it.name} (${Number(it.after || 0)}/${Number(it.min || 0)})`).join(', ')}
+                        Materiál: {detail.items?.map((it) => `${it.name} (${Number(it.after || 0)}/${Number(it.min || 0)})`).join(', ')}
                       </span>
                     ) : null}
                   </div>

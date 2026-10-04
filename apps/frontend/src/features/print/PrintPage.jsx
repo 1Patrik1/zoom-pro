@@ -101,7 +101,7 @@ export function PrintPage({ db, token }) {
                 Projekt
                 <select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none">
                   <option value="">Vyber projekt</option>
-                  {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                  {projects?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                 </select>
               </label>
             ) : null}
@@ -110,7 +110,7 @@ export function PrintPage({ db, token }) {
               <div className="space-y-2 text-sm">
                 <p className="font-semibold text-slate-300">Vyber QR kódy (vynecháš-li výběr, vezme se prvních 12)</p>
                 <div className="max-h-48 overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-2 text-slate-200">
-                  {filteredItems.map((item) => (
+                  {filteredItems?.map((item) => (
                     <label key={item.id} className="flex items-center gap-2 px-2 py-1 text-xs">
                       <input
                         type="checkbox"

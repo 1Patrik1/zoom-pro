@@ -69,7 +69,7 @@ export function RoomLoadsPanel() {
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ room, flow, load }) => (
+            {rows?.map(({ room, flow, load }) => (
               <tr key={room.id} className="border-t border-slate-100 align-top">
                 <td><input value={room.name} onChange={(e) => update(room.id, { name: e.target.value })} className="input-sm" /></td>
                 <td>

@@ -62,14 +62,14 @@ export function RfqTab({ token, db }) {
         <div className="mt-2 grid gap-2 md:grid-cols-3">
           <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
             <option value="">— bez projektu —</option>
-            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {projects?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
           <input placeholder="Poznámka" value={note} onChange={(e) => setNote(e.target.value)} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
         </div>
 
         <div className="mt-3 space-y-2">
-          {lines.map((l, i) => (
+          {lines?.map((l, i) => (
             <div key={i} className="flex flex-wrap items-center gap-2">
               <select value={l.catalogItemId} onChange={(e) => patchLine(i, { catalogItemId: e.target.value })}
                 className="min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm">
@@ -96,7 +96,7 @@ export function RfqTab({ token, db }) {
             <tr><th className="p-3">Vytvořeno</th><th>Projekt</th><th>Deadline</th><th>Stav</th><th></th></tr>
           </thead>
           <tbody>
-            {rfqs.map((r) => (
+            {rfqs?.map((r) => (
               <tr key={r.id} className="border-t border-slate-100">
                 <td className="p-3">{new Date(r.createdAt).toLocaleDateString('cs-CZ')}</td>
                 <td>{r.projectId || '—'}</td>
@@ -120,7 +120,7 @@ export function RfqTab({ token, db }) {
               <tr><th className="p-2">Dodavatel</th><th>Celkem</th><th>Měna</th><th>Dodání</th><th>Chybí položek</th><th></th></tr>
             </thead>
             <tbody>
-              {compare.table.map((row, i) => (
+              {compare.table?.map((row, i) => (
                 <tr key={row.supplierId} className={`border-t border-emerald-200 ${i === 0 ? 'bg-white/50' : ''}`}>
                   <td className="p-2 font-black">{row.supplierName} {i === 0 && <span className="ml-2 rounded bg-emerald-600 px-2 py-0.5 text-[10px] text-white">TOP</span>}</td>
                   <td className="font-black">{Number(row.total).toLocaleString('cs-CZ')}</td>

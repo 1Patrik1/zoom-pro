@@ -447,7 +447,7 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
         )}
 
         <div className="space-y-2">
-          {projects.map((project) => (
+          {projects?.map((project) => (
             <button key={project.id} onClick={() => setActiveProject(project.id)} className={`w-full rounded-2xl border px-4 py-3 text-left ${activeProject === project.id ? 'border-blue-700 bg-blue-950/40 text-white' : 'border-slate-800 bg-slate-950 text-slate-300'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -560,7 +560,7 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
             {!activeProject && <p className="text-sm text-slate-500">Vyber stavbu z levého panelu.</p>}
             {activeProject && (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-1">
-                {users.map((teamUser) => {
+                {users?.map((teamUser) => {
                   const assigned = activeAssignments.some((item) => item.userId === teamUser.id);
                   return (
                     <label key={teamUser.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${assigned ? 'border-emerald-800 bg-emerald-950/20 text-emerald-300' : 'border-slate-800 bg-slate-950 text-slate-300'}`}>
@@ -581,7 +581,7 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
           <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-blue-400">Projektový chat</h2>
             <div className="max-h-[420px] space-y-3 overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-4">
-              {activeChats.map((chat) => (
+              {activeChats?.map((chat) => (
                 <div key={chat.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-bold text-blue-400">{chat.authorName}</p>
@@ -609,7 +609,7 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
                 </label>
                 {selectedFiles.length > 0 && (
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {selectedFiles.map((file) => (
+                    {selectedFiles?.map((file) => (
                       <div key={`${file.name}-${file.size}`} className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
                         <p className="truncate text-xs text-slate-400">{file.name}</p>
                         <p className="mt-1 text-[11px] text-slate-500">{Math.round(file.size / 1024)} kB</p>
@@ -640,7 +640,7 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
             </div>
 
             <div className="mt-4 grid max-h-[640px] gap-3 overflow-auto sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              {activeGallery.map((item) => (
+              {activeGallery?.map((item) => (
                 <button key={item.id} type="button" onClick={() => setLightbox({ url: item.imageUrl, caption: item.caption || item.projectName })} className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 text-left">
                   <img src={item.imageUrl} alt={item.caption || 'Galerie projektu'} className="h-40 w-full object-cover" />
                   <div className="p-3">

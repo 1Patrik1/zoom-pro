@@ -30,7 +30,7 @@ export default function MaterialSearchAutocomplete({ onSelect }) {
       {loading && <div>Naèítám…</div>}
       {results.length > 0 && (
         <ul className="results">
-          {results.map(item => (
+          {results?.map(item => (
             <li key={item.id} onClick={() => onSelect && onSelect(item)}>
               <strong>{item.code}</strong> — {item.name} ({item.unit}) • {item.price} CZK
             </li>

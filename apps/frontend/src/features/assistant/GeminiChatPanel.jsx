@@ -57,13 +57,13 @@ export function GeminiChatPanel({ token }) {
       </header>
 
       <div className="max-h-80 space-y-2 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-3">
-        {messages.map((m, i) => (
+        {messages?.map((m, i) => (
           <div key={i} className={`rounded-2xl p-3 text-sm ${m.role === 'user' ? 'bg-slate-800 text-slate-100' : 'bg-purple-900/40 text-purple-100'}`}>
             <p className="text-[10px] font-black uppercase opacity-70">{m.role === 'user' ? 'Ty' : 'Gemini'}{m.offline ? ' (offline)' : ''}</p>
             <p className="mt-1 whitespace-pre-wrap">{m.text}</p>
             {m.images?.length ? (
               <div className="mt-2 flex flex-wrap gap-2">
-                {m.images.map((img, j) => (
+                {m.images?.map((img, j) => (
                   <img key={j} src={`data:${img.mimeType};base64,${img.dataBase64}`} className="h-16 w-16 rounded-lg object-cover" alt="" />
                 ))}
               </div>
@@ -75,7 +75,7 @@ export function GeminiChatPanel({ token }) {
 
       {images.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {images.map((img, i) => (
+          {images?.map((img, i) => (
             <div key={i} className="relative">
               <img src={`data:${img.mimeType};base64,${img.dataBase64}`} className="h-14 w-14 rounded-lg object-cover" alt="" />
               <button type="button" onClick={() => setImages(images.filter((_, k) => k !== i))}

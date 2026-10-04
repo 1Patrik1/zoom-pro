@@ -107,7 +107,7 @@ export function PlatformAdminPage({ token, user }) {
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-black text-slate-900">Ostatní klíče (RAW)</h3>
         <div className="mt-3 space-y-2">
-          {settings.map((s) => (
+          {settings?.map((s) => (
             <details key={s.key} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
               <summary className="cursor-pointer font-black">{s.key}</summary>
               <pre className="mt-2 overflow-auto text-xs">{JSON.stringify(s.value, null, 2)}</pre>
@@ -124,7 +124,7 @@ export function PlatformAdminPage({ token, user }) {
             <tr><th className="p-2">Firma</th><th>Vlastník</th><th>Uživatelů</th><th>Stav</th><th></th></tr>
           </thead>
           <tbody>
-            {companies.map((c) => (
+            {companies?.map((c) => (
               <tr key={c.id} className="border-t border-slate-100">
                 <td className="p-2 font-black">{c.name}</td>
                 <td className="text-xs">{c.ownerEmail || '—'}</td>

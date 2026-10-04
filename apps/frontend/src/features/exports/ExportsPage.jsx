@@ -106,7 +106,7 @@ export function ExportsPage({ token }) {
           <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
             <h3 className="mb-4 text-sm font-black uppercase tracking-widest text-emerald-400">Export profily</h3>
             <div className="space-y-3">
-              {profiles.map((profile) => (
+              {profiles?.map((profile) => (
                 <div key={profile.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
                   <p className="font-black text-white">{profile.name}</p>
                   <p className="text-xs text-slate-500">{profile.moduleKey} • {profile.format}</p>
@@ -127,7 +127,7 @@ export function ExportsPage({ token }) {
           </div>
           {loading && <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-400">Načítám exporty...</div>}
           <div className="space-y-3">
-            {jobs.map((job) => (
+            {jobs?.map((job) => (
               <div key={job.id} onClick={() => setSelectedJobId(job.id)} className={`cursor-pointer rounded-2xl border p-4 ${selectedJobId === job.id ? 'border-blue-700 bg-blue-950/20' : 'border-slate-800 bg-slate-950'}`}>
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>

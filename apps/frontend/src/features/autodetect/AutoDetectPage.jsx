@@ -101,7 +101,7 @@ export function AutoDetectPage({ token, db }) {
               <select value={projectId} onChange={(e) => setProjectId(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">
                 <option value="">— bez projektu —</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {projects?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </label>
 

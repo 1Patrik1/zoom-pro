@@ -59,7 +59,7 @@ export function PoTab({ token }) {
           <h3 className="text-sm font-black text-slate-900">Převzetí dodávky — {recv.po.poNumber || recv.id.slice(0, 8)}</h3>
           <p className="text-xs text-slate-500">Zadej přijaté množství po řádcích. Položky se automaticky naskladní (podle SKU).</p>
           <div className="mt-3 space-y-2">
-            {recv.lines.map((l) => (
+            {recv.lines?.map((l) => (
               <div key={l.id} className="flex items-center gap-3 rounded-xl bg-white p-2 text-sm">
                 <span className="font-black">{l.sku}</span>
                 <span className="flex-1 truncate">{l.name}</span>
@@ -89,7 +89,7 @@ export function PoTab({ token }) {
             <tr><th className="p-3">Číslo</th><th>Dodavatel</th><th>Projekt</th><th>Stav</th><th>Celkem</th><th>Položek</th><th></th></tr>
           </thead>
           <tbody>
-            {rows.map((p) => (
+            {rows?.map((p) => (
               <tr key={p.id} className="border-t border-slate-100">
                 <td className="p-3 font-black">{p.poNumber || p.id.slice(0, 8)}</td>
                 <td>{p.supplierName || '—'}</td>

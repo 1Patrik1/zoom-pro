@@ -46,7 +46,7 @@ export function SuppliersTab({ token }) {
             <tr><th className="p-3">Název</th><th>Typ</th><th>Kontakt</th><th>Splatnost</th><th>Sleva</th><th>Měna</th><th>Aktivní</th></tr>
           </thead>
           <tbody>
-            {rows.map((s) => (
+            {rows?.map((s) => (
               <tr key={s.id} className="border-t border-slate-100">
                 <td className="p-3 font-black">{s.name} <span className="text-xs text-slate-500">({s.ico})</span></td>
                 <td><span className="rounded-lg bg-blue-100 px-2 py-0.5 text-xs font-black text-blue-700">{s.apiType}</span></td>

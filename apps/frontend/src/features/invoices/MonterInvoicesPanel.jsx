@@ -58,7 +58,7 @@ export function MonterInvoicesPanel({ token, user, db }) {
             <select value={form.projectId} onChange={(e) => setForm({ ...form, projectId: e.target.value })}
               className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">
               <option value="">— bez projektu —</option>
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {projects?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
           <label className="text-sm">
@@ -101,7 +101,7 @@ export function MonterInvoicesPanel({ token, user, db }) {
             <tr><th>Období</th><th>Hodiny</th><th>Sazba</th><th>Celkem</th><th>Stav</th><th></th></tr>
           </thead>
           <tbody>
-            {mine.map((inv) => (
+            {mine?.map((inv) => (
               <tr key={inv.id} className="border-t border-slate-100">
                 <td>{inv.periodFrom ? new Date(inv.periodFrom).toLocaleDateString('cs-CZ') : '—'} → {inv.periodTo ? new Date(inv.periodTo).toLocaleDateString('cs-CZ') : '—'}</td>
                 <td>{inv.hoursWorked} h</td>
@@ -124,7 +124,7 @@ export function MonterInvoicesPanel({ token, user, db }) {
               <tr><th>Montér</th><th>Hodiny</th><th>Celkem</th><th>Poznámka</th><th></th></tr>
             </thead>
             <tbody>
-              {pending.map((inv) => (
+              {pending?.map((inv) => (
                 <tr key={inv.id} className="border-t border-amber-200">
                   <td>{inv.monterName || inv.monterUserId}</td>
                   <td>{inv.hoursWorked} h × {inv.hourlyRate} Kč</td>

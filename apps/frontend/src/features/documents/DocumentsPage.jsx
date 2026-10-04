@@ -157,7 +157,7 @@ export function DocumentsPage({ token }) {
           {loading && <div className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-400">Načítám dokumenty...</div>}
 
           <div className="space-y-3">
-            {items.map((item) => (
+            {items?.map((item) => (
               <article
                 key={item.id}
                 onClick={() => setSelectedId(item.id)}

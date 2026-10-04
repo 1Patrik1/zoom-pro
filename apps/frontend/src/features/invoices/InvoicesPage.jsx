@@ -126,12 +126,12 @@ export function InvoicesPage({ user, db, token, onCreate, onAutoCreate, onPay })
             <div className="grid gap-3 md:grid-cols-2">
               <SelectField name="projectId" label="Projekt">
                 <option value="">Všechny / bez projektu</option>
-                {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                {projects?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
               </SelectField>
               {user.role !== 'MONTER' ? (
                 <SelectField name="employeeId" label="Přiřadit zaměstnanci">
                   <option value="">Bez zaměstnance</option>
-                  {users.map((member) => <option key={member.id} value={member.id}>{member.email}</option>)}
+                  {users?.map((member) => <option key={member.id} value={member.id}>{member.email}</option>)}
                 </SelectField>
               ) : (
                 <InputField name="employeeId_hidden" label="Zaměstnanec" defaultValue={user.email} disabled />
@@ -161,7 +161,7 @@ export function InvoicesPage({ user, db, token, onCreate, onAutoCreate, onPay })
             {user.role !== 'MONTER' ? (
               <SelectField label="Zaměstnanec" value={autoForm.employeeId} onChange={(event) => setAutoForm((current) => ({ ...current, employeeId: event.target.value }))}>
                 <option value="">Vyber zaměstnance</option>
-                {users.map((member) => <option key={member.id} value={member.id}>{member.email}</option>)}
+                {users?.map((member) => <option key={member.id} value={member.id}>{member.email}</option>)}
               </SelectField>
             ) : (
               <InputField label="Zaměstnanec" defaultValue={user.email} disabled />
@@ -169,7 +169,7 @@ export function InvoicesPage({ user, db, token, onCreate, onAutoCreate, onPay })
 
             <SelectField label="Projekt" value={autoForm.projectId} onChange={(event) => setAutoForm((current) => ({ ...current, projectId: event.target.value }))}>
               <option value="">Všechny projekty</option>
-              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+              {projects?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </SelectField>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -208,7 +208,7 @@ export function InvoicesPage({ user, db, token, onCreate, onAutoCreate, onPay })
       </section>
 
       <section className="space-y-3">
-        {visibleInvoices.map((invoice) => {
+        {visibleInvoices?.map((invoice) => {
           const summary = invoice.summaryJson || {};
           return (
             <div key={invoice.id} className="rounded-3xl border border-slate-800 bg-slate-900 p-5">

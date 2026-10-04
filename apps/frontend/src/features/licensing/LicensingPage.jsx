@@ -66,7 +66,7 @@ export function LicensingPage({ token, user }) {
       {error && <div className="rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
 
       <div className="grid gap-3 md:grid-cols-4">
-        {plans.map((p) => (
+        {plans?.map((p) => (
           <button key={p.code} type="button" onClick={() => setState({ ...state, planCode: p.code, modules: p.includedModules || [] })}
             className={`rounded-3xl border p-4 text-left transition ${state.planCode === p.code ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`}>
             <p className="text-xs font-black uppercase text-slate-500">{p.code}</p>
@@ -190,7 +190,7 @@ function SuperAdminPlanEditor({ token, plans, onReload }) {
           <tr className="border-b border-purple-300 text-left"><th>Code</th><th>Název</th><th>Kč/uživ.</th><th>Paušál</th><th>Max</th></tr>
         </thead>
         <tbody>
-          {plans.map((p) => (
+          {plans?.map((p) => (
             <tr key={p.code} className="border-b border-purple-100">
               <td className="py-2 font-black">{p.code}</td>
               <td>{p.name}</td>

@@ -303,7 +303,7 @@ export function InventoryPage({ db, onCreateItem, onCreateMovement }) {
               <Field label="Materiál">
                 <select value={movementForm.itemId} onChange={(e) => setMovementForm((prev) => ({ ...prev, itemId: e.target.value }))} className="field">
                   <option value="">Vyber položku</option>
-                  {items.map((item) => <option key={item.id} value={item.id}>{item.name} {item.code ? `(${item.code})` : ''}</option>)}
+                  {items?.map((item) => <option key={item.id} value={item.id}>{item.name} {item.code ? `(${item.code})` : ''}</option>)}
                 </select>
               </Field>
               <Field label="Typ pohybu">
@@ -321,7 +321,7 @@ export function InventoryPage({ db, onCreateItem, onCreateMovement }) {
               <Field label="Projekt">
                 <select value={movementForm.projectId} onChange={(e) => setMovementForm((prev) => ({ ...prev, projectId: e.target.value }))} className="field">
                   <option value="">Bez projektu</option>
-                  {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                  {projects?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                 </select>
               </Field>
               <Field label="Doklad / reference">
@@ -387,7 +387,7 @@ export function InventoryPage({ db, onCreateItem, onCreateMovement }) {
           </div>
 
           <div className="mt-4 space-y-3">
-            {visibleItems.length ? visibleItems.map((item) => {
+            {visibleItems.length ? visibleItems?.map((item) => {
               const low = n(item.quantity) <= n(item.minQuantity);
               return (
                 <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
@@ -413,7 +413,7 @@ export function InventoryPage({ db, onCreateItem, onCreateMovement }) {
           <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Poslední pohyby</p>
           <h2 className="mt-2 text-2xl font-black text-white">Historie skladu</h2>
           <div className="mt-4 space-y-3">
-            {movements.length ? movements.slice(0, 12).map((movement) => (
+            {movements.length ? movements?.slice(0, 12)?.map((movement) => (
               <div key={movement.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-bold text-white">{movement.itemName || 'Materiál'}</p>

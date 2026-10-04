@@ -78,7 +78,7 @@ export function DailyLogPage({ db, onCreate }) {
 
         {selectedFiles.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {selectedFiles.map((file) => (
+            {selectedFiles?.map((file) => (
               <div key={`${file.name}-${file.size}`} className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
                 <p className="truncate text-xs text-slate-400">{file.name}</p>
                 <p className="mt-1 text-[11px] text-slate-500">{Math.round(file.size / 1024)} kB</p>

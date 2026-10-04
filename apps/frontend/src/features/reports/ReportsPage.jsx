@@ -26,7 +26,7 @@ export function ReportsPage({ db }) {
     <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
       <h2 className="mb-4 text-lg font-black text-emerald-400">Reporty a ekonomický přehled</h2>
       <div className="divide-y divide-slate-800">
-        {rows.map(([label, value]) => (
+        {rows?.map(([label, value]) => (
           <div key={label} className="flex items-center justify-between py-3">
             <span className="text-sm font-bold text-slate-300">{label}</span>
             <span className="text-sm font-black text-white">{value}</span>

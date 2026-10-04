@@ -104,7 +104,7 @@ export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onCh
               </div>
             )}
             <nav className="space-y-1">
-              {filtered.map(({ id, label, icon: Icon, group }) => (
+              {filtered?.map(({ id, label, icon: Icon, group }) => (
                 <button
                   key={id}
                   onClick={() => { onChangeTab(id); setMobileOpen(false); }}

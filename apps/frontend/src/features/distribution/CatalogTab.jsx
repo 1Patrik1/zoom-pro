@@ -80,7 +80,7 @@ export function CatalogTab({ token, onPick }) {
             <tr><th className="p-3">SKU</th><th>Název</th><th>Kategorie</th><th>Tvar</th><th>Rozměry</th><th>Jednotka</th><th></th></tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {rows?.map((r) => (
               <tr key={r.id} className="border-t border-slate-100">
                 <td className="p-3 font-black">{r.sku}</td>
                 <td>{r.name}</td>

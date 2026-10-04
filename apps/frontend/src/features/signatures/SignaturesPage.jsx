@@ -89,7 +89,7 @@ export function SignaturesPage({ token }) {
             <input name="documentId" placeholder="documentId" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
             <select name="providerId" required defaultValue={providers.find((provider) => provider.isDefault)?.id || ''} className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
               <option value="">-- poskytovatel podpisu --</option>
-              {providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.name || provider.displayName || provider.providerKey}</option>)}
+              {providers?.map((provider) => <option key={provider.id} value={provider.id}>{provider.name || provider.displayName || provider.providerKey}</option>)}
             </select>
             <input name="signerId" placeholder="signerId (volitelně)" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
             <input name="signerName" required placeholder="Jméno podepisujícího" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
@@ -110,7 +110,7 @@ export function SignaturesPage({ token }) {
             </div>
             {loading && <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-400">Načítám poskytovatele...</div>}
             <div className="space-y-3">
-              {providers.map((provider) => (
+              {providers?.map((provider) => (
                 <div key={provider.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -138,7 +138,7 @@ export function SignaturesPage({ token }) {
             <button onClick={loadData} className="rounded-2xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-300">Obnovit</button>
           </div>
           <div className="space-y-3">
-            {requests.map((request) => (
+            {requests?.map((request) => (
               <div key={request.id} onClick={() => setSelectedRequestId(request.id)} className={`cursor-pointer rounded-2xl border p-4 ${selectedRequestId === request.id ? 'border-blue-700 bg-blue-950/20' : 'border-slate-800 bg-slate-950'}`}>
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
