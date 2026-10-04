@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:integration": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "security": "npm audit",
+    "db:verify": "node ../../scripts/db-migrate-all.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
