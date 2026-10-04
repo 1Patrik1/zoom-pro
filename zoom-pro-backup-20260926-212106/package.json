@@ -1,0 +1,46 @@
+{
+  "name": "zoom-pro",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "install:all": "bash scripts/install.sh",
+    "install:windows": "powershell -ExecutionPolicy Bypass -File scripts/install.ps1",
+    "doctor": "node scripts/doctor.mjs",
+    "env:init": "node scripts/init-env.mjs",
+    "dev": "concurrently -n frontend,backend -c cyan,green \"npm run dev -w apps/frontend\" \"npm run dev -w apps/backend\"",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "dev:backend": "npm run dev -w apps/backend",
+    "dev:mobile": "cd apps/mobile && npm run dev",
+    "build": "npm run build -w apps/frontend",
+    "build:mobile": "cd apps/mobile && npm run build",
+    "start": "npm run start -w apps/backend",
+    "db:migrate:all": "node scripts/db-migrate-all.mjs",
+    "db:migrate:new": "node scripts/db-run-sql.mjs 001_initial_schema.sql 002_seed_permissions.sql 003_seed_default_module_settings.sql 007_project_geo_and_gallery.sql 008_invoice_automation_and_permissions.sql 009_attendance_geo_guard_and_log_media.sql 010_collisions_and_qr_labels.sql 011_zoom_pro_licensing.sql 012_monter_invoices.sql 013_distribution_platform.sql 014_mobile_devices.sql",
+    "db:migrate:legacy": "node scripts/db-run-sql.mjs 002_seed_permissions.sql 003_seed_default_module_settings.sql 004_upgrade_legacy_in_place.sql 007_project_geo_and_gallery.sql 008_invoice_automation_and_permissions.sql 009_attendance_geo_guard_and_log_media.sql",
+    "db:seed:platform": "node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql",
+    "db:seed:demo": "node scripts/db-run-sql.mjs 006_seed_demo_profiles_and_records.sql",
+    "db:seed:distribution": "node scripts/seed-distribution.mjs",
+    "db:setup:new": "npm run db:migrate:new && npm run db:seed:platform && npm run db:seed:demo",
+    "db:setup:full": "npm run db:migrate:all && npm run db:seed:platform && npm run db:seed:demo",
+    "android:apk": "cd apps/mobile && npm run android:apk",
+    "android:aab": "cd apps/mobile && npm run android:aab",
+    "docker:prod:up": "docker compose -f docker-compose.prod.yml up -d --build",
+    "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
+    "docker:prod:logs": "docker compose -f docker-compose.prod.yml logs -f",
+    "audit:all": "bash scripts/audit-all.sh",
+    "audit:security": "node scripts/audit-security.mjs",
+    "audit:functionality": "node scripts/audit-functionality.mjs",
+    "audit:stability": "node scripts/audit-stability.mjs",
+    "test:login": "node scripts/test-login.mjs",
+    "db:backup": "node scripts/backup-db.mjs",
+    "db:restore": "node scripts/restore-db.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "eslint": "^10.11.0"
+  }
+}

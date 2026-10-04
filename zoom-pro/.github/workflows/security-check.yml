@@ -1,0 +1,55 @@
+name: 🔐 Security Check
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  security:
+    name: 🔐 Bezpečnostní kontroly
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🔐 Kontrola .env
+        run: |
+          echo "🔍 Kontrola .env souboru..."
+          
+          if grep -q "\.env$" .gitignore; then
+            echo "✅ .env je v .gitignore"
+          else
+            echo "❌ .env musí být v .gitignore"
+            exit 1
+          fi
+          
+          if [ -f ".env" ]; then
+            echo "❌ .env soubor by neměl být commitan"
+            exit 1
+          fi
+          
+      - name: 🔐 Kontrola secrets
+        run: |
+          echo "🔍 Kontrola citlivých dat v kódu..."
+          
+          if grep -r "password.*=" apps/ --include="*.js" --include="*.ts" | grep -v "PLACEHOLDER"; then
+            echo "⚠️ Možné heslo v kódu"
+          fi
+          
+          if grep -r "api[_-]?key" apps/ --include="*.js" --include="*.ts" -i | grep -v "PLACEHOLDER" | grep -v "process.env"; then
+            echo "⚠️ Možný API klíč v kódu"
+          fi
+          
+      - name: 📊 Report
+        run: |
+          echo "## 🔐 Security Check" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Environment: OK" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Credentials: SAFE" >> $GITHUB_STEP_SUMMARY

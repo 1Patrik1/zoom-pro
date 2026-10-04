@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VZT Configurator PRO</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f0f0; }
+        
+        /* Styl ovládacího panelu */
+        #panel {
+            position: absolute; top: 0; left: 0; bottom: 0; width: 320px;
+            background: rgba(28, 30, 33, 0.95); color: #fff;
+            padding: 20px; box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+            overflow-y: auto; z-index: 100;
+        }
+
+        h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #444; padding-bottom: 10px; color: #4db8ff; }
+        h3 { font-size: 0.9rem; color: #aaa; margin-top: 20px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;}
+
+        .control-group { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        label { font-size: 0.85rem; width: 60px; }
+        input[type=number] { width: 60px; padding: 4px; border: none; border-radius: 4px; background: #444; color: white; text-align: right; }
+        input[type=range] { flex-grow: 1; margin: 0 10px; cursor: pointer; }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        button {
+            padding: 8px; border: none; border-radius: 4px; cursor: pointer;
+            background: #444; color: white; transition: 0.2s; font-size: 0.8rem;
+        }
+        button:hover { background: #4db8ff; color: #000; }
+        button.active { background: #4db8ff; color: #000; font-weight: bold; }
+
+        #info-box {
+            margin-top: 30px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 4px solid #4db8ff;
+        }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        .value { font-weight: bold; color: #fff; }
+
+        /* Instrukce na ploše */
+        #instructions {
+            position: absolute; bottom: 20px; right: 20px; 
+            color: #555; font-size: 0.8rem; pointer-events: none; text-align: right;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<div id="panel">
+    <h2>VZT Konfigurátor</h2>
+
+    <h3>Vstup (A)</h3>
+    <div class="control-group"><label>Šířka</label><input type="range" min="100" max="2000" id="slide_w1"><input type="number" id="w1" value="500"></div>
+    <div class="control-group"><label>Výška</label><input type="range" min="100" max="2000" id="slide_h1"><input type="number" id="h1" value="300"></div>
+
+    <h3>Výstup (B)</h3>
+    <div class="control-group"><label>Šířka</label><input type="range" min="100" max="2000" id="slide_w2"><input type="number" id="w2" value="400"></div>
+    <div class="control-group"><label>Výška</label><input type="range" min="100" max="2000" id="slide_h2"><input type="number" id="h2" value="200"></div>
+
+    <h3>Parametry</h3>
+    <div class="control-group"><label>Délka</label><input type="range" min="100" max="2000" id="slide_len"><input type="number" id="len" value="500"></div>
+    
+    <h3>Pozice Výstupu (Offset)</h3>
+    <div class="btn-grid">
+        <button onclick="align('center')">Na střed</button>
+        <button onclick="align('left')">Rovná LEVÁ</button>
+        <button onclick="align('right')">Rovná PRAVÁ</button>
+        <button onclick="align('top')">Rovná HORNÍ</button>
+        <button onclick="align('bottom')">Rovná DOLNÍ</button>
+        <button onclick="resetOffsets()">Reset</button>
+    </div>
+    <br>
+    <div class="control-group"><label>X</label><input type="range" min="-1000" max="1000" id="slide_offX"><input type="number" id="offX" value="0"></div>
+    <div class="control-group"><label>Y</label><input type="range" min="-1000" max="1000" id="slide_offY"><input type="number" id="offY" value="0"></div>
+
+    <div id="info-box">
+        <div class="info-row"><span>Plocha pláště:</span> <span class="value" id="areaDisplay">0.00 m²</span></div>
+        <div class="info-row"><span>Max. úhel:</span> <span class="value" id="angleDisplay">0°</span></div>
+        <div style="font-size: 0.75rem; color: #888; margin-top:5px;">(Bez přídavků na falce)</div>
+    </div>
+</div>
+
+<div id="instructions">
+    Levé tlačítko: Rotace • Pravé tlačítko: Posun • Kolečko: Zoom
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- 1. SETUP SCÉNY ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xeef2f5);
+    scene.fog = new THREE.Fog(0xeef2f5, 2000, 5000);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.set(1200, 800, 1500);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // Světla
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(500, 1000, 500);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    // Podlaha
+    const grid = new THREE.GridHelper(5000, 50, 0xcccccc, 0xdddddd);
+    scene.add(grid);
+
+    // --- 2. LOGIKA GENERÁTORU ---
+
+    // Skupina objektů (aby se mazalo vše najednou)
+    const ductGroup = new THREE.Group();
+    scene.add(ductGroup);
+
+    // Materiály
+    const matMetal = new THREE.MeshStandardMaterial({ 
+        color: 0xbdc3c7, 
+        roughness: 0.4, 
+        metalness: 0.6,
+        side: THREE.DoubleSide
+    });
+    
+    const matFlange = new THREE.MeshStandardMaterial({ 
+        color: 0x7f8c8d, 
+        roughness: 0.7, 
+        metalness: 0.3 
+    });
+
+    const matEdges = new THREE.LineBasicMaterial({ color: 0x2c3e50 });
+
+    // Hlavní funkce pro překreslení
+    window.rebuild = function() {
+        // Vyčistit starý model
+        while(ductGroup.children.length > 0){ 
+            const obj = ductGroup.children[0];
+            if(obj.geometry) obj.geometry.dispose();
+            ductGroup.remove(obj); 
+        }
+
+        // Získat hodnoty
+        const w1 = getVal('w1');
+        const h1 = getVal('h1');
+        const w2 = getVal('w2');
+        const h2 = getVal('h2');
+        const len = getVal('len');
+        const offX = getVal('offX');
+        const offY = getVal('offY');
+        const flangeSize = 20; // Velikost příruby (P20)
+
+        // --- A. Hlavní tělo (Plášť) ---
+        const geom = new THREE.BufferGeometry();
+        const v = [];
+
+        // Souřadnice bodů (Z=0 pro vstup, Z=len pro výstup)
+        // Vstup (0-3)
+        const in_bl = [-w1/2, -h1/2, 0];
+        const in_br = [ w1/2, -h1/2, 0];
+        const in_tr = [ w1/2,  h1/2, 0];
+        const in_tl = [-w1/2,  h1/2, 0];
+
+        // Výstup (4-7) - aplikujeme Offset
+        const out_bl = [offX - w2/2, offY - h2/2, len];
+        const out_br = [offX + w2/2, offY - h2/2, len];
+        const out_tr = [offX + w2/2, offY + h2/2, len];
+        const out_tl = [offX - w2/2, offY + h2/2, len];
+
+        const vertices = [
+            ...in_bl, ...in_br, ...out_br, ...in_bl, ...out_br, ...out_bl, // Spodní
+            ...in_br, ...in_tr, ...out_tr, ...in_br, ...out_tr, ...out_br, // Pravá
+            ...in_tr, ...in_tl, ...out_tl, ...in_tr, ...out_tl, ...out_tr, // Horní
+            ...in_tl, ...in_bl, ...out_bl, ...in_tl, ...out_bl, ...out_tl  // Levá
+        ];
+
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geom.computeVertexNormals();
+
+        const mesh = new THREE.Mesh(geom, matMetal);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        ductGroup.add(mesh);
+
+        // Hrany pro lepší vizuál
+        const edges = new THREE.EdgesGeometry(geom);
+        const line = new THREE.LineSegments(edges, matEdges);
+        ductGroup.add(line);
+
+        // --- B. Příruby (Vizuální rámečky) ---
+        createFlange(w1, h1, 0, 0, 0, flangeSize);
+        createFlange(w2, h2, len, offX, offY, flangeSize);
+
+        // --- C. Výpočty ---
+        calculateStats(vertices);
+    }
+
+    function createFlange(w, h, z, ox, oy, size) {
+        // Jednoduchá geometrie rámečku pomocí 4 boxů nebo Extrude (zde jednoduše 4 boxy)
+        const t = 3; // tloušťka plechu příruby
+        const group = new THREE.Group();
+        group.position.set(ox, oy, z);
+
+        // Funkce pro vytvoření jedné lišty
+        const makeBar = (bw, bh, bx, by) => {
+            const g = new THREE.BoxGeometry(bw, bh, size);
+            const m = new THREE.Mesh(g, matFlange);
+            m.position.set(bx, by, 0); // Příruba jde vždy "ven" nebo na střed, tady zjednodušeno
+            return m;
+        }
+
+        // Horní, Dolní, Levá, Pravá
+        group.add(makeBar(w + 2*size, size, 0, h/2 + size/2)); 
+        group.add(makeBar(w + 2*size, size, 0, -h/2 - size/2));
+        group.add(makeBar(size, h, -w/2 - size/2, 0));
+        group.add(makeBar(size, h, w/2 + size/2, 0));
+
+        ductGroup.add(group);
+    }
+
+    function calculateStats(verts) {
+        // Výpočet plochy trojúhelníků
+        let area = 0;
+        for (let i = 0; i < verts.length; i += 9) {
+            // Vezmeme 3 body trojúhelníku
+            const ax=verts[i], ay=verts[i+1], az=verts[i+2];
+            const bx=verts[i+3], by=verts[i+4], bz=verts[i+5];
+            const cx=verts[i+6], cy=verts[i+7], cz=verts[i+8];
+
+            // Vektor AB a AC
+            const ab = new THREE.Vector3(bx-ax, by-ay, bz-az);
+            const ac = new THREE.Vector3(cx-ax, cy-ay, cz-az);
+            
+            // Křížový součin = plocha rovnoběžníku, polovina je trojúhelník
+            const cross = new THREE.Vector3().crossVectors(ab, ac);
+            area += cross.length() / 2;
+        }
+
+        // Převod mm² na m²
+        const areaM2 = area / 1000000;
+        document.getElementById('areaDisplay').innerText = areaM2.toFixed(3) + " m²";
+    }
+
+    // Pomocné funkce
+    function getVal(id) { return parseFloat(document.getElementById(id).value); }
+    function setVal(id, val) { 
+        document.getElementById(id).value = val; 
+        document.getElementById('slide_' + id).value = val;
+    }
+
+    // --- SYNCHRONIZACE INPUTŮ A SLIDERŮ ---
+    const ids = ['w1', 'h1', 'w2', 'h2', 'len', 'offX', 'offY'];
+    ids.forEach(id => {
+        const num = document.getElementById(id);
+        const slide = document.getElementById('slide_' + id);
+        
+        // Init slide value
+        slide.value = num.value;
+
+        // Eventy
+        num.addEventListener('input', () => { slide.value = num.value; rebuild(); });
+        slide.addEventListener('input', () => { num.value = slide.value; rebuild(); });
+    });
+
+    // --- LOGIKA TLAČÍTEK ZAROVNÁNÍ ---
+    window.align = function(type) {
+        const w1 = getVal('w1');
+        const h1 = getVal('h1');
+        const w2 = getVal('w2');
+        const h2 = getVal('h2');
+        
+        let tx = 0, ty = 0;
+
+        // Matematika: Offset = (Rozdíl šířek) / 2. Znaménko určuje směr.
+        if (type === 'left')  tx = (w2 - w1) / 2;
+        if (type === 'right') tx = (w1 - w2) / 2;
+        if (type === 'top')   ty = (h1 - h2) / 2;
+        if (type === 'bottom') ty = (h2 - h1) / 2;
+        if (type === 'center') { tx = 0; ty = 0; }
+
+        // Pokud chci zarovnat jen X, Y nechám staré (pro kombinace Rovná Strana + Rovná Dno)
+        if (type === 'left' || type === 'right' || type === 'center') setVal('offX', tx);
+        if (type === 'top' || type === 'bottom' || type === 'center') setVal('offY', ty);
+
+        rebuild();
+    }
+
+    window.resetOffsets = function() {
+        setVal('offX', 0);
+        setVal('offY', 0);
+        rebuild();
+    }
+
+    // --- START ---
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    
+    rebuild(); // První build
+    animate();
+
+</script>
+</body>
+</html>

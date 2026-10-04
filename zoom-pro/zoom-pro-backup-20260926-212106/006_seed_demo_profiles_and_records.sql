@@ -1,0 +1,355 @@
+BEGIN;
+
+-- ============================================================================
+-- DEMO DATA FOR DOCUMENTS / IMPORTS / EXPORTS / SIGNATURES
+-- ============================================================================
+
+INSERT INTO "ImportProfile" (
+  id,
+  "companyId",
+  name,
+  "moduleKey",
+  format,
+  encoding,
+  delimiter,
+  "hasHeaderRow",
+  "startRow",
+  "dateFormat",
+  "decimalSeparator",
+  "trimWhitespace",
+  "normalizeDiacritics",
+  "duplicateStrategy",
+  "rollbackOnError",
+  "fieldMapping",
+  "validationRules",
+  "isActive",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    '00000000-0000-4000-8000-000000000101',
+    '00000000-0000-4000-8000-000000000001',
+    'Sklad CSV import',
+    'inventory',
+    'CSV',
+    'UTF-8',
+    ';',
+    TRUE,
+    1,
+    'DD.MM.YYYY',
+    ',',
+    TRUE,
+    FALSE,
+    'SKIP',
+    FALSE,
+    '{"sku":"A","name":"B","quantity":"C","unit":"D"}'::jsonb,
+    '{"quantity":{"type":"number","required":true}}'::jsonb,
+    TRUE,
+    NOW(),
+    NOW()
+  ),
+  (
+    '00000000-0000-4000-8000-000000000102',
+    '00000000-0000-4000-8000-000000000001',
+    'Docházka XLSX import',
+    'attendance',
+    'XLSX',
+    'UTF-8',
+    ';',
+    TRUE,
+    1,
+    'DD.MM.YYYY',
+    ',',
+    TRUE,
+    FALSE,
+    'UPSERT',
+    TRUE,
+    '{"employeeId":"A","date":"B","type":"C","status":"D"}'::jsonb,
+    '{"employeeId":{"required":true},"date":{"required":true}}'::jsonb,
+    TRUE,
+    NOW(),
+    NOW()
+  )
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO "ExportProfile" (
+  id,
+  "companyId",
+  name,
+  "moduleKey",
+  format,
+  "includeMetadata",
+  "includeAudit",
+  anonymize,
+  signed,
+  "signatureLevel",
+  watermark,
+  "watermarkText",
+  "passwordProtect",
+  "encryptZip",
+  compress,
+  "includeBranding",
+  "includeAttachments",
+  "filterPreset",
+  "columnPreset",
+  "sortOrder",
+  "timezoneNormalize",
+  "isActive",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    '00000000-0000-4000-8000-000000000103',
+    '00000000-0000-4000-8000-000000000001',
+    'Faktury PDF audit export',
+    'invoices',
+    'PDF',
+    TRUE,
+    TRUE,
+    FALSE,
+    FALSE,
+    'INTERNAL_APPROVAL',
+    TRUE,
+    'INTERNAL',
+    FALSE,
+    FALSE,
+    FALSE,
+    TRUE,
+    FALSE,
+    '{"status":"OPEN"}'::jsonb,
+    '["invoiceNumber","amount","status","createdAt"]'::jsonb,
+    '{"createdAt":"desc"}'::jsonb,
+    TRUE,
+    TRUE,
+    NOW(),
+    NOW()
+  ),
+  (
+    '00000000-0000-4000-8000-000000000104',
+    '00000000-0000-4000-8000-000000000001',
+    'Dokumenty XLSX přehled',
+    'documents',
+    'XLSX',
+    TRUE,
+    FALSE,
+    FALSE,
+    FALSE,
+    'INTERNAL_APPROVAL',
+    FALSE,
+    NULL,
+    FALSE,
+    FALSE,
+    FALSE,
+    TRUE,
+    FALSE,
+    '{"status":"APPROVED"}'::jsonb,
+    '["title","documentType","status","createdAt"]'::jsonb,
+    '{"createdAt":"desc"}'::jsonb,
+    TRUE,
+    TRUE,
+    NOW(),
+    NOW()
+  )
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO "SignatureProvider" (
+  id,
+  "companyId",
+  name,
+  "providerKey",
+  "apiUrl",
+  "authMethod",
+  "apiKey",
+  "callbackUrl",
+  "webhookSecret",
+  "supportedLevels",
+  "certPath",
+  "isActive",
+  "isDefault",
+  "createdAt",
+  "updatedAt"
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000105',
+  '00000000-0000-4000-8000-000000000001',
+  'Internal Demo Provider',
+  'internal-demo',
+  'https://sign.internal.local/api',
+  'API_KEY',
+  'demo-key',
+  'http://localhost:5000/api/signatures/callback',
+  'demo-webhook-secret',
+  ARRAY['INTERNAL_APPROVAL'::signature_level_enum,'SIMPLE'::signature_level_enum,'ADVANCED'::signature_level_enum],
+  '/certs/internal-demo.pem',
+  TRUE,
+  TRUE,
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  "providerKey" = EXCLUDED."providerKey",
+  "apiUrl" = EXCLUDED."apiUrl",
+  "authMethod" = EXCLUDED."authMethod",
+  "apiKey" = EXCLUDED."apiKey",
+  "callbackUrl" = EXCLUDED."callbackUrl",
+  "webhookSecret" = EXCLUDED."webhookSecret",
+  "supportedLevels" = EXCLUDED."supportedLevels",
+  "certPath" = EXCLUDED."certPath",
+  "isActive" = EXCLUDED."isActive",
+  "isDefault" = EXCLUDED."isDefault",
+  "updatedAt" = NOW();
+
+INSERT INTO "Document" (
+  id,
+  "companyId",
+  "documentType",
+  status,
+  "authorId",
+  locale,
+  title,
+  "dataJson",
+  note,
+  attachments,
+  "createdAt",
+  "updatedAt"
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000106',
+  '00000000-0000-4000-8000-000000000001',
+  'PRICE_OFFER',
+  'PENDING_APPROVAL',
+  '00000000-0000-4000-8000-000000000010',
+  'cs',
+  'Demo cenová nabídka VZT',
+  '{"referenceNumber":"CN-2026-0001","customerName":"Demo klient","amount":125000,"description":"Ukázková nabídka pro první spuštění aplikace"}'::jsonb,
+  'Seed dokument pro otestování detailu, exportů a podpisů.',
+  ARRAY[]::text[],
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO "ImportJob" (
+  id,
+  "companyId",
+  "profileId",
+  "moduleKey",
+  status,
+  "sourceFileName",
+  "sourceFileUrl",
+  "sourceFileHash",
+  "totalRows",
+  "successRows",
+  "warningRows",
+  "errorRows",
+  "skippedRows",
+  "updatedRows",
+  "isDryRun",
+  "startedBy",
+  "startedAt",
+  "completedAt",
+  "errorLog",
+  "auditReason"
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000107',
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000101',
+  'inventory',
+  'COMPLETED',
+  'demo-sklad.csv',
+  'https://example.local/files/demo-sklad.csv',
+  'sha256:demo-import-file',
+  24,
+  22,
+  1,
+  1,
+  0,
+  4,
+  TRUE,
+  '00000000-0000-4000-8000-000000000010',
+  NOW() - INTERVAL '2 hours',
+  NOW() - INTERVAL '110 minutes',
+  '{"warnings":["1 duplicitní SKU"],"errors":["1 řádek s neplatným množstvím"]}'::jsonb,
+  'První validační běh po nasazení platformy'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO "ExportJob" (
+  id,
+  "companyId",
+  "profileId",
+  "moduleKey",
+  status,
+  format,
+  filters,
+  "outputFileName",
+  "outputFileUrl",
+  "outputFileHash",
+  "outputSizeBytes",
+  "recordCount",
+  "startedBy",
+  "startedAt",
+  "completedAt",
+  "errorMessage"
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000108',
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000103',
+  'invoices',
+  'COMPLETED',
+  'PDF',
+  '{"status":"OPEN","dateFrom":"2026-01-01","dateTo":"2026-12-31"}'::jsonb,
+  'faktury-open-2026.pdf',
+  'https://example.local/exports/faktury-open-2026.pdf',
+  'sha256:demo-export-file',
+  184320,
+  18,
+  '00000000-0000-4000-8000-000000000010',
+  NOW() - INTERVAL '1 hour',
+  NOW() - INTERVAL '50 minutes',
+  NULL
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO "SignatureRequest" (
+  id,
+  "companyId",
+  "documentId",
+  "providerId",
+  "signerId",
+  "signerEmail",
+  "signerName",
+  "signatureLevel",
+  status,
+  "expiresAt",
+  "signingUrl",
+  "providerRequestId",
+  "providerResponse",
+  "createdAt",
+  "updatedAt"
+)
+VALUES (
+  '00000000-0000-4000-8000-000000000109',
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000106',
+  '00000000-0000-4000-8000-000000000105',
+  '00000000-0000-4000-8000-000000000010',
+  'owner@platform.local',
+  'Platform Owner',
+  'INTERNAL_APPROVAL',
+  'SENT',
+  NOW() + INTERVAL '7 days',
+  'https://sign.internal.local/request/demo-1',
+  'DEMO-REQ-1',
+  '{"state":"sent"}'::jsonb,
+  NOW() - INTERVAL '15 minutes',
+  NOW() - INTERVAL '15 minutes'
+)
+ON CONFLICT (id) DO NOTHING;
+
+COMMIT;

@@ -1,0 +1,1116 @@
+// =============================================================================
+// PWA-VZT-SYSTEM — Kompletní Prisma schema
+// Verze: 2.0.0
+// Zahrnuje: core, settings, permissions, documents, imports, exports, signatures, audit
+// =============================================================================
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+/// Role v rámci systému — sjednoceno se server.js (nahrazuje starý enum z schema.prisma)
+enum Role {
+  SUPERADMIN    /// Vlastník platformy — cross-company
+  REDITEL       /// Ředitel firmy — plný přístup v rámci company
+  ADMINISTRACE  /// Administrativa — faktury, tým, ceník
+  VEDOUCI       /// Vedoucí projektu — projekty, deník, tým projektu
+  MONTER        /// Montér — docházka, kalkulace, deník (čtení)
+}
+
+/// Stavy docházky
+enum AttendanceType {
+  PRICHOD   /// Příchod do práce
+  ODCHOD    /// Odchod z práce
+  ABSENCE   /// Absence (nemoc, dovolená, školení)
+}
+
+enum AttendanceStatus {
+  PRACE       /// Práce
+  NEMOC       /// Nemoc
+  DOVOLENA    /// Dovolená
+  SKOLENI     /// Školení
+  CESTA       /// Pracovní cesta
+}
+
+/// Stavy faktur
+enum InvoiceStatus {
+  DRAFT         /// Rozpracovaná
+  ISSUED        /// Vystavená / čeká na úhradu
+  ZAPLACENO     /// Zaplaceno
+  OVERDUE       /// Po splatnosti
+  CANCELLED     /// Stornována
+}
+
+/// Typy dokumentů
+enum DocumentType {
+  INVOICE                   /// Faktura
+  PROFORMA_INVOICE          /// Zálohová faktura
+  CREDIT_NOTE               /// Dobropis / storno
+  ATTENDANCE_STATEMENT      /// Docházkový výkaz
+  ATTENDANCE_CLOSURE        /// Docházková uzávěrka
+  DAILY_LOG_ENTRY           /// Zápis stavebního deníku
+  DAILY_LOG_REPORT          /// Report deníku
+  PROJECT_ASSIGNMENT        /// Přidělení na projekt
+  PROJECT_HANDOVER_PROTOCOL /// Předávací protokol
+  CHANGE_PROTOCOL           /// Změnový protokol
+  INVENTORY_ISSUE_NOTE      /// Výdejka ze skladu
+  INVENTORY_RECEIPT_NOTE    /// Příjemka na sklad
+  INVENTORY_AUDIT_PROTOCOL  /// Inventurní protokol
+  VZT_CALCULATION_SHEET     /// Kalkulační list VZT
+  VZT_PRODUCTION_SHEET      /// Výrobní list VZT
+  PRICE_OFFER               /// Cenová nabídka
+  SERVICE_REPORT            /// Servisní protokol
+  LICENSE_AGREEMENT         /// Licenční smlouva
+  USER_APPROVAL             /// Schválení uživatele
+  SIGNATURE_AUTHORIZATION   /// Pověření k podpisu
+  PAYMENT_REMINDER          /// Upomínka k platbě
+  PAYMENT_CONFIRMATION      /// Potvrzení o úhradě
+}
+
+/// Stavy dokumentu — stavový automat
+enum DocumentStatus {
+  DRAFT               /// Rozpracovaný
+  PENDING_REVIEW      /// Čeká na kontrolu
+  PENDING_APPROVAL    /// Čeká na schválení
+  APPROVED            /// Schválen
+  PENDING_SIGNATURE   /// Čeká na podpis
+  SIGNED              /// Podepsán
+  EXPORTED            /// Exportován
+  ARCHIVED            /// Archivován
+  REJECTED            /// Zamítnut
+  CANCELLED           /// Zrušen
+  SUPERSEDED          /// Nahrazen novou verzí
+}
+
+/// Úrovně elektronického podpisu (eIDAS)
+enum SignatureLevel {
+  INTERNAL_APPROVAL     /// Interní potvrzení (bez právní váhy)
+  SIMPLE                /// Jednoduchý elektronický podpis
+  ADVANCED              /// Pokročilý elektronický podpis (AdES)
+  QUALIFIED             /// Kvalifikovaný elektronický podpis (QES)
+  ELECTRONIC_SEAL       /// Elektronická pečeť firmy
+  TIMESTAMP_ONLY        /// Pouze kvalifikované časové razítko
+}
+
+/// Stavy podpisového požadavku
+enum SignatureRequestStatus {
+  PENDING     /// Čeká na podpis
+  SENT        /// Odesláno signatáři
+  VIEWED      /// Zobrazeno signatářem
+  SIGNED      /// Podepsáno
+  REJECTED    /// Odmítnuto
+  EXPIRED     /// Vypršela platnost
+  CANCELLED   /// Zrušeno
+}
+
+/// Výstupní formáty exportu
+enum ExportFormat {
+  PDF
+  DOCX
+  XLSX
+  CSV
+  JSON
+  XML
+  ISDOC     /// Elektronická faktura CZ standard
+  ZIP
+}
+
+/// Vstupní formáty importu
+enum ImportFormat {
+  CSV
+  XLSX
+  JSON
+  XML
+  ZIP
+}
+
+/// Stavy importní úlohy
+enum ImportJobStatus {
+  PENDING     /// Čeká na zpracování
+  PARSING     /// Parsování souboru
+  VALIDATING  /// Validace dat
+  PREVIEWING  /// Čeká na potvrzení uživatelem
+  RUNNING     /// Probíhá import
+  COMPLETED   /// Dokončeno úspěšně
+  PARTIAL     /// Dokončeno částečně (s chybami)
+  FAILED      /// Selhalo
+  ROLLED_BACK /// Vráceno zpět
+}
+
+/// Stavy exportní úlohy
+enum ExportJobStatus {
+  PENDING     /// Čeká na zpracování
+  RUNNING     /// Generuje se
+  COMPLETED   /// Dokončeno
+  SIGNING     /// Podepisuje se
+  SIGNED      /// Podepsáno a archivováno
+  FAILED      /// Selhalo
+}
+
+/// Typy pohybů skladu
+enum InventoryMovementType {
+  RECEIPT         /// Příjem na sklad
+  ISSUE           /// Výdej ze skladu
+  TRANSFER        /// Převod mezi sklady
+  ADJUSTMENT      /// Inventurní úprava
+  WRITE_OFF       /// Odpis
+  RETURN          /// Vrácení od montáže
+}
+
+/// Typy schvalovacích kroků
+enum ApprovalStepType {
+  REVIEW      /// Kontrola / připomínkování
+  APPROVE     /// Schválení / zamítnutí
+  SIGN        /// Elektronický podpis
+  NOTIFY      /// Pouze notifikace, bez akce
+}
+
+// =============================================================================
+// CORE — COMPANY, USER, LICENSE
+// =============================================================================
+
+/// Firma (tenant) — rozšířeno o všechna pole reálně používaná v server.js
+model Company {
+  id               String   @id @default(uuid())
+  name             String
+  isActive         Boolean  @default(false)    /// Aktivní licence
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Obchodní identita
+  ico              String?                       /// IČO
+  dic              String?                       /// DIČ / VAT
+  street           String?                       /// Ulice a č.p.
+  city             String?                       /// Město
+  zip              String?                       /// PSČ
+  country          String?  @default("CZ")       /// Stát ISO kód
+  phone            String?
+  email            String?
+  web              String?
+
+  // Branding a dokumenty
+  logoUrl          String?                       /// URL loga
+  stampUrl         String?                       /// URL razítka
+  signatorName     String?                       /// Jméno odpovědné osoby pro podpisy
+  signatorRole     String?                       /// Funkce odpovědné osoby
+
+  // Bankovní údaje
+  bankAccount      String?                       /// Číslo účtu
+  bankIban         String?                       /// IBAN
+  bankSwift        String?                       /// BIC/SWIFT
+  bankName         String?                       /// Název banky
+
+  // VZT ceník — přeneseno z flat Company sloupců
+  costPerSqMeter   Float    @default(0)          /// Výrobní cena / m²
+  sellPerSqMeter   Float    @default(0)          /// Prodejní cena / m²
+
+  // Vztahy — provozní
+  users            User[]
+  projects         Project[]
+  attendance       Attendance[]
+  dailyLogs        DailyLog[]
+  invoices         Invoice[]
+  components       VztComponent[]
+  consumables      ConsumablesSummary?
+  projectChats     ProjectChat[]
+  assignments      ProjectAssignment[]
+  inventory        InventoryItem[]
+  inventoryMovements InventoryMovement[]
+  tasks            Task[]
+
+  // Vztahy — konfigurace
+  settings         CompanySettings?
+  moduleSettings   ModuleSettings[]
+  documentTemplates DocumentTemplate[]
+  documents        Document[]
+  importProfiles   ImportProfile[]
+  exportProfiles   ExportProfile[]
+  signatureProviders SignatureProvider[]
+  approvalFlows    ApprovalFlow[]
+  licenses         License[]
+  auditLogs        AuditLog[]
+
+  @@map("Company")
+}
+
+/// Uživatel — rozšířeno o profil a timestamps
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String
+  role        Role      @default(MONTER)
+  isApproved  Boolean   @default(false)
+  companyId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Profil
+  firstName   String?
+  lastName    String?
+  phone       String?
+  avatarUrl   String?
+  employeeId  String?                            /// Osobní číslo zaměstnance
+
+  // 2FA
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean @default(false)
+
+  // Vztahy
+  company     Company   @relation(fields: [companyId], references: [id])
+  attendances Attendance[]
+  projectChats ProjectChat[]
+  dailyLogs   DailyLog[]
+  tasks       Task[]
+  documents   Document[]   @relation("DocumentAuthor")
+  approvedDocuments Document[] @relation("DocumentApprover")
+  signatureRequests SignatureRequest[]
+  auditLogs   AuditLog[]
+  importJobs  ImportJob[]
+  exportJobs  ExportJob[]
+  approvalDecisions ApprovalDecision[]
+
+  @@map("User")
+}
+
+/// Licence platformy pro firmu
+model License {
+  id              String   @id @default(uuid())
+  companyId       String
+  validFrom       DateTime @default(now())
+  validUntil      DateTime
+  tier            String                         /// "starter" | "professional" | "enterprise"
+  maxUsers        Int      @default(10)
+  maxProjects     Int      @default(20)
+  storageQuotaMb  Int      @default(1024)
+  enabledModules  String[]                       /// Seznam povolených moduleKey
+  signaturesEnabled Boolean @default(false)
+  exportsEnabled  Boolean @default(true)
+  importsEnabled  Boolean @default(true)
+  apiEnabled      Boolean @default(false)
+  whiteLabelEnabled Boolean @default(false)
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
+
+  @@map("License")
+}
+
+// =============================================================================
+// PROVOZNÍ MODELY — opraveno, sjednoceno se server.js
+// =============================================================================
+
+/// Projekt (stavba)
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  companyId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Geo
+  lat         Float?
+  lng         Float?
+  radius      Float     @default(100.0)         /// Geofence radius v metrech
+  address     String?
+
+  // Identita projektu
+  code        String?                           /// Interní kód projektu
+  clientName  String?                           /// Zákazník
+  status      String    @default("ACTIVE")      /// ACTIVE | COMPLETED | ARCHIVED
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+  budget       Float?
+
+  // Vztahy
+  company     Company   @relation(fields: [companyId], references: [id])
+  attendance  Attendance[]
+  dailyLogs   DailyLog[]
+  projectChats ProjectChat[]
+  assignments ProjectAssignment[]
+  documents   Document[]
+
+  @@map("Project")
+}
+
+/// Přiřazení pracovníka na projekt
+model ProjectAssignment {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  companyId   String
+  assignedAt  DateTime @default(now())
+  role        String?                           /// Projektová role (volný text)
+
+  project     Project  @relation(fields: [projectId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@unique([projectId, userId, companyId])
+  @@map("ProjectAssignment")
+}
+
+/// Docházka — sjednoceno se server.js (type/status/lat/lng/companyId)
+model Attendance {
+  id          String           @id @default(uuid())
+  userId      String
+  companyId   String
+  projectId   String?
+  type        AttendanceType
+  status      AttendanceStatus @default(PRACE)
+  lat         Float?
+  lng         Float?
+  note        String?
+  editedBy    String?          /// ID uživatele, který editoval záznam
+  editReason  String?          /// Důvod editace (audit)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user        User    @relation(fields: [userId], references: [id])
+  company     Company @relation(fields: [companyId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+
+  @@map("Attendance")
+}
+
+/// Stavební deník
+model DailyLog {
+  id          String   @id @default(uuid())
+  companyId   String
+  projectId   String?
+  authorId    String                             /// FK na User (v server.js je authorName = user.id)
+  logDate     DateTime
+  weather     String?
+  content     String
+  attachments String[]                           /// URL příloh
+  isLocked    Boolean  @default(false)           /// Uzamčeno po podpisu
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+  author      User     @relation(fields: [authorId], references: [id])
+
+  @@map("DailyLog")
+}
+
+/// Zprávy projektového chatu
+model ProjectChat {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  companyId   String
+  text        String
+  attachmentUrl String?
+  createdAt   DateTime @default(now())
+
+  project     Project  @relation(fields: [projectId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@map("ProjectChat")
+}
+
+/// VZT komponenta — opraveno o companyId a requiresAccessDoor
+model VztComponent {
+  id                String   @id @default(uuid())
+  companyId         String
+  type              String                       /// "Rovné" | "Koleno" | atd.
+  width             Float?                       /// Šířka mm
+  height            Float?                       /// Výška mm
+  width2            Float?                       /// Šířka 2 (pro redukce)
+  height2           Float?                       /// Výška 2 (pro redukce)
+  length            Float                        /// Délka mm
+  angle             Float?                       /// Úhel pro kolena
+  offset            Float?
+  surfaceArea       Float                        /// Povrch m² (vypočteno)
+  weight            Float                        /// Hmotnost kg (vypočteno)
+  requiresAccessDoor Boolean @default(false)     /// Vyžaduje revizní dvířka
+  projectId         String?                      /// Přiřazení na projekt
+  note              String?
+  createdAt         DateTime @default(now())
+
+  company           Company? @relation(fields: [companyId], references: [id])
+
+  @@map("VztComponent")
+}
+
+/// Souhrn spotřebního materiálu — sjednoceno se server.js
+model ConsumablesSummary {
+  id              String   @id @default(uuid())
+  companyId       String   @unique
+  totalScrews     Float    @default(0)           /// Šrouby M8 (ks)
+  totalTapeMeters Float    @default(0)           /// Těsnicí páska (m)
+  totalRivets     Float    @default(0)           /// Nýty (ks)
+  totalSealant    Float    @default(0)           /// Tmel (ml)
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
+
+  @@map("ConsumablesSummary")
+}
+
+/// Faktura
+model Invoice {
+  id              String        @id @default(uuid())
+  companyId       String
+  invoiceNumber   String
+  clientName      String?
+  clientIco       String?
+  clientDic       String?
+  clientAddress   String?
+  amount          Float
+  amountVat       Float?                         /// Částka DPH
+  amountTotal     Float?                         /// Celkem s DPH
+  currency        String        @default("CZK")
+  vatRate         Float?        @default(21.0)
+  status          InvoiceStatus @default(ISSUED)
+  dueDate         DateTime?
+  paidAt          DateTime?
+  issuedAt        DateTime      @default(now())
+  projectId       String?
+  variableSymbol  String?
+  constantSymbol  String?
+  note            String?
+  qrPaymentData   String?                        /// Data pro QR platbu
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
+  documents       Document[]
+
+  @@unique([companyId, invoiceNumber])
+  @@map("Invoice")
+}
+
+/// Skladová položka
+model InventoryItem {
+  id              String   @id @default(uuid())
+  companyId       String
+  name            String
+  code            String?                        /// SKU / katalogové číslo
+  quantity        Float    @default(0)
+  unit            String                         /// ks / m / m² / kg
+  minQuantity     Float    @default(0)           /// Minimální zásoba
+  location        String?                        /// Umístění ve skladu
+  supplierId      String?
+  purchasePrice   Float?
+  sellPrice       Float?
+  category        String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
+  movements       InventoryMovement[]
+
+  @@map("InventoryItem")
+}
+
+/// Pohyby skladu
+model InventoryMovement {
+  id              String                @id @default(uuid())
+  companyId       String
+  itemId          String
+  type            InventoryMovementType
+  quantity        Float
+  quantityBefore  Float
+  quantityAfter   Float
+  projectId       String?
+  note            String?
+  documentRef     String?               /// Číslo dokladu (výdejka, příjemka)
+  createdBy       String
+  createdAt       DateTime              @default(now())
+
+  company         Company       @relation(fields: [companyId], references: [id])
+  item            InventoryItem @relation(fields: [itemId], references: [id])
+
+  @@map("InventoryMovement")
+}
+
+/// Úkoly
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  isDone      Boolean  @default(false)
+  userId      String
+  companyId   String
+  projectId   String?
+  dueDate     DateTime?
+  priority    String   @default("NORMAL")       /// LOW | NORMAL | HIGH | URGENT
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User    @relation(fields: [userId], references: [id])
+  company     Company @relation(fields: [companyId], references: [id])
+
+  @@map("Task")
+}
+
+// =============================================================================
+// NASTAVENÍ — COMPANY SETTINGS, MODULE SETTINGS
+// =============================================================================
+
+/// Hlavní nastavení firmy
+model CompanySettings {
+  id                    String   @id @default(uuid())
+  companyId             String   @unique
+  updatedAt             DateTime @updatedAt
+
+  // Lokalizace
+  locale                String   @default("cs-CZ")
+  timezone              String   @default("Europe/Prague")
+  currency              String   @default("CZK")
+  dateFormat            String   @default("DD.MM.YYYY")
+  timeFormat            String   @default("HH:mm")
+  firstDayOfWeek        Int      @default(1)    /// 0=NE, 1=PO
+  decimalSeparator      String   @default(",")
+  thousandsSeparator    String   @default(" ")
+  distanceUnit          String   @default("m")
+  weightUnit            String   @default("kg")
+  areaUnit              String   @default("m2")
+
+  // Číslování dokumentů
+  invoicePrefix         String   @default("FA")
+  invoiceSuffix         String?
+  invoicePadding        Int      @default(4)    /// Počet číslic (FA-2025-0001)
+  invoiceResetCycle     String   @default("YEARLY")  /// YEARLY | MONTHLY | NEVER
+  invoiceStartNumber    Int      @default(1)
+
+  dailyLogPrefix        String   @default("DEN")
+  attendanceExportPrefix String   @default("DOC")
+  handoverProtocolPrefix String   @default("PP")
+  priceOfferPrefix      String   @default("CN")
+
+  // Moduly
+  enabledModules        String[]  @default(["dochazka","projekty","denik","kalkulacka","faktury","sklad","team","nastaveni"])
+
+  // Export výchozí
+  defaultExportFormat   String   @default("pdf")
+  defaultSignatureLevel String   @default("INTERNAL_APPROVAL")
+
+  // Archivace
+  retentionPolicyDays   Int      @default(3650) /// 10 let
+  autoArchiveAfterDays  Int      @default(365)
+
+  // Notifikace
+  emailNotificationsEnabled Boolean @default(false)
+  notificationEmail     String?
+
+  company               Company  @relation(fields: [companyId], references: [id])
+
+  @@map("CompanySettings")
+}
+
+/// Nastavení jednotlivých modulů — flexibilní JSON
+model ModuleSettings {
+  id          String   @id @default(uuid())
+  companyId   String
+  moduleKey   String                             /// "attendance" | "projects" | "invoices" | atd.
+  settingsJson Json                              /// Kompletní JSON konfigurace modulu
+  version     Int      @default(1)
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, moduleKey])
+  @@map("ModuleSettings")
+}
+
+// =============================================================================
+// OPRÁVNĚNÍ — PERMISSIONS, ROLE PERMISSIONS, USER OVERRIDES
+// =============================================================================
+
+/// Granulární oprávnění — atomy přístupu
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique                  /// "attendance.export" | "invoices.sign" atd.
+  moduleKey   String                            /// Modul, ke kterému patří
+  label       String                            /// Popis pro UI
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions    RolePermission[]
+  userOverrides      UserPermissionOverride[]
+
+  @@map("Permission")
+}
+
+/// Výchozí oprávnění role
+model RolePermission {
+  id            String   @id @default(uuid())
+  role          Role
+  permissionId  String
+  granted       Boolean  @default(true)
+
+  permission    Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([role, permissionId])
+  @@map("RolePermission")
+}
+
+/// Přepsání oprávnění pro konkrétního uživatele (override default role permissions)
+model UserPermissionOverride {
+  id           String   @id @default(uuid())
+  userId       String
+  permissionId String
+  granted      Boolean
+  reason       String?
+  grantedBy    String?
+  createdAt    DateTime @default(now())
+
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([userId, permissionId])
+  @@map("UserPermissionOverride")
+}
+
+// =============================================================================
+// DOKUMENTOVÝ MODUL
+// =============================================================================
+
+/// Šablona dokumentu
+model DocumentTemplate {
+  id              String       @id @default(uuid())
+  companyId       String
+  name            String
+  documentType    DocumentType
+  locale          String       @default("cs")
+  format          ExportFormat @default(PDF)
+  templateBody    String                         /// HTML / DOCX base64 šablona
+  placeholders    Json?                          /// Mapování placeholderů
+  isActive        Boolean      @default(true)
+  isDefault       Boolean      @default(false)  /// Výchozí šablona pro daný typ
+  signatureRules  Json?                          /// Kdo podepisuje
+  approvalFlowId  String?                        /// FK na ApprovalFlow
+  version         Int          @default(1)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  company         Company      @relation(fields: [companyId], references: [id])
+  documents       Document[]
+
+  @@map("DocumentTemplate")
+}
+
+/// Dokument — instance šablony / vydaný doklad
+model Document {
+  id              String         @id @default(uuid())
+  companyId       String
+  documentType    DocumentType
+  documentNumber  String?                        /// Číslo dokladu
+  status          DocumentStatus @default(DRAFT)
+  templateId      String?
+  projectId       String?
+  invoiceId       String?
+  authorId        String
+  approverId      String?
+  locale          String         @default("cs")
+  title           String
+  dataJson        Json?                          /// Vstupní data pro vyplnění šablony
+  note            String?
+  attachments     String[]                       /// URL příloh
+  hashBefore      String?                        /// SHA-256 před podpisem
+  hashAfter       String?                        /// SHA-256 po podpisu
+  currentVersionId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  company         Company          @relation(fields: [companyId], references: [id])
+  template        DocumentTemplate? @relation(fields: [templateId], references: [id])
+  project         Project?          @relation(fields: [projectId], references: [id])
+  invoice         Invoice?          @relation(fields: [invoiceId], references: [id])
+  author          User              @relation("DocumentAuthor", fields: [authorId], references: [id])
+  approver        User?             @relation("DocumentApprover", fields: [approverId], references: [id])
+  versions        DocumentVersion[]
+  signatures      DocumentSignature[]
+  exports         DocumentExport[]
+  approvalDecisions ApprovalDecision[]
+
+  @@map("Document")
+}
+
+/// Verze dokumentu — immutable audit trail
+model DocumentVersion {
+  id              String   @id @default(uuid())
+  documentId      String
+  version         Int
+  contentUrl      String                         /// URL souboru
+  contentHash     String                         /// SHA-256 obsahu
+  generatedBy     String
+  note            String?
+  createdAt       DateTime @default(now())
+
+  document        Document @relation(fields: [documentId], references: [id])
+
+  @@unique([documentId, version])
+  @@map("DocumentVersion")
+}
+
+/// Podpis dokumentu — evidence každého podpisu
+model DocumentSignature {
+  id                  String         @id @default(uuid())
+  documentId          String
+  signatureRequestId  String?
+  signerId            String
+  signerName          String
+  signerRole          String?
+  signatureLevel      SignatureLevel
+  provider            String?                    /// Název poskytovatele podpisu
+  signedAt            DateTime?
+  ip                  String?
+  deviceInfo          String?
+  certificateRef      String?                    /// Reference na certifikát
+  hashBefore          String?                    /// Hash dokumentu před podpisem
+  hashAfter           String?                    /// Hash dokumentu po podpisu
+  signedFileUrl       String?                    /// URL podepsaného souboru
+  providerResponse    Json?                      /// Raw odpověď poskytovatele
+  isRevoked           Boolean        @default(false)
+  revokedAt           DateTime?
+  revokeReason        String?
+  auditEventId        String?
+
+  document            Document  @relation(fields: [documentId], references: [id])
+
+  @@map("DocumentSignature")
+}
+
+/// Export dokumentu — evidence výstupů
+model DocumentExport {
+  id              String       @id @default(uuid())
+  documentId      String
+  format          ExportFormat
+  fileUrl         String
+  fileHash        String
+  fileSizeBytes   Int
+  exportedBy      String
+  signed          Boolean      @default(false)
+  encrypted       Boolean      @default(false)
+  watermarked     Boolean      @default(false)
+  exportedAt      DateTime     @default(now())
+
+  document        Document     @relation(fields: [documentId], references: [id])
+
+  @@map("DocumentExport")
+}
+
+// =============================================================================
+// SCHVALOVACÍ WORKFLOW
+// =============================================================================
+
+/// Definice schvalovacího workflow
+model ApprovalFlow {
+  id              String   @id @default(uuid())
+  companyId       String
+  name            String
+  documentType    DocumentType
+  isActive        Boolean  @default(true)
+  autoApprove     Boolean  @default(false)     /// Automatické schválení pokud splněna podmínka
+  autoApproveCondition Json?
+  slaDays         Int?                          /// SLA v dnech
+  escalateAfterDays Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
+  steps           ApprovalFlowStep[]
+  decisions       ApprovalDecision[]
+
+  @@map("ApprovalFlow")
+}
+
+/// Krok schvalovacího workflow
+model ApprovalFlowStep {
+  id              String           @id @default(uuid())
+  flowId          String
+  stepOrder       Int                            /// Pořadí kroku
+  stepType        ApprovalStepType
+  label           String
+  requiredRole    Role?                          /// Role potřebná pro tento krok
+  requiredUserId  String?                        /// Konkrétní uživatel (pokud je pevně daný)
+  isOptional      Boolean          @default(false)
+  daysToComplete  Int?
+
+  flow            ApprovalFlow     @relation(fields: [flowId], references: [id])
+
+  @@unique([flowId, stepOrder])
+  @@map("ApprovalFlowStep")
+}
+
+/// Rozhodnutí v rámci workflow
+model ApprovalDecision {
+  id              String   @id @default(uuid())
+  flowId          String
+  documentId      String
+  userId          String
+  stepOrder       Int
+  decision        String                         /// "APPROVED" | "REJECTED" | "REVIEWED"
+  comment         String?
+  decidedAt       DateTime @default(now())
+
+  flow            ApprovalFlow @relation(fields: [flowId], references: [id])
+  document        Document     @relation(fields: [documentId], references: [id])
+  user            User         @relation(fields: [userId], references: [id])
+
+  @@map("ApprovalDecision")
+}
+
+// =============================================================================
+// IMPORT ENGINE
+// =============================================================================
+
+/// Šablona / profil importu
+model ImportProfile {
+  id              String       @id @default(uuid())
+  companyId       String
+  name            String
+  moduleKey       String                         /// Cílový modul
+  format          ImportFormat @default(CSV)
+  encoding        String       @default("UTF-8")
+  delimiter       String       @default(";")
+  hasHeaderRow    Boolean      @default(true)
+  startRow        Int          @default(1)
+  dateFormat      String       @default("DD.MM.YYYY")
+  decimalSeparator String      @default(",")
+  trimWhitespace  Boolean      @default(true)
+  normalizeDiacritics Boolean  @default(false)
+  duplicateStrategy String     @default("SKIP")  /// SKIP | UPDATE | MERGE | ERROR
+  rollbackOnError Boolean      @default(false)
+  fieldMapping    Json                           /// Mapování sloupců CSV → DB polí
+  validationRules Json?                          /// Validační pravidla
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  company         Company      @relation(fields: [companyId], references: [id])
+  jobs            ImportJob[]
+
+  @@map("ImportProfile")
+}
+
+/// Importní úloha — konkrétní spuštění importu
+model ImportJob {
+  id              String          @id @default(uuid())
+  companyId       String
+  profileId       String?
+  moduleKey       String
+  status          ImportJobStatus @default(PENDING)
+  sourceFileName  String
+  sourceFileUrl   String
+  sourceFileHash  String?
+  totalRows       Int             @default(0)
+  successRows     Int             @default(0)
+  warningRows     Int             @default(0)
+  errorRows       Int             @default(0)
+  skippedRows     Int             @default(0)
+  updatedRows     Int             @default(0)
+  isDryRun        Boolean         @default(false)
+  startedBy       String
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  rollbackAt      DateTime?
+  errorLog        Json?
+  auditReason     String?
+
+  profile         ImportProfile?  @relation(fields: [profileId], references: [id])
+  user            User            @relation(fields: [startedBy], references: [id])
+  rows            ImportJobRow[]
+
+  @@map("ImportJob")
+}
+
+/// Řádky importní úlohy — výsledek per-row validace
+model ImportJobRow {
+  id              String   @id @default(uuid())
+  jobId           String
+  rowNumber       Int
+  rawData         Json
+  parsedData      Json?
+  status          String                         /// "OK" | "WARNING" | "ERROR" | "SKIPPED"
+  messages        String[]                       /// Varování / chyby pro tento řádek
+  importedRecordId String?                       /// ID vytvořeného záznamu
+
+  job             ImportJob @relation(fields: [jobId], references: [id])
+
+  @@map("ImportJobRow")
+}
+
+// =============================================================================
+// EXPORT ENGINE
+// =============================================================================
+
+/// Šablona / profil exportu
+model ExportProfile {
+  id                  String       @id @default(uuid())
+  companyId           String
+  name                String
+  moduleKey           String
+  format              ExportFormat @default(PDF)
+  includeMetadata     Boolean      @default(true)
+  includeAudit        Boolean      @default(false)
+  anonymize           Boolean      @default(false)   /// Anonymizovat osobní data
+  signed              Boolean      @default(false)   /// Podepsat výstup
+  signatureLevel      SignatureLevel @default(INTERNAL_APPROVAL)
+  watermark           Boolean      @default(false)
+  watermarkText       String?
+  passwordProtect     Boolean      @default(false)
+  encryptZip          Boolean      @default(false)
+  compress            Boolean      @default(false)
+  includeBranding     Boolean      @default(true)
+  includeAttachments  Boolean      @default(false)
+  filterPreset        Json?                          /// Výchozí filtry
+  columnPreset        Json?                          /// Výběr sloupců
+  sortOrder           Json?
+  timezoneNormalize   Boolean      @default(true)
+  isActive            Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  company             Company      @relation(fields: [companyId], references: [id])
+  jobs                ExportJob[]
+
+  @@map("ExportProfile")
+}
+
+/// Exportní úloha — konkrétní spuštění exportu
+model ExportJob {
+  id              String          @id @default(uuid())
+  companyId       String
+  profileId       String?
+  moduleKey       String
+  status          ExportJobStatus @default(PENDING)
+  format          ExportFormat
+  filters         Json?
+  outputFileName  String?
+  outputFileUrl   String?
+  outputFileHash  String?
+  outputSizeBytes Int?
+  recordCount     Int?
+  startedBy       String
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  signatureRequestId String?
+  errorMessage    String?
+
+  profile         ExportProfile?  @relation(fields: [profileId], references: [id])
+  user            User            @relation(fields: [startedBy], references: [id])
+
+  @@map("ExportJob")
+}
+
+// =============================================================================
+// PODPISOVÝ MODUL
+// =============================================================================
+
+/// Konfigurace poskytovatele podpisu
+model SignatureProvider {
+  id              String   @id @default(uuid())
+  companyId       String
+  name            String                         /// Název / popis poskytovatele
+  providerKey     String                         /// "internal" | "docusign" | "signi" | "bankid"
+  apiUrl          String?
+  authMethod      String?                        /// "api_key" | "oauth2" | "cert"
+  apiKey          String?                        /// Zašifrovaný API klíč
+  callbackUrl     String?
+  webhookSecret   String?
+  supportedLevels SignatureLevel[]               /// Podporované úrovně podpisu
+  certPath        String?                        /// Cesta k certifikátu (pro server-side signing)
+  isActive        Boolean  @default(true)
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
+  requests        SignatureRequest[]
+
+  @@map("SignatureProvider")
+}
+
+/// Požadavek na podpis
+model SignatureRequest {
+  id              String                 @id @default(uuid())
+  companyId       String
+  documentId      String?
+  exportJobId     String?
+  providerId      String
+  signerId        String
+  signerEmail     String?
+  signerName      String
+  signatureLevel  SignatureLevel
+  status          SignatureRequestStatus @default(PENDING)
+  expiresAt       DateTime?
+  signingUrl      String?                        /// URL pro podpis (redirect signatáře)
+  providerRequestId String?                      /// ID requestu u poskytovatele
+  providerResponse Json?
+  signedAt        DateTime?
+  ipAddress       String?
+  deviceInfo      String?
+  reminderSentAt  DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  provider        SignatureProvider       @relation(fields: [providerId], references: [id])
+  signer          User                   @relation(fields: [signerId], references: [id])
+  artifacts       SignatureArtifact[]
+
+  @@map("SignatureRequest")
+}
+
+/// Výsledný artefakt po podpisu — neměnný záznam
+model SignatureArtifact {
+  id                String   @id @default(uuid())
+  requestId         String
+  originalFileUrl   String
+  originalFileHash  String
+  signedFileUrl     String
+  signedFileHash    String
+  timestampToken    String?                      /// Kvalifikované časové razítko
+  certificateInfo   Json?                        /// Informace o certifikátu
+  validationReport  Json?                        /// Výsledek LTV validace
+  archivedAt        DateTime @default(now())
+
+  request           SignatureRequest @relation(fields: [requestId], references: [id])
+
+  @@map("SignatureArtifact")
+}
+
+// =============================================================================
+// AUDIT LOG — neměnný záznam všech operací
+// =============================================================================
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  companyId     String?
+  userId        String?
+  action        String                           /// "CREATE" | "UPDATE" | "DELETE" | "EXPORT" | "SIGN" | "IMPORT" | "LOGIN" | atd.
+  moduleKey     String?                          /// Modul
+  entityType    String?                          /// Typ entity ("Document" | "User" | atd.)
+  entityId      String?                          /// ID entity
+  oldValue      Json?                            /// Stará hodnota (pro UPDATE)
+  newValue      Json?                            /// Nová hodnota (pro UPDATE)
+  ipAddress     String?
+  userAgent     String?
+  deviceInfo    String?
+  operationHash String?                          /// SHA-256 pro integritu záznamu
+  createdAt     DateTime @default(now())
+
+  company       Company? @relation(fields: [companyId], references: [id])
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([entityType, entityId])
+  @@map("AuditLog")
+}
