@@ -65,7 +65,7 @@ npm run dev
 ```
 
 Instalátor se zeptá na:
-- **DATABASE_URL** (default `postgresql://vzt_user:vzt_pass@127.0.0.1:5432/vzt_system`),
+- **DATABASE_URL** (default `postgresql://USER:CHANGE_ME@localhost:5432/DB_NAME?schema=public`),
 - **JWT_SECRET** (default náhodně vygenerovaný),
 - **GEMINI_API_KEY** (volitelně — bez klíče AI funkce vrátí offline hlášku).
 

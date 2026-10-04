@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 (async () => {
-  const c = new Client({ connectionString: 'postgresql://vzt_user:vzt_pass@127.0.0.1:5432/vzt_system' });
+  const c = new Client({ connectionString: 'postgresql://USER:CHANGE_ME@localhost:5432/DB_NAME?schema=public' });
   await c.connect();
   const tbl = await c.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('CollisionAlert','ProjectTroubleshooting') ORDER BY table_name");
   console.log('new tables:', tbl.rows.map((r) => r.table_name).join(', '));

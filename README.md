@@ -176,7 +176,7 @@ Obsahuje targety:
 ```env
 NODE_ENV=development
 PORT=5000
-DATABASE_URL=postgresql://vzt_user:vzt_pass@127.0.0.1:5432/vzt_system
+DATABASE_URL=postgresql://USER:CHANGE_ME@localhost:5432/DB_NAME?schema=public
 JWT_SECRET=dev-super-secret
 CORS_ORIGIN=http://localhost:5173
 APP_NAME=zoom-pro

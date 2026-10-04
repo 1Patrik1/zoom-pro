@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 (async () => {
-  const c = new Client({ connectionString: 'postgresql://vzt_user:vzt_pass@127.0.0.1:5432/vzt_system' });
+  const c = new Client({ connectionString: 'postgresql://USER:CHANGE_ME@localhost:5432/DB_NAME?schema=public' });
   await c.connect();
   for (const t of ['Permission', 'RolePermission', 'UserPermissionOverride']) {
     const cols = await c.query(
