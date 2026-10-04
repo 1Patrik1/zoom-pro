@@ -1,0 +1,12 @@
+{
+  "region": "eu-central-1",
+  "app": {
+    "name": "zoom-proback",
+    "root": "src",
+    "framework": "nextjs",
+    "httpPort": 3000,
+    "build": {
+      "command": "next build"
+    }
+  }
+}
