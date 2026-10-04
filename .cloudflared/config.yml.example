@@ -1,0 +1,39 @@
+# Cloudflare Tunnel Config - Zoom Pro
+# Kopíruj do: C:\Users\SF\.cloudflared\config.yml (Windows)
+# Nebo: ~/.cloudflared/config.yml (Linux/Mac)
+
+tunnel: zoom-pro-tunnel
+credentials-file: ~/.cloudflared/<tunnel-id>.json
+
+# Logging (volitelné, ale užitečné)
+logfile: ~/.cloudflared/tunnel.log
+loglevel: info
+
+# === INGRESS RULES ===
+# Přístup z internetu do tvých služeb přes Cloudflare
+
+ingress:
+  # 1. Frontend (React app na localhost:5173)
+  - hostname: app.tvoje-domena.cz
+    service: http://localhost:5173
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+
+  # 2. Backend API (Node.js na localhost:5000)
+  - hostname: api.tvoje-domena.cz
+    service: http://localhost:5000
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      headers:
+        X-Forwarded-Proto: https
+
+  # 3. Health Check (pro monitoring)
+  - hostname: health.tvoje-domena.cz
+    service: http://localhost:5000/health
+    originRequest:
+      connectTimeout: 10s
+
+  # Fallback: vše ostatní vrátí 404
+  - service: http_status:404
