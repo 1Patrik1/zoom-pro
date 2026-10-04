@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:17
-    container_name: pwa-vzt-postgres
+    container_name: zoom-pro-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: vzt_system
@@ -10,7 +10,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - pwa_vzt_pgdata:/var/lib/postgresql/data
+      - zoom_pro_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U vzt_user -d vzt_system']
       interval: 10s
@@ -18,4 +18,4 @@ services:
       retries: 10
 
 volumes:
-  pwa_vzt_pgdata:
+  zoom_pro_pgdata:

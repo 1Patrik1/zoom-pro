@@ -1,6 +1,6 @@
-# PWA VZT System — finální spustitelný balík
+# Zoom Pro — finální spustitelný balík
 
-Tento balík je připraven jako **finální lokálně spustitelná vývojová i produkční verze** projektu PWA VZT System.
+Tento balík je připraven jako **finální lokálně spustitelná vývojová i produkční verze** projektu Zoom Pro.
 
 Obsahuje:
 - `apps/frontend` — React + Vite + Tailwind PWA
@@ -179,7 +179,7 @@ PORT=5000
 DATABASE_URL=postgresql://vzt_user:vzt_pass@127.0.0.1:5432/vzt_system
 JWT_SECRET=dev-super-secret
 CORS_ORIGIN=http://localhost:5173
-APP_NAME=pwa-vzt-system
+APP_NAME=zoom-pro
 TRUST_PROXY=false
 PG_POOL_MAX=10
 PG_IDLE_TIMEOUT_MS=30000
@@ -190,7 +190,7 @@ PG_IDLE_TIMEOUT_MS=30000
 ```env
 VITE_API_URL=http://localhost:5000
 VITE_CHAT_URL=http://localhost:5001
-VITE_APP_NAME=PWA VZT System
+VITE_APP_NAME=Zoom Pro
 ```
 
 ### PROD root env — `.env`
