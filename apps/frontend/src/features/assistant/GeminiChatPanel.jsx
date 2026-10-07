@@ -93,9 +93,13 @@ export function GeminiChatPanel({ token }) {
           placeholder="Zeptej se Gemini…" />
         <div className="flex gap-2">
           <input ref={fileRef} type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files)} className="hidden" />
+          <label className="cursor-pointer flex items-center justify-center rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 hover:bg-slate-800" title="Vyfotit z fotoaparátu">
+            <span className="text-sm">📷</span>
+            <input type="file" accept="image/*" capture="environment" onChange={(e) => addImages(e.target.files)} className="hidden" onClick={(e) => e.target.value = null} />
+          </label>
           <button onClick={() => fileRef.current?.click()} type="button"
-            className="rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200"
-            title="Přidat fotku"><Camera className="h-4 w-4" /></button>
+            className="rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 hover:bg-slate-800"
+            title="Přidat fotku z galerie"><Camera className="h-4 w-4" /></button>
           <button onClick={send} disabled={loading}
             className="flex items-center gap-2 rounded-2xl bg-purple-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">
             {loading ? <Sparkles className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}

@@ -128,6 +128,10 @@ export function PlatformAdminPage({ token, user }) {
               <tr key={c.id} className="border-t border-slate-100">
                 <td className="p-2 font-black">{c.name}</td>
                 <td className="text-xs">{c.ownerEmail || '—'}</td>
+                <td>
+                  <div className="text-xs font-black text-slate-800 uppercase">{c.planCode || c.subscriptionPlan || c.subscription?.planCode || 'ZÁKLAD'}</div>
+                  <div className="text-[10px] text-slate-500">{(c.validUntil || c.subscription?.validUntil) ? 'do ' + new Date(c.validUntil || c.subscription?.validUntil).toLocaleDateString('cs-CZ') : 'bez omezení'}</div>
+                </td>
                 <td>{c.userCount ?? 0}</td>
                 <td>
                   <span className={`rounded-lg px-2 py-0.5 text-xs font-black ${c.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
@@ -135,6 +139,23 @@ export function PlatformAdminPage({ token, user }) {
                   </span>
                 </td>
                 <td className="text-right">
+                  <button type="button" onClick={async () => {
+                    if (confirm(`Opravdu nenávratně smazat firmu "${c.name}" a veškerá její data (projekty, uživatele, deníky)? Tato akce je NEVRATNÁ!`)) {
+                      try {
+                        const { api } = await import('../../api/client.js');
+                        // Zavoláme smazání přes API (fallback pro obě používané routy backendu)
+                        await api.delete('/saas/tenants/' + c.id).catch(() => api.delete('/saas/companies/' + c.id));
+                        // Odstraníme firmu z tabulky
+                        setCompanies(prev => prev.filter(x => x.id !== c.id));
+                      } catch(e) {
+                        alert('Chyba při mazání firmy. Zkontrolujte, zda na ni nejsou navázány kritické záznamy nebo se podívejte do konzole.');
+                        console.error(e);
+                      }
+                    }
+                  }} className="mr-2 inline-flex items-center rounded-xl border border-red-100 bg-red-50 px-3 py-1 text-xs font-black text-red-600 hover:bg-red-100 transition-colors">
+                    SMAZAT
+                  </button>
+                  
                   {c.isActive ? (
                     <button onClick={() => setCompanyActive(c.id, false)} disabled={busyId === c.id}
                       className="rounded-xl bg-rose-100 px-3 py-1 text-xs font-black text-rose-700 disabled:opacity-50">Deaktivovat</button>
@@ -145,7 +166,7 @@ export function PlatformAdminPage({ token, user }) {
                 </td>
               </tr>
             ))}
-            {!companies.length && <tr><td colSpan={5} className="p-4 text-center text-slate-400">Žádné firmy.</td></tr>}
+            {!companies.length && <tr><td colSpan={6} className="p-4 text-center text-slate-400">Žádné firmy.</td></tr>}
           </tbody>
         </table>
       </section>

@@ -197,6 +197,21 @@ function SuperAdminPlanEditor({ token, plans, onReload }) {
               <td>{p.basePricePerUserMonth}</td>
               <td>{p.flatPricePerMonth}</td>
               <td>{p.maxUsers ?? '∞'}</td>
+              <td className="text-right">
+                <button type="button" onClick={async () => {
+                  if (confirm(`Opravdu smazat balíček ${p.name}?`)) {
+                    try {
+                      const { api } = await import('../../api/client.js');
+                      await api.delete('/saas/plans/' + p.code);
+                      setPlans(prev => prev.filter(x => x.code !== p.code));
+                    } catch(e) {
+                      alert('Balíček nelze smazat. Pravděpodobně jej využívají aktivní klienti.');
+                    }
+                  }
+                }} className="rounded-xl border border-red-100 bg-red-50 px-3 py-1 text-xs font-black text-red-600 hover:bg-red-100">
+                  SMAZAT
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>

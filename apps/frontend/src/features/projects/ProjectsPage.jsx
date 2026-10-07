@@ -159,6 +159,7 @@ function mapsLink(project) {
 
 export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAssign, onChat }) {
   const [activeProject, setActiveProject] = useState(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [deviation, setDeviation] = useState(EMPTY_DEVIATION);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -182,7 +183,7 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
   const activeGallery = useMemo(() => gallery.filter((item) => item.projectId === activeProject), [gallery, activeProject]);
 
   useEffect(() => {
-    if (!activeProject && projects.length) {
+    if (!activeProject && projects.length && !isCreatingNew) {
       setActiveProject(projects[0].id);
     }
   }, [projects, activeProject]);
@@ -337,6 +338,8 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
             type="button"
             onClick={() => {
               setActiveProject(null);
+    setIsCreatingNew(true);
+    setForm(EMPTY_FORM);
               setForm(EMPTY_FORM);
               setDeviation(EMPTY_DEVIATION);
             }}
@@ -602,11 +605,17 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
             {activeProject && (
               <form onSubmit={handleChatSubmit} className="mt-4 space-y-3">
                 <textarea value={chatMessage} onChange={(event) => setChatMessage(event.target.value)} rows={3} placeholder="Zpráva, poznámka nebo popis fotek…" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
-                <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-300">
-                  <span>{selectedFiles.length ? `Vybráno fotek: ${selectedFiles.length}` : 'Přidat foto do chatu / galerie'}</span>
-                  <input type="file" accept="image/*" multiple onChange={handleFileSelection} className="hidden" />
-                  <span className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-black text-white">Vybrat</span>
-                </label>
+                <div className="flex gap-2">
+                  <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800">
+                    <span>📷 Vyfotit</span>
+                    <input type="file" accept="image/*" capture="environment" onChange={handleFileSelection} className="hidden" />
+                  </label>
+                  <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800">
+                    <span>🖼️ Galerie</span>
+                    <input type="file" accept="image/*" multiple onChange={handleFileSelection} className="hidden" />
+                  </label>
+                </div>
+                {selectedFiles.length > 0 && <div className="mt-2 text-xs text-slate-400">Vybráno fotek: {selectedFiles.length}</div>}
                 {selectedFiles.length > 0 && (
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {selectedFiles?.map((file) => (

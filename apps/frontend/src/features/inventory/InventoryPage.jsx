@@ -252,7 +252,7 @@ export function InventoryPage({ db, onCreateItem, onCreateMovement }) {
             <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-950">
               <div className="aspect-video bg-black/60">
                 {scannerOpen ? (
-                  <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+                  <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
                 ) : (
                   <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-400">
                     Připrav skenování kamerou nebo načti QR kód z fotky materiálu.

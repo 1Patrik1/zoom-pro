@@ -70,11 +70,17 @@ export function DailyLogPage({ db, onCreate }) {
         </div>
         <textarea name="content" required placeholder="Stavební deník / zápis..." className="h-32 w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
 
-        <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-300">
-          <span>{selectedFiles.length ? `Vybráno fotek: ${selectedFiles.length}` : 'Přidat fotky do deníku'}</span>
-          <input type="file" accept="image/*" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 4))} className="hidden" />
-          <span className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-black text-white">Vybrat</span>
-        </label>
+        <div className="flex gap-2">
+          <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800">
+            <span>📷 Vyfotit</span>
+            <input type="file" accept="image/*" capture="environment" onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 4))} className="hidden" />
+          </label>
+          <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800">
+            <span>🖼️ Galerie</span>
+            <input type="file" accept="image/*" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 4))} className="hidden" />
+          </label>
+        </div>
+        {selectedFiles.length > 0 && <div className="mt-2 text-xs text-slate-400">Vybráno fotek: {selectedFiles.length}</div>}
 
         {selectedFiles.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
