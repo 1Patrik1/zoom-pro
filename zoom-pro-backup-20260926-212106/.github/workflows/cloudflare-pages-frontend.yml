@@ -1,0 +1,43 @@
+name: Deploy frontend to Cloudflare Pages
+
+# Automatické nasazení webové PWA na Cloudflare Pages při pushi do main.
+# Předpoklady (GitHub Secrets):
+#   CLOUDFLARE_API_TOKEN  — token s právem "Cloudflare Pages: Edit"
+#   CLOUDFLARE_ACCOUNT_ID — ID účtu Cloudflare
+# Backend + PostgreSQL se nasazují samostatně (viz .github/workflows/deploy.yml → VPS),
+# protože Cloudflare Pages hostuje pouze statický frontend.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build frontend
+        run: npm run build -w apps/frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://api.zoom-pro.app' }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/frontend/dist --project-name=zoom-pro

@@ -1,0 +1,49 @@
+name: Zoom Pro CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: zoom_user
+          POSTGRES_PASSWORD: zoom_pass
+          POSTGRES_DB: zoom_pro
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Run migrations
+        env:
+          PGPASSWORD: zoom_pass
+        run: |
+          for f in $(ls *.sql | sort); do
+            echo "== $f =="
+            psql -h localhost -U zoom_user -d zoom_pro -f "$f"
+          done
+
+      - name: Build frontend
+        working-directory: apps/frontend
+        run: npx vite build
+
+      - name: Lint backend syntax
+        working-directory: apps/backend
+        run: node --check src/server.js && node --check src/app.js

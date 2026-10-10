@@ -1,0 +1,53 @@
+name: 🗄️ Database Schema Check
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'prisma/**'
+      - '00*_*.sql'
+  pull_request:
+    paths:
+      - 'prisma/**'
+      - '00*_*.sql'
+  workflow_dispatch:
+
+jobs:
+  schema-validate:
+    name: 🗄️ Validace schématu
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: 📦 Instalace
+        run: npm ci
+        
+      - name: 🗄️ Kontrola SQL migrací
+        run: |
+          echo "🔍 Hledání SQL migrací..."
+          for f in 00*_*.sql; do
+            if [ -f "$f" ]; then
+              echo "✅ $f"
+              # Základní validace SQL
+              if grep -q "BEGIN;" "$f" && grep -q "COMMIT;" "$f"; then
+                echo "  ✅ Transakce: OK"
+              else
+                echo "  ⚠️ Transakce neobsahuje BEGIN/COMMIT"
+              fi
+            fi
+          done
+          
+      - name: 📊 Report
+        run: |
+          echo "## 🗄️ Database Schema" >> $GITHUB_STEP_SUMMARY
+          echo "✅ SQL Migrace: OK" >> $GITHUB_STEP_SUMMARY

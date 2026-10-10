@@ -1,0 +1,73 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { env } from './config/env.js';
+import authRoutes from './routes/auth.routes.js';
+import syncRoutes from './routes/sync.routes.js';
+import attendanceRoutes from './routes/attendance.routes.js';
+import projectsRoutes from './routes/projects.routes.js';
+import usersRoutes from './routes/users.routes.js';
+import saasRoutes from './routes/saas.routes.js';
+import logsRoutes from './routes/logs.routes.js';
+import invoicesRoutes from './routes/invoices.routes.js';
+import inventoryRoutes from './routes/inventory.routes.js';
+import assistantRoutes from './routes/assistant.routes.js';
+import collisionsRoutes from './routes/collisions.routes.js';
+import troubleshootingRoutes from './routes/troubleshooting.routes.js';
+import printRoutes from './routes/print.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
+import vztRoutes from './routes/vzt.routes.js';
+import documentsRoutes from './routes/documents.routes.js';
+import importsRoutes from './routes/imports.routes.js';
+import exportsRoutes from './routes/exports.routes.js';
+import signaturesRoutes from './routes/signatures.routes.js';
+import licensingRoutes from './routes/licensing.routes.js';
+import monterInvoicesRoutes from './routes/monter-invoices.routes.js';
+import geminiRoutes from './routes/gemini.routes.js';
+import distributionRoutes from './routes/distribution.routes.js';
+import autodetectRoutes from './routes/autodetect.routes.js';
+import devicesRoutes from './routes/devices.routes.js';
+import { errorHandler } from './middleware/error-handler.js';
+
+export function createApp() {
+  const app = express();
+  if (env.trustProxy) app.set('trust proxy', 1);
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(cors({ origin: env.corsOrigin }));
+  app.use(express.json({ limit: '5mb' }));
+
+  // Ochrana proti brute-force na přihlášení
+  const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+
+  app.get('/health', (_req, res) => res.json({ ok: true, service: env.appName }));
+
+  app.use('/api/auth', authLimiter, authRoutes);
+  app.use('/api/sync', syncRoutes);
+  app.use('/api/attendance', attendanceRoutes);
+  app.use('/api/projects', projectsRoutes);
+  app.use('/api/users', usersRoutes);
+  app.use('/api/saas', saasRoutes);
+  app.use('/api/logs', logsRoutes);
+  app.use('/api/invoices', invoicesRoutes);
+  app.use('/api/inventory', inventoryRoutes);
+  app.use('/api/assistant', assistantRoutes);
+  app.use('/api/collisions', collisionsRoutes);
+  app.use('/api/troubleshooting', troubleshootingRoutes);
+  app.use('/api/print', printRoutes);
+  app.use('/api/settings', settingsRoutes);
+  app.use('/api/vzt', vztRoutes);
+  app.use('/api/documents', documentsRoutes);
+  app.use('/api/imports', importsRoutes);
+  app.use('/api/exports', exportsRoutes);
+  app.use('/api/signatures', signaturesRoutes);
+  app.use('/api/licensing', licensingRoutes);
+  app.use('/api/monter-invoices', monterInvoicesRoutes);
+  app.use('/api/gemini', geminiRoutes);
+  app.use('/api/distribution', distributionRoutes);
+  app.use('/api/autodetect', autodetectRoutes);
+  app.use('/api/devices', devicesRoutes);
+
+  app.use(errorHandler);
+  return app;
+}

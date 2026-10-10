@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background-color: #0f172a;
+  color: #f8fafc;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+select {
+  color: inherit;
+  caret-color: currentColor;
+}
+
+input[class*="bg-white"],
+textarea[class*="bg-white"],
+select[class*="bg-white"],
+input[class*="bg-slate-50"],
+textarea[class*="bg-slate-50"],
+select[class*="bg-slate-50"],
+input[class*="bg-slate-100"],
+textarea[class*="bg-slate-100"],
+select[class*="bg-slate-100"] {
+  color: #0f172a !important;
+  caret-color: #0f172a !important;
+}
+
+input[class*="bg-slate-8"],
+textarea[class*="bg-slate-8"],
+select[class*="bg-slate-8"],
+input[class*="bg-slate-9"],
+textarea[class*="bg-slate-9"],
+select[class*="bg-slate-9"],
+input[class*="bg-zinc-8"],
+textarea[class*="bg-zinc-8"],
+select[class*="bg-zinc-8"],
+input[class*="bg-zinc-9"],
+textarea[class*="bg-zinc-9"],
+select[class*="bg-zinc-9"],
+input[class*="bg-neutral-8"],
+textarea[class*="bg-neutral-8"],
+select[class*="bg-neutral-8"],
+input[class*="bg-neutral-9"],
+textarea[class*="bg-neutral-9"],
+select[class*="bg-neutral-9"] {
+  color: #f8fafc !important;
+  caret-color: #f8fafc !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+input[class*="bg-white"]::placeholder,
+textarea[class*="bg-white"]::placeholder,
+input[class*="bg-slate-50"]::placeholder,
+textarea[class*="bg-slate-50"]::placeholder,
+input[class*="bg-slate-100"]::placeholder,
+textarea[class*="bg-slate-100"]::placeholder {
+  color: #475569;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+::-webkit-scrollbar { display: none; }
+
+/* --- Oprava kontrastu: světlé panely (bg-white apod.) vynutí tmavý text --- */
+:root { color-scheme: dark; }
+
+:where([class~="bg-white"], [class*="bg-white/"], [class~="bg-slate-50"], [class~="bg-slate-100"],
+       [class~="bg-emerald-50"], [class*="bg-emerald-50/"], [class~="bg-amber-50"], [class~="bg-red-50"],
+       [class~="bg-blue-50"], [class*="bg-blue-50/"]) {
+  color: #0f172a;
+  color-scheme: light;
+}

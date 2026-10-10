@@ -1,0 +1,32 @@
+{
+  "appId": "app.zoompro.monter",
+  "appName": "Zoom Pro Montér",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#0f172a",
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0f172a",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] },
+    "LocalNotifications": { "smallIcon": "ic_stat_icon" },
+    "Camera": { "androidPromptType": "camera" },
+    "Geolocation": { "permissions": ["location"] }
+  },
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

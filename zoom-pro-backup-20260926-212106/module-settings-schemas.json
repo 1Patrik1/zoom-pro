@@ -1,0 +1,580 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PWA-VZT-System Module Settings Schemas",
+  "description": "Kompletní JSON schémata pro nastavení všech modulů systému včetně importu, exportu, workflow a podpisů.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locale": { "type": "string", "default": "cs-CZ" },
+        "timezone": { "type": "string", "default": "Europe/Prague" },
+        "currency": { "type": "string", "default": "CZK" },
+        "dateFormat": { "type": "string", "default": "DD.MM.YYYY" },
+        "timeFormat": { "type": "string", "default": "HH:mm" },
+        "firstDayOfWeek": { "type": "integer", "minimum": 0, "maximum": 6, "default": 1 },
+        "decimalSeparator": { "type": "string", "enum": [",", "."], "default": "," },
+        "thousandsSeparator": { "type": "string", "enum": [" ", ".", ","], "default": " " },
+        "distanceUnit": { "type": "string", "enum": ["m", "cm", "mm"], "default": "m" },
+        "areaUnit": { "type": "string", "enum": ["m2", "cm2"], "default": "m2" },
+        "weightUnit": { "type": "string", "enum": ["kg", "g"], "default": "kg" },
+        "enabledModules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "saas",
+              "reporty",
+              "dochazka",
+              "projekty",
+              "chat",
+              "denik",
+              "kalkulacka",
+              "faktury",
+              "sklad",
+              "team",
+              "nastaveni",
+              "documents",
+              "imports",
+              "exports",
+              "signatures"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "retentionPolicyDays": { "type": "integer", "minimum": 30, "default": 3650 },
+        "autoArchiveAfterDays": { "type": "integer", "minimum": 30, "default": 365 },
+        "maintenanceMode": { "type": "boolean", "default": false },
+        "branding": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "appName": { "type": "string" },
+            "logoUrl": { "type": "string" },
+            "faviconUrl": { "type": "string" },
+            "primaryColor": { "type": "string" },
+            "secondaryColor": { "type": "string" },
+            "accentColor": { "type": "string" }
+          }
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jwtExpiresInMinutes": { "type": "integer", "minimum": 5, "default": 480 },
+        "refreshTokensEnabled": { "type": "boolean", "default": false },
+        "maxLoginAttempts": { "type": "integer", "minimum": 1, "default": 5 },
+        "lockoutDurationMinutes": { "type": "integer", "minimum": 1, "default": 30 },
+        "twoFactorRequired": { "type": "boolean", "default": false },
+        "passwordPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "minLength": { "type": "integer", "minimum": 8, "default": 12 },
+            "requireUppercase": { "type": "boolean", "default": true },
+            "requireLowercase": { "type": "boolean", "default": true },
+            "requireNumber": { "type": "boolean", "default": true },
+            "requireSpecial": { "type": "boolean", "default": false },
+            "passwordExpiryDays": { "type": "integer", "minimum": 0, "default": 180 }
+          }
+        },
+        "allowedIpRanges": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "auditSensitiveActions": { "type": "boolean", "default": true },
+        "require2faForSignatures": { "type": "boolean", "default": true },
+        "requireElevatedPermissionForPersonalDataExport": { "type": "boolean", "default": true }
+      }
+    },
+    "attendance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabledTypes": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["PRICHOD", "ODCHOD", "ABSENCE"] },
+          "default": ["PRICHOD", "ODCHOD", "ABSENCE"]
+        },
+        "enabledStatuses": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["PRACE", "NEMOC", "DOVOLENA", "SKOLENI", "CESTA"] },
+          "default": ["PRACE", "NEMOC", "DOVOLENA"]
+        },
+        "requireGps": { "type": "boolean", "default": true },
+        "allowManualEdit": { "type": "boolean", "default": false },
+        "allowBackfill": { "type": "boolean", "default": false },
+        "maxBackfillDays": { "type": "integer", "minimum": 0, "default": 3 },
+        "requireProjectOnCheckIn": { "type": "boolean", "default": false },
+        "geofenceEnabled": { "type": "boolean", "default": true },
+        "geofenceRadiusMeters": { "type": "number", "minimum": 0, "default": 100 },
+        "autoBreakEnabled": { "type": "boolean", "default": false },
+        "autoBreakMinutes": { "type": "integer", "minimum": 0, "default": 30 },
+        "nightShiftEnabled": { "type": "boolean", "default": false },
+        "roundingMinutes": { "type": "integer", "enum": [0, 5, 10, 15, 30], "default": 0 },
+        "approvalRequiredForEdits": { "type": "boolean", "default": true },
+        "payrollExportEnabled": { "type": "boolean", "default": true },
+        "defaultPayrollExportFormat": { "type": "string", "enum": ["xlsx", "csv", "xml"], "default": "xlsx" },
+        "documents": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "monthlyStatementEnabled": { "type": "boolean", "default": true },
+            "attendanceClosureEnabled": { "type": "boolean", "default": true },
+            "employeeSignatureRequired": { "type": "boolean", "default": false },
+            "managerSignatureRequired": { "type": "boolean", "default": true }
+          }
+        }
+      }
+    },
+    "projects": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "codePattern": { "type": "string", "default": "PRJ-{YYYY}-{0001}" },
+        "requireClient": { "type": "boolean", "default": false },
+        "requireAddress": { "type": "boolean", "default": false },
+        "requireGeoLocation": { "type": "boolean", "default": false },
+        "defaultRadiusMeters": { "type": "number", "minimum": 0, "default": 100 },
+        "allowProjectArchive": { "type": "boolean", "default": true },
+        "mandatoryDocuments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "mandatoryDailyLog": { "type": "boolean", "default": false },
+        "mandatoryPhotoDocumentation": { "type": "boolean", "default": false },
+        "accessMode": { "type": "string", "enum": ["role_based", "assignment_based", "hybrid"], "default": "hybrid" },
+        "allowTeamAssignment": { "type": "boolean", "default": true },
+        "allowMilestones": { "type": "boolean", "default": false },
+        "folderTemplate": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["01-smlouvy", "02-nabidky", "03-denik", "04-fotky", "05-predani"]
+        }
+      }
+    },
+    "chat": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["polling", "realtime"], "default": "polling" },
+        "pollingIntervalSeconds": { "type": "integer", "minimum": 1, "default": 5 },
+        "retentionDays": { "type": "integer", "minimum": 1, "default": 365 },
+        "allowAttachments": { "type": "boolean", "default": false },
+        "allowEdit": { "type": "boolean", "default": false },
+        "allowDelete": { "type": "boolean", "default": false },
+        "allowMentions": { "type": "boolean", "default": false },
+        "readReceipts": { "type": "boolean", "default": false },
+        "exportEnabled": { "type": "boolean", "default": true },
+        "autoArchiveOnProjectClose": { "type": "boolean", "default": true }
+      }
+    },
+    "daily_log": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requireProject": { "type": "boolean", "default": true },
+        "requireWeather": { "type": "boolean", "default": true },
+        "requireAttachments": { "type": "boolean", "default": false },
+        "dailyClosureEnabled": { "type": "boolean", "default": false },
+        "lockAfterClosure": { "type": "boolean", "default": true },
+        "approvalWorkflowEnabled": { "type": "boolean", "default": false },
+        "photoDocumentationEnabled": { "type": "boolean", "default": true },
+        "geotaggingEnabled": { "type": "boolean", "default": false },
+        "defaultTemplateText": { "type": "string", "default": "" },
+        "exportFormats": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["pdf", "docx", "zip", "json"] },
+          "default": ["pdf", "docx"]
+        },
+        "signatureRequired": { "type": "boolean", "default": false },
+        "timestampRequired": { "type": "boolean", "default": false }
+      }
+    },
+    "vzt_calculator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabledComponentTypes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["Rovné", "Koleno"]
+        },
+        "sheetMetalDensity": { "type": "number", "default": 7.85 },
+        "weightCoefficient": { "type": "number", "default": 0.9 },
+        "surfaceAreaReserveFactor": { "type": "number", "default": 1.15 },
+        "accessDoorRules": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "straightLengthThresholdMeters": { "type": "number", "default": 4 },
+            "elbowAngleThresholdDegrees": { "type": "number", "default": 45 }
+          }
+        },
+        "units": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "inputLength": { "type": "string", "enum": ["mm", "cm", "m"], "default": "mm" },
+            "outputArea": { "type": "string", "enum": ["m2"], "default": "m2" },
+            "outputWeight": { "type": "string", "enum": ["kg"], "default": "kg" }
+          }
+        },
+        "pricing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "costPerSqMeter": { "type": "number", "minimum": 0, "default": 0 },
+            "sellPerSqMeter": { "type": "number", "minimum": 0, "default": 0 },
+            "marginPercent": { "type": "number", "minimum": 0, "default": 0 },
+            "defaultVatRate": { "type": "number", "minimum": 0, "default": 21 }
+          }
+        },
+        "consumables": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "autoUpdateSummary": { "type": "boolean", "default": true },
+            "screwsPerComponent": { "type": "number", "minimum": 0, "default": 8 },
+            "tapePerimeterMultiplier": { "type": "number", "minimum": 0, "default": 1 }
+          }
+        },
+        "exports": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["pdf", "xlsx", "json"] },
+          "default": ["pdf", "xlsx"]
+        }
+      }
+    },
+    "invoices": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "numbering": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pattern": { "type": "string", "default": "FA-{YYYY}-{0001}" },
+            "resetCycle": { "type": "string", "enum": ["monthly", "yearly", "never"], "default": "yearly" },
+            "startNumber": { "type": "integer", "minimum": 1, "default": 1 },
+            "padding": { "type": "integer", "minimum": 1, "default": 4 }
+          }
+        },
+        "currency": { "type": "string", "default": "CZK" },
+        "defaultDueDays": { "type": "integer", "minimum": 0, "default": 14 },
+        "defaultVatRate": { "type": "number", "minimum": 0, "default": 21 },
+        "bankAccounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "label": { "type": "string" },
+              "accountNumber": { "type": "string" },
+              "iban": { "type": "string" },
+              "swift": { "type": "string" },
+              "isDefault": { "type": "boolean", "default": false }
+            },
+            "required": ["label"]
+          },
+          "default": []
+        },
+        "qrPaymentEnabled": { "type": "boolean", "default": true },
+        "isdocExportEnabled": { "type": "boolean", "default": false },
+        "xmlAccountingExportEnabled": { "type": "boolean", "default": false },
+        "reverseChargeEnabled": { "type": "boolean", "default": false },
+        "roundingMode": { "type": "string", "enum": ["none", "0.01", "0.1", "1"], "default": "0.01" },
+        "footerText": { "type": "string", "default": "" },
+        "approvalRequiredBeforeIssue": { "type": "boolean", "default": false },
+        "autoEmailSend": { "type": "boolean", "default": false },
+        "paymentRemindersEnabled": { "type": "boolean", "default": false },
+        "documents": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "invoiceTemplate": { "type": "string" },
+            "proformaTemplate": { "type": "string" },
+            "creditNoteTemplate": { "type": "string" },
+            "signatureRequired": { "type": "boolean", "default": false },
+            "sealRequired": { "type": "boolean", "default": false }
+          }
+        }
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "multiWarehouseEnabled": { "type": "boolean", "default": false },
+        "allowNegativeStock": { "type": "boolean", "default": false },
+        "trackLots": { "type": "boolean", "default": false },
+        "trackSerialNumbers": { "type": "boolean", "default": false },
+        "autoReservationForProjects": { "type": "boolean", "default": false },
+        "autoIssueFromVztCalculator": { "type": "boolean", "default": false },
+        "approvalRequiredForIssue": { "type": "boolean", "default": false },
+        "inventoryAuditMode": { "type": "string", "enum": ["manual", "periodic", "continuous"], "default": "manual" },
+        "defaultUnits": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["ks", "m", "m2", "kg", "bal"]
+        },
+        "documentTemplates": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "issueNote": { "type": "string" },
+            "receiptNote": { "type": "string" },
+            "inventoryProtocol": { "type": "string" }
+          }
+        }
+      }
+    },
+    "team": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "registrationApprovalRequired": { "type": "boolean", "default": true },
+        "allowSelfRegistration": { "type": "boolean", "default": true },
+        "defaultRole": { "type": "string", "enum": ["MONTER", "VEDOUCI", "ADMINISTRACE", "REDITEL"], "default": "MONTER" },
+        "allowRoleEditing": { "type": "boolean", "default": true },
+        "organizationStructureEnabled": { "type": "boolean", "default": false },
+        "projectRoleAssignmentsEnabled": { "type": "boolean", "default": true },
+        "moduleVisibilityPerRoleEnabled": { "type": "boolean", "default": true },
+        "signatureAuthorityPerRole": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "default": {}
+        },
+        "importEnabled": { "type": "boolean", "default": true },
+        "exportEnabled": { "type": "boolean", "default": true }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "costPerSqMeter": { "type": "number", "minimum": 0, "default": 0 },
+        "sellPerSqMeter": { "type": "number", "minimum": 0, "default": 0 },
+        "marginPercent": { "type": "number", "minimum": 0, "default": 0 },
+        "surchargePercent": { "type": "number", "minimum": 0, "default": 0 },
+        "discountPercent": { "type": "number", "minimum": 0, "default": 0 },
+        "versioningEnabled": { "type": "boolean", "default": true },
+        "effectiveFromRequired": { "type": "boolean", "default": true },
+        "regionalPricingEnabled": { "type": "boolean", "default": false },
+        "customerSpecificPricingEnabled": { "type": "boolean", "default": false },
+        "approvalRequiredForChanges": { "type": "boolean", "default": true }
+      }
+    },
+    "documents": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "numbering": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "invoice": { "type": "string", "default": "FA-{YYYY}-{0001}" },
+            "dailyLog": { "type": "string", "default": "DEN-{PROJECT}-{YYYYMM}-{0001}" },
+            "attendanceStatement": { "type": "string", "default": "DOC-{YYYYMM}-{EMPLOYEE}-{0001}" },
+            "handoverProtocol": { "type": "string", "default": "PP-{PROJECT}-{YYYY}-{0001}" },
+            "priceOffer": { "type": "string", "default": "CN-{YYYY}-{0001}" }
+          }
+        },
+        "workflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "defaultStates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["draft", "pending_review", "pending_approval", "approved", "pending_signature", "signed", "exported", "archived", "rejected", "cancelled", "superseded"]
+              },
+              "default": ["draft", "pending_review", "pending_approval", "approved", "pending_signature", "signed", "exported", "archived"]
+            },
+            "allowRejection": { "type": "boolean", "default": true },
+            "allowCancellation": { "type": "boolean", "default": true },
+            "lockAfterSignature": { "type": "boolean", "default": true }
+          }
+        },
+        "templates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "documentType": { "type": "string" },
+              "locale": { "type": "string", "default": "cs" },
+              "format": { "type": "string", "enum": ["pdf", "docx", "xlsx", "xml", "isdoc"] },
+              "isDefault": { "type": "boolean", "default": false },
+              "placeholders": { "type": "object", "additionalProperties": true },
+              "signatureRules": { "type": "object", "additionalProperties": true }
+            },
+            "required": ["name", "documentType", "format"]
+          },
+          "default": []
+        },
+        "versioningEnabled": { "type": "boolean", "default": true },
+        "storeHash": { "type": "boolean", "default": true },
+        "allowAttachments": { "type": "boolean", "default": true },
+        "archiveSignedArtifacts": { "type": "boolean", "default": true }
+      }
+    },
+    "imports": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supportedFormats": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["csv", "xlsx", "json", "xml", "zip"] },
+          "default": ["csv", "xlsx", "json"]
+        },
+        "defaultEncoding": { "type": "string", "default": "UTF-8" },
+        "defaultDelimiter": { "type": "string", "default": ";" },
+        "headerRowRequired": { "type": "boolean", "default": true },
+        "allowDryRun": { "type": "boolean", "default": true },
+        "allowValidationOnly": { "type": "boolean", "default": true },
+        "duplicateStrategy": { "type": "string", "enum": ["skip", "update", "merge", "error"], "default": "skip" },
+        "rollbackOnFirstError": { "type": "boolean", "default": false },
+        "storeSourceFiles": { "type": "boolean", "default": true },
+        "generateImportReport": { "type": "boolean", "default": true },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "moduleKey": { "type": "string" },
+              "format": { "type": "string" },
+              "fieldMapping": { "type": "object", "additionalProperties": true },
+              "validationRules": { "type": "object", "additionalProperties": true }
+            },
+            "required": ["name", "moduleKey", "format"]
+          },
+          "default": []
+        }
+      }
+    },
+    "exports": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supportedFormats": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["pdf", "docx", "xlsx", "csv", "json", "xml", "isdoc", "zip"] },
+          "default": ["pdf", "xlsx", "csv", "json"]
+        },
+        "defaultFormat": { "type": "string", "enum": ["pdf", "docx", "xlsx", "csv", "json", "xml", "isdoc", "zip"], "default": "pdf" },
+        "includeMetadata": { "type": "boolean", "default": true },
+        "includeAuditTrail": { "type": "boolean", "default": false },
+        "allowAnonymization": { "type": "boolean", "default": true },
+        "allowBranding": { "type": "boolean", "default": true },
+        "allowWatermark": { "type": "boolean", "default": true },
+        "allowPasswordProtection": { "type": "boolean", "default": true },
+        "allowZipEncryption": { "type": "boolean", "default": true },
+        "scheduledExportsEnabled": { "type": "boolean", "default": false },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "moduleKey": { "type": "string" },
+              "format": { "type": "string" },
+              "includeMetadata": { "type": "boolean" },
+              "includeAudit": { "type": "boolean" },
+              "anonymize": { "type": "boolean" },
+              "signed": { "type": "boolean" },
+              "watermark": { "type": "boolean" }
+            },
+            "required": ["name", "moduleKey", "format"]
+          },
+          "default": []
+        }
+      }
+    },
+    "signatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "defaultLevel": { "type": "string", "enum": ["INTERNAL_APPROVAL", "SIMPLE", "ADVANCED", "QUALIFIED", "ELECTRONIC_SEAL", "TIMESTAMP_ONLY"], "default": "INTERNAL_APPROVAL" },
+        "require2faBeforeSigning": { "type": "boolean", "default": true },
+        "archiveSignedArtifacts": { "type": "boolean", "default": true },
+        "storeCertificateInfo": { "type": "boolean", "default": true },
+        "storeTimestampToken": { "type": "boolean", "default": true },
+        "allowInternalApproval": { "type": "boolean", "default": true },
+        "allowSimple": { "type": "boolean", "default": true },
+        "allowAdvanced": { "type": "boolean", "default": false },
+        "allowQualified": { "type": "boolean", "default": false },
+        "allowElectronicSeal": { "type": "boolean", "default": false },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "providerKey": { "type": "string" },
+              "apiUrl": { "type": "string" },
+              "authMethod": { "type": "string", "enum": ["api_key", "oauth2", "cert", "none"] },
+              "supportedLevels": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["INTERNAL_APPROVAL", "SIMPLE", "ADVANCED", "QUALIFIED", "ELECTRONIC_SEAL", "TIMESTAMP_ONLY"] }
+              },
+              "isDefault": { "type": "boolean", "default": false }
+            },
+            "required": ["name", "providerKey"]
+          },
+          "default": []
+        }
+      }
+    },
+    "reports": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabledDashboards": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["profit", "attendance", "projects", "invoices"]
+        },
+        "defaultPeriod": { "type": "string", "enum": ["today", "week", "month", "quarter", "year"], "default": "month" },
+        "allowSavedFilters": { "type": "boolean", "default": true },
+        "allowScheduledReports": { "type": "boolean", "default": false },
+        "defaultExportFormat": { "type": "string", "enum": ["pdf", "xlsx", "csv"], "default": "pdf" },
+        "managerSignatureRequired": { "type": "boolean", "default": false }
+      }
+    }
+  },
+  "required": [
+    "system",
+    "security",
+    "attendance",
+    "projects",
+    "chat",
+    "daily_log",
+    "vzt_calculator",
+    "invoices",
+    "inventory",
+    "team",
+    "pricing",
+    "documents",
+    "imports",
+    "exports",
+    "signatures",
+    "reports"
+  ]
+}
