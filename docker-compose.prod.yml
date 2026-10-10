@@ -38,6 +38,8 @@ services:
       target: backend
     container_name: zoom-pro-backend
     restart: unless-stopped
+    ports:
+      - "5000:5000"
     environment:
       NODE_ENV: production
       PORT: "5000"
@@ -71,6 +73,14 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: zoom-pro-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      CLOUDFLARE_TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
 
 volumes:
   zoom_pro_pgdata:

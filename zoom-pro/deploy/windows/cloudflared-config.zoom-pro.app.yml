@@ -1,9 +1,0 @@
-tunnel: TUNNEL_UUID_SEM
-credentials-file: C:\Users\TVE_WINDOWS_JMENO\.cloudflared\TUNNEL_UUID_SEM.json
-
-ingress:
-  - hostname: zoom-pro.app
-    service: http://localhost:8080
-  - hostname: www.zoom-pro.app
-    service: http://localhost:8080
-  - service: http_status:404
