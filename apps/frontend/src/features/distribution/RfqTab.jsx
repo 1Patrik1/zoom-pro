@@ -74,7 +74,7 @@ export function RfqTab({ token, db }) {
               <select value={l.catalogItemId} onChange={(e) => patchLine(i, { catalogItemId: e.target.value })}
                 className="min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm">
                 <option value="">— položka —</option>
-                {catalog.map((c) => <option key={c.id} value={c.id}>{c.sku} — {c.name}</option>)}
+                {(catalog || []).map((c) => <option key={c.id} value={c.id}>{c.sku} — {c.name}</option>)}
               </select>
               <input type="number" min="1" value={l.quantity} onChange={(e) => patchLine(i, { quantity: Number(e.target.value) })}
                 className="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm" />

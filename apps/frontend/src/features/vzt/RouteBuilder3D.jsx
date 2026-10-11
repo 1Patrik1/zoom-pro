@@ -230,7 +230,7 @@ export function RouteBuilder3D() {
             <table className="mt-2 w-full text-sm">
               <thead className="text-left text-xs text-slate-500"><tr><th>Položka</th><th>Specifikace</th><th>Množství</th></tr></thead>
               <tbody>
-                {bom.map((it, i) => (
+                {(bom || []).map((it, i) => (
                   <tr key={i} className="border-t border-slate-200">
                     <td>{it.name}</td><td className="font-mono text-xs">{it.spec}</td>
                     <td className="font-black">{it.qty.toFixed(2)} {it.unit}</td>

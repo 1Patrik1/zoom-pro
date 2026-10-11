@@ -54,7 +54,7 @@ export function PricesTab({ token, selectedItem }) {
           <select value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
             className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2">
             <option value="">— dodavatel —</option>
-            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {(suppliers || []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <input placeholder="SKU dodavatele" value={form.supplierSku} onChange={(e) => setForm({ ...form, supplierSku: e.target.value })} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
           <input type="number" placeholder="Cena" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />

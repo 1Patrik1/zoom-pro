@@ -28,7 +28,7 @@ export function DashboardPage({ db }) {
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {cards.map((card) => (
+        {(cards || []).map((card) => (
           <div key={card.label} className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{card.label}</p>
             <p className="mt-3 text-2xl font-black text-white">{card.value}</p>
@@ -75,7 +75,7 @@ export function DashboardPage({ db }) {
         <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
           <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-blue-400">GPS a provozní upozornění</h2>
           <div className="space-y-3">
-            {alerts.map((item) => (
+            {(alerts || []).map((item) => (
               <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>

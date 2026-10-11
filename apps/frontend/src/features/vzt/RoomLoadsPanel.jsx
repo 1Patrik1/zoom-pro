@@ -19,7 +19,7 @@ export function RoomLoadsPanel() {
   const remove = (id) => setRooms((rs) => rs.filter((r) => r.id !== id));
   const add = () => setRooms((rs) => [...rs, EMPTY_ROOM()]);
 
-  const rows = useMemo(() => rooms.map((r) => {
+  const rows = useMemo(() => (rooms || []).map((r) => {
     const flow = requiredAirflowM3h({
       areaM2: r.areaM2, heightM: r.heightM, occupants: r.occupants,
       ida: r.ida, roomType: r.roomType, buildingType,

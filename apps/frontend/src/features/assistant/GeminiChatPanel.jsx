@@ -25,7 +25,7 @@ export function GeminiChatPanel({ token }) {
 
   const addImages = async (files) => {
     const list = Array.from(files || []).slice(0, 3);
-    const encoded = await Promise.all(list.map(fileToBase64));
+    const encoded = await Promise.all((list || []).map(fileToBase64));
     setImages((prev) => [...prev, ...encoded].slice(0, 3));
   };
 
