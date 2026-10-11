@@ -73,7 +73,7 @@ const files = (await fs.readdir(ROOT))
   .filter((f) => /^\d{3}_.+\.sql$/.test(f))
   .sort();
 
-let applied = 0, skipped = 0, failed = 0;
+let applied = 0, skipped = 0, baselined = 0, failed = 0;
 for (const f of files) {
   const known = await client.query(`SELECT 1 FROM "_migrations" WHERE filename = $1`, [f]);
   if (known.rows.length) { console.log(`⏭  ${f}`); skipped++; continue; }
@@ -89,17 +89,18 @@ for (const f of files) {
   } catch (e) {
     await client.query('ROLLBACK');
     console.log(`SELHALO — ${e.message}`);
-    failed++;
     // Pokud jde jenom o "already exists", označíme jako baseline a jedeme dál
     if (/already exists/i.test(e.message)) {
       await markApplied(f);
+      baselined++;
       console.log(`   → označeno jako baseline (objekty už existují)`);
     } else {
+      failed++;
       break;
     }
   }
 }
 
 await client.end();
-console.log(`\n✅ Hotovo: ${applied} aplikováno, ${skipped} přeskočeno, ${failed} baseline/warnings.`);
-process.exit(0);
+console.log(`\nMigrace: ${applied} aplikováno, ${skipped} přeskočeno, ${baselined} označeno jako existující, ${failed} chyb.`);
+process.exit(failed ? 1 : 0);

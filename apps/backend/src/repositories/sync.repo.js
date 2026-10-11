@@ -5,7 +5,7 @@ export const syncRepo = {
     return query('SELECT * FROM "Company" WHERE id = $1', [companyId]);
   },
   getUsers(companyId) {
-    return query('SELECT id, email, role, "isApproved", "firstName", "lastName", "createdAt" FROM "User" WHERE "companyId" = $1 ORDER BY "createdAt" ASC', [companyId]);
+    return query('SELECT id, email, role, "isApproved", "firstName", "lastName", phone, "employmentType", ico, dic, street, city, zip, "createdAt" FROM "User" WHERE "companyId" = $1 ORDER BY "createdAt" ASC', [companyId]);
   },
   getProjects(companyId) {
     return query('SELECT * FROM "Project" WHERE "companyId" = $1 ORDER BY "updatedAt" DESC, "createdAt" DESC', [companyId]);
@@ -21,7 +21,7 @@ export const syncRepo = {
   },
   getChats(companyId) {
     return query(
-      `SELECT pc.*, u.email as "authorName", p.name as "projectName"
+      `SELECT pc.*, COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName", p.name as "projectName"
        FROM "ProjectChat" pc
        JOIN "User" u ON pc."userId" = u.id
        JOIN "Project" p ON pc."projectId" = p.id
@@ -32,7 +32,7 @@ export const syncRepo = {
   },
   getProjectGallery(companyId) {
     return query(
-      `SELECT gi.*, u.email as "authorName", p.name as "projectName"
+      `SELECT gi.*, COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName", p.name as "projectName"
        FROM "ProjectGalleryItem" gi
        JOIN "User" u ON gi."userId" = u.id
        JOIN "Project" p ON gi."projectId" = p.id
@@ -43,7 +43,9 @@ export const syncRepo = {
   },
   getAttendance(companyId) {
     return query(
-      `SELECT a.*, u.email, p.name as "projectName"
+      `SELECT a.*, u.email, u."firstName", u."lastName",
+              COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "userName",
+              p.name as "projectName"
        FROM "Attendance" a
        JOIN "User" u ON a."userId" = u.id
        LEFT JOIN "Project" p ON a."projectId" = p.id
@@ -55,7 +57,8 @@ export const syncRepo = {
   },
   getLogs(companyId) {
     return query(
-      `SELECT d.*, p.name as "projectName", u.email as "authorName"
+      `SELECT d.*, p.name as "projectName",
+              COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName"
        FROM "DailyLog" d
        LEFT JOIN "Project" p ON d."projectId" = p.id
        LEFT JOIN "User" u ON d."authorId" = u.id
@@ -72,7 +75,8 @@ export const syncRepo = {
   },
   getInventoryMovements(companyId) {
     return query(
-      `SELECT m.*, i.name as "itemName", i.code as "itemCode", p.name as "projectName", u.email as "authorName"
+      `SELECT m.*, i.name as "itemName", i.code as "itemCode", p.name as "projectName",
+              COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName"
        FROM "InventoryMovement" m
        JOIN "InventoryItem" i ON m."itemId" = i.id
        LEFT JOIN "Project" p ON m."projectId" = p.id
@@ -91,7 +95,9 @@ export const syncRepo = {
   },
   getCollisions(companyId) {
     return query(
-      `SELECT ca.*, p.name as "projectName", u.email as "userEmail", i.name as "itemName"
+      `SELECT ca.*, p.name as "projectName", u.email as "userEmail",
+              COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "userName",
+              i.name as "itemName"
        FROM "CollisionAlert" ca
        LEFT JOIN "Project" p ON ca."projectId" = p.id
        LEFT JOIN "User" u ON ca."userId" = u.id
@@ -104,7 +110,9 @@ export const syncRepo = {
   },
   getTroubleshooting(companyId) {
     return query(
-      `SELECT pt.*, u.email as "authorEmail", p.name as "projectName"
+      `SELECT pt.*, u.email as "authorEmail",
+              COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName",
+              p.name as "projectName"
        FROM "ProjectTroubleshooting" pt
        JOIN "User" u ON pt."userId" = u.id
        JOIN "Project" p ON pt."projectId" = p.id

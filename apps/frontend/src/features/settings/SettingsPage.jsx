@@ -1,24 +1,51 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, User as UserIcon, SlidersHorizontal } from 'lucide-react';
+import { BellRing, KeyRound, User as UserIcon, SlidersHorizontal } from 'lucide-react';
 import { api } from '../../api/client.js';
+import { playCriticalAlarm } from '../../utils/alerts.js';
 
-export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved }) {
+export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, onCompanySaved }) {
   const canEdit = ['SUPERADMIN', 'REDITEL'].includes(user.role);
-  const [profile, setProfile] = useState({ firstName: user.firstName || '', lastName: user.lastName || '' });
+  const canEditCompanyContacts = ['SUPERADMIN', 'REDITEL', 'ADMINISTRACE'].includes(user.role);
+  const [profile, setProfile] = useState({
+    email: user.email || '', phone: user.phone || '',
+    firstName: user.firstName || '', lastName: user.lastName || '',
+    employmentType: user.employmentType || 'INTERNAL',
+    ico: user.ico || '', dic: user.dic || '', street: user.street || '', city: user.city || '', zip: user.zip || ''
+  });
+  const [companyContact, setCompanyContact] = useState({ email: db.company?.email || '', phone: db.company?.phone || '' });
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [alarmMelody, setAlarmMelody] = useState(() => localStorage.getItem('zp_alarm_melody') || 'siren');
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    setCompanyContact({ email: db.company?.email || '', phone: db.company?.phone || '' });
+  }, [db.company?.email, db.company?.phone]);
 
   async function saveProfile(e) {
     e.preventDefault();
     setMsg(''); setErr('');
     try {
-      await api.post('users/profile', token, profile);
-      setMsg('Profil uložen (jméno a příjmení).');
-      onProfileSaved?.(profile);
+      const response = await api.post('users/profile', token, profile);
+      const savedProfile = response.user || profile;
+      setProfile((current) => ({ ...current, ...savedProfile }));
+      setMsg('Osobní kontaktní údaje byly uloženy.');
+      await onProfileSaved?.(savedProfile);
     } catch (error) {
       setErr(error.message || 'Uložení profilu selhalo.');
     }
+  }
+
+  async function saveCompanyContact(event) {
+    event.preventDefault();
+    setMsg(''); setErr('');
+    try {
+      const response = await api.put('settings/company/contact', token, companyContact);
+      setCompanyContact({ email: response.company?.email || '', phone: response.company?.phone || '' });
+      await onCompanySaved?.(response.company);
+      setMsg('Kontaktní údaje firmy byly uloženy.');
+    } catch (error) { setErr(error.message || 'Uložení firemních kontaktů selhalo.'); }
   }
 
   async function changePassword(e) {
@@ -34,14 +61,44 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved })
     }
   }
 
+  async function enableWebPush() {
+    setMsg(''); setErr(''); setPushBusy(true);
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        throw new Error('Tento prohlížeč nepodporuje push oznámení.');
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') throw new Error('Povolte oznámení v nastavení telefonu nebo prohlížeče.');
+      const { publicKey } = await api.get('devices/public-key');
+      if (!publicKey) throw new Error('Server nemá nakonfigurované web push klíče.');
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: decodeVapidKey(publicKey)
+      });
+      await api.post('devices/register', token, { platform: 'web', pushSubscription: subscription.toJSON() });
+      setMsg('Push oznámení jsou zapnutá. Zvuk určuje nastavení oznámení v telefonu nebo prohlížeči.');
+    } catch (error) {
+      setErr(error.message || 'Push oznámení se nepodařilo zapnout.');
+    } finally { setPushBusy(false); }
+  }
+
   const input = 'w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none';
 
   return (
     <div className="space-y-4">
       <form onSubmit={saveProfile} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-lg font-black text-blue-400 flex items-center gap-2"><UserIcon size={18} /> Můj profil</h2>
-        <p className="text-xs text-slate-400">E-mail: {user.email} · Role: {user.role}</p>
+        <p className="text-xs text-slate-400">Role: {user.role}</p>
         <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Přihlašovací e-mail</label>
+            <input type="email" required value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} placeholder="E-mail" className={input} />
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Telefon</label>
+            <input type="tel" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="Telefonní číslo" className={input} />
+          </div>
           <div>
             <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Jméno</label>
             <input value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} placeholder="Jméno" className={input} />
@@ -51,8 +108,44 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved })
             <input value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} placeholder="Příjmení" className={input} />
           </div>
         </div>
+        <div>
+          <label className="mb-2 block text-xs font-black uppercase tracking-widest text-slate-500">Typ člena</label>
+          <select value={profile.employmentType} onChange={(e) => setProfile({ ...profile, employmentType: e.target.value })} className={input}>
+            <option value="INTERNAL">Interní člen</option>
+            <option value="EXTERNAL">Externí spolupracovník</option>
+          </select>
+        </div>
+        {profile.employmentType === 'EXTERNAL' && <div className="grid gap-4 rounded-2xl border border-slate-800 bg-slate-950/50 p-4 md:grid-cols-2">
+          <p className="text-xs text-slate-400 md:col-span-2">Podnikatelské a adresní údaje externího člena (nepovinné).</p>
+          <input value={profile.ico} onChange={(e) => setProfile({ ...profile, ico: e.target.value })} placeholder="IČO" className={input} />
+          <input value={profile.dic} onChange={(e) => setProfile({ ...profile, dic: e.target.value })} placeholder="DIČ" className={input} />
+          <input value={profile.street} onChange={(e) => setProfile({ ...profile, street: e.target.value })} placeholder="Ulice a číslo" className={input} />
+          <input value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} placeholder="Město" className={input} />
+          <input value={profile.zip} onChange={(e) => setProfile({ ...profile, zip: e.target.value })} placeholder="PSČ" className={input} />
+        </div>}
         <button className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black uppercase text-white">Uložit profil</button>
       </form>
+
+      <section className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <h2 className="text-lg font-black text-amber-400">Upozornění a zvuk alarmu</h2>
+        <p className="text-sm text-slate-400">Vyberte zvuk kritických upozornění v této webové aplikaci.</p>
+        <p className="text-sm text-slate-400">Push zprávy z chatu a podpory se zobrazí i při zavřené aplikaci, pokud prohlížeč a systém povolují oznámení.</p>
+        <button type="button" disabled={pushBusy} onClick={enableWebPush} className="flex items-center gap-2 rounded-2xl bg-amber-600 px-4 py-3 text-sm font-black text-white disabled:opacity-60"><BellRing size={16} />{pushBusy ? 'Zapínám…' : 'Zapnout push na tomto zařízení'}</button>
+        <select value={alarmMelody} onChange={(event) => { setAlarmMelody(event.target.value); localStorage.setItem('zp_alarm_melody', event.target.value); }} className={input}>
+          <option value="siren">Siréna</option><option value="bell">Zvonek</option><option value="pulse">Krátké tóny</option>
+        </select>
+        <button type="button" onClick={() => playCriticalAlarm({ times: 1, seconds: 2 })} className="rounded-2xl border border-slate-700 px-4 py-3 text-sm font-bold text-slate-200">Přehrát ukázku zvuku</button>
+      </section>
+
+      {canEditCompanyContacts && <form onSubmit={saveCompanyContact} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <h2 className="text-lg font-black text-emerald-400">Kontaktní údaje firmy</h2>
+        <p className="text-xs text-slate-400">Firemní kontakt je oddělený od osobního přihlašovacího e-mailu a telefonu.</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <input type="email" value={companyContact.email} onChange={(e) => setCompanyContact({ ...companyContact, email: e.target.value })} placeholder="Kontaktní e-mail firmy" className={input} />
+          <input type="tel" value={companyContact.phone} onChange={(e) => setCompanyContact({ ...companyContact, phone: e.target.value })} placeholder="Telefon firmy" className={input} />
+        </div>
+        <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black uppercase text-white">Uložit kontakty firmy</button>
+      </form>}
 
       <form onSubmit={changePassword} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-lg font-black text-rose-400 flex items-center gap-2"><KeyRound size={18} /> Změna hesla</h2>
@@ -101,10 +194,20 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved })
   );
 }
 
+function decodeVapidKey(value) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4);
+  const raw = atob(padded);
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+}
+
 // Editor per-modul nastavení (ModuleSettings) — načte seznam uložených konfigurací,
 // umožní je upravit jako JSON a uložit (PUT /api/settings/modules/:moduleKey).
 function ModuleSettingsEditor({ token, onSaved, onError }) {
-  const KNOWN = ['system', 'import', 'export', 'workflow', 'signatures', 'distribution', 'licensing'];
+  const KNOWN = [
+    ['system', 'Systém a oznámení'], ['import', 'Import'], ['export', 'Export'],
+    ['workflow', 'Schvalovací procesy'], ['signatures', 'Elektronické podpisy'],
+    ['distribution', 'Distribuce dokumentů'], ['licensing', 'Licence a balíčky']
+  ];
   const [moduleKey, setModuleKey] = useState('system');
   const [json, setJson] = useState('{}');
   const [loaded, setLoaded] = useState(null);
@@ -140,10 +243,10 @@ function ModuleSettingsEditor({ token, onSaved, onError }) {
   return (
     <div className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
       <h2 className="flex items-center gap-2 text-lg font-black text-cyan-400"><SlidersHorizontal size={18} /> Nastavení modulů</h2>
-      <p className="text-xs text-slate-400">Per-modul konfigurace (system, import, export, workflow…). Uložené hodnoty mají prioritu před výchozími.</p>
+      <p className="text-xs text-slate-400">Podrobné nastavení jednotlivých modulů. Uložené hodnoty mají přednost před výchozími.</p>
       <div className="flex flex-wrap items-center gap-2">
         <select value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white">
-          {KNOWN.map((k) => <option key={k} value={k}>{k}</option>)}
+          {KNOWN.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         </select>
         {loaded && <span className="rounded-lg bg-cyan-950/60 px-2 py-1 text-[11px] font-black text-cyan-300">uloženo, v.{loaded.version ?? '?'}</span>}
       </div>

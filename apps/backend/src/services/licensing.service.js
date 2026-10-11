@@ -58,24 +58,43 @@ export const licensingService = {
     return { plan, pricing };
   },
 
-  async subscribe(user, { planCode, users, modules, period }) {
-    if (!['REDITEL', 'SUPERADMIN'].includes(user.role)) {
-      throw new HttpError(403, 'Změnit licenci může jen ředitel firmy.');
-    }
+  async subscribe(user) {
+    if (user.role !== 'SUPERADMIN') throw new HttpError(403, 'Balíček ani příplatkové moduly může aktivovat pouze SUPERADMIN. Odešlete žádost přes Chat podpory.');
+    throw new HttpError(403, 'Licenci přidělujte firmě v modulu Platforma.');
+  },
+
+  async assignToCompany(user, payload) {
+    if (user.role !== 'SUPERADMIN') throw new HttpError(403, 'Pouze SUPERADMIN může přidělit licenci.');
+    const { companyId, planCode } = payload || {};
+    const users = Number(payload?.users);
+    const period = Number(payload?.period);
+    if (!companyId || !planCode) throw new HttpError(400, 'Vyberte firmu a balíček.');
+    if (!Number.isInteger(users) || users < 1) throw new HttpError(400, 'Počet členů musí být kladné celé číslo.');
+    if (![1, 3, 6, 12].includes(period)) throw new HttpError(400, 'Délka licence musí být 1, 3, 6 nebo 12 měsíců.');
+    const [company] = await licensingRepo.getCompany(companyId);
+    if (!company) throw new HttpError(404, 'Firma nebyla nalezena.');
     const [plan] = await licensingRepo.getPlanByCode(planCode);
     if (!plan) throw new HttpError(404, 'Tarif nenalezen.');
+    if (plan.maxUsers && users > plan.maxUsers) throw new HttpError(400, `Tento tarif umožňuje nejvýše ${plan.maxUsers} členů.`);
+    const requestedModules = Array.isArray(payload.modules) ? payload.modules : [];
+    const includedModules = plan.includedModules || [];
+    const addonTable = plan.moduleAddons || {};
+    const addonModules = Array.from(new Set(requestedModules));
+    for (const module of addonModules) {
+      if (!Object.hasOwn(addonTable, module)) throw new HttpError(400, `Modul ${module} není v tomto tarifu dostupný jako příplatek.`);
+    }
+    const modules = addonModules.filter((module) => !includedModules.includes(module));
     const pricing = calcPrice(plan, { users, modules, period });
-    const validFrom = new Date();
+    const validFrom = payload.validFrom ? new Date(payload.validFrom) : new Date();
+    if (Number.isNaN(validFrom.getTime())) throw new HttpError(400, 'Neplatné datum začátku licence.');
     const validTo = new Date(validFrom);
-    validTo.setMonth(validTo.getMonth() + Math.max(1, period));
-
-    const merged = Array.from(new Set([...(plan.includedModules || []), ...(modules || [])]));
+    validTo.setMonth(validTo.getMonth() + period);
 
     const [row] = await licensingRepo.saveTenantLicense({
-      companyId: user.companyId,
+      companyId,
       planCode,
       maxUsers: users,
-      enabledModules: merged,
+      enabledModules: Array.from(new Set([...includedModules, ...modules])),
       billingPeriod: period,
       priceMonthly: pricing.monthlyDiscounted,
       priceTotal: pricing.total,
@@ -84,7 +103,7 @@ export const licensingService = {
       validTo,
       status: 'active',
     });
-    return { license: row, pricing, plan };
+    return { license: row, pricing, plan, companyId };
   },
 
   async getPublicBranding() {

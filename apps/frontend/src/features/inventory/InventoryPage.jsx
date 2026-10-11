@@ -80,6 +80,32 @@ export function InventoryPage({ db, onCreateItem, onCreateMovement }) {
 
   useEffect(() => () => stopScanner(), []);
 
+  useEffect(() => {
+    if (!scannerOpen || !videoRef.current || !streamRef.current) return undefined;
+
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    let cancelled = false;
+    video.srcObject = stream;
+
+    video.play().then(() => {
+      if (cancelled) return;
+      setScannerMessage('Kamera běží. Namiř QR kód materiálu do středu záběru.');
+      scanFrame();
+    }).catch((err) => {
+      if (cancelled) return;
+      setScannerMessage('Video z kamery se nepodařilo přehrát. Zkontroluj oprávnění prohlížeče.');
+      setError(err.message || 'Video z kamery se nepodařilo spustit.');
+      stopScanner();
+    });
+
+    return () => {
+      cancelled = true;
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      frameRef.current = 0;
+    };
+  }, [scannerOpen]);
+
   async function startScanner() {
     setError('');
     setSuccess('');
@@ -93,13 +119,8 @@ export function InventoryPage({ db, onCreateItem, onCreateMovement }) {
       detectorRef.current = new window.BarcodeDetector({ formats: ['qr_code'] });
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setScannerOpen(true);
-      setScannerMessage('Kamera běží. Namiř QR kód materiálu do středu záběru.');
-      scanFrame();
+      setScannerMessage('Připojuji kameru…');
     } catch (err) {
       setScannerMessage('Kameru se nepodařilo spustit. Zkontroluj oprávnění prohlížeče.');
       setError(err.message || 'Nepodařilo se spustit kameru');

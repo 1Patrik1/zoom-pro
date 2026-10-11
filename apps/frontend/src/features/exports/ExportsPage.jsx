@@ -4,6 +4,8 @@ import { ExportJobDetailPanel } from './ExportJobDetailPanel.jsx';
 
 const FORMATS = ['PDF', 'DOCX', 'XLSX'];
 const MODULE_HINTS = ['invoices', 'documents', 'attendance', 'daily_log', 'projects'];
+const MODULE_LABELS = { invoices: 'Faktury', documents: 'Dokumenty', attendance: 'Docházka', daily_log: 'Stavební deník', projects: 'Projekty' };
+const FORMAT_LABELS = { PDF: 'PDF – tiskový dokument', DOCX: 'Word (DOCX)', XLSX: 'Excel (XLSX)' };
 
 export function ExportsPage({ token }) {
   const [profiles, setProfiles] = useState([]);
@@ -86,14 +88,16 @@ export function ExportsPage({ token }) {
           <form onSubmit={handleCreateJob} className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="text-lg font-black text-blue-400">Nový export job</h2>
             <p className="text-sm text-slate-400">Exportní job vytváří auditovatelný požadavek, na který lze později navázat dokument nebo podpis.</p>
-            <input name="moduleKey" required list="export-module-hints" placeholder="moduleKey (např. invoices)" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
-            <datalist id="export-module-hints">
-              {MODULE_HINTS.map((item) => <option key={item} value={item} />)}
-            </datalist>
-            <select name="format" defaultValue="PDF" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
-              {FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
+            <label className="block text-xs font-bold text-slate-400">Zdrojový modul</label>
+            <select name="moduleKey" required defaultValue="invoices" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
+              {MODULE_HINTS.map((item) => <option key={item} value={item}>{MODULE_LABELS[item]}</option>)}
             </select>
-            <input name="status" placeholder="Filtr status" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
+            <select name="format" defaultValue="PDF" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
+              {FORMATS.map((f) => <option key={f} value={f}>{FORMAT_LABELS[f]}</option>)}
+            </select>
+            <select name="status" defaultValue="" aria-label="Filtrovat podle stavu" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
+              <option value="">Všechny stavy</option><option value="DRAFT">Koncept</option><option value="PENDING_APPROVAL">Čeká na schválení</option><option value="APPROVED">Schváleno</option><option value="PAID">Zaplaceno</option>
+            </select>
             <div className="grid gap-3 md:grid-cols-2">
               <input name="dateFrom" type="date" className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
               <input name="dateTo" type="date" className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />

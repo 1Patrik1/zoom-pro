@@ -19,8 +19,8 @@
     "build:mobile": "cd apps/mobile && npm run build",
     "start": "npm run start -w apps/backend",
     "db:migrate:all": "node scripts/db-migrate-all.mjs",
-    "db:migrate:new": "node scripts/db-run-sql.mjs 001_initial_schema.sql 002_seed_permissions.sql 003_seed_default_module_settings.sql 007_project_geo_and_gallery.sql 008_invoice_automation_and_permissions.sql 009_attendance_geo_guard_and_log_media.sql 010_collisions_and_qr_labels.sql 011_zoom_pro_licensing.sql 012_monter_invoices.sql 013_distribution_platform.sql 014_mobile_devices.sql",
-    "db:migrate:legacy": "node scripts/db-run-sql.mjs 002_seed_permissions.sql 003_seed_default_module_settings.sql 004_upgrade_legacy_in_place.sql 007_project_geo_and_gallery.sql 008_invoice_automation_and_permissions.sql 009_attendance_geo_guard_and_log_media.sql",
+    "db:migrate:new": "node scripts/db-migrate-all.mjs",
+    "db:migrate:legacy": "node scripts/db-migrate-all.mjs",
     "db:seed:platform": "node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql",
     "db:seed:demo": "node scripts/db-run-sql.mjs 006_seed_demo_profiles_and_records.sql",
     "db:seed:distribution": "node scripts/seed-distribution.mjs",
@@ -42,5 +42,6 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.4"
-  }
+  },
+  "type": "module"
 }

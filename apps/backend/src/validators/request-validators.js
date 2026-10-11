@@ -71,9 +71,22 @@ export const validators = {
   authRegister(body) {
     return collect([
       requiredString(body.email, 'email', 3),
+      optionalEmail(body.email, 'email'),
       requiredString(body.password, 'password', 6),
       !body.joinId ? requiredString(body.companyName, 'companyName', 2) : null,
-      body.joinId ? requiredUuidish(body.joinId, 'joinId') : null
+      body.joinId ? requiredUuidish(body.joinId, 'joinId') : null,
+      !body.joinId ? requiredString(body.ico, 'ico', 1) : null,
+      !body.joinId ? requiredString(body.street, 'street', 1) : null,
+      !body.joinId ? requiredString(body.city, 'city', 1) : null,
+      ...['companyName', 'ico', 'dic', 'street', 'city', 'zip'].map((field) => body[field] !== undefined && typeof body[field] === 'string' && body[field].trim().length > 160 ? `${field} je moc dlouhé` : null),
+      ...['ico', 'dic', 'street', 'city', 'zip'].map((field) => body[field] !== undefined && typeof body[field] !== 'string' ? `${field} musí být text` : null),
+      body.companyEmail !== undefined && body.companyEmail !== '' ? optionalEmail(body.companyEmail, 'companyEmail') : null,
+      typeof body.companyEmail === 'string' && body.companyEmail.trim().length > 254 ? 'companyEmail je moc dlouhý' : null,
+      body.companyPhone !== undefined && typeof body.companyPhone !== 'string' ? 'companyPhone musí být text' : null,
+      typeof body.companyPhone === 'string' && body.companyPhone.trim().length > 40 ? 'companyPhone je moc dlouhý' : null,
+      body.phone !== undefined && typeof body.phone !== 'string' ? 'phone musí být text' : null,
+      typeof body.phone === 'string' && body.phone.trim().length > 40 ? 'phone je moc dlouhý' : null,
+      optionalEnum(body.employmentType, 'employmentType', ['INTERNAL', 'EXTERNAL'])
     ]);
   },
   authLogin(body) {
@@ -106,6 +119,9 @@ export const validators = {
       requiredUuidish(body.projectId, 'projectId'),
       ...validators.projectCreate(body)
     ]);
+  },
+  projectDelete(body) {
+    return collect([requiredUuidish(body.projectId, 'projectId')]);
   },
   projectAssign(body) {
     return collect([
@@ -234,7 +250,14 @@ export const validators = {
       optionalNumber(body.height2, 'height2'),
       optionalNumber(body.length, 'length') || (Number(body.length) <= 0 ? 'length musí být větší než 0' : null),
       optionalNumber(body.angle, 'angle'),
-      optionalNumber(body.offset, 'offset')
+      optionalNumber(body.offset, 'offset'),
+      optionalNumber(body.surfaceArea, 'surfaceArea'),
+      optionalNumber(body.weight, 'weight'),
+      optionalNumber(body.estimatedScrews, 'estimatedScrews'),
+      optionalNumber(body.estimatedTapeM, 'estimatedTapeM'),
+      optionalNumber(body.estimatedRivets, 'estimatedRivets'),
+      optionalNumber(body.estimatedSealantKg, 'estimatedSealantKg'),
+      body.requiresAccessDoor !== undefined && typeof body.requiresAccessDoor !== 'boolean' ? 'requiresAccessDoor musí být boolean' : null
     ]);
   },
   inventoryItemCreate(body) {
@@ -307,6 +330,15 @@ export const validators = {
   companyIdBody(body) {
     return collect([requiredUuidish(body.companyId, 'companyId')]);
   },
+  companyContactUpdate(body) {
+    return collect([
+      body.email !== undefined && body.email !== '' ? optionalEmail(body.email, 'email') : null,
+      body.email !== undefined && typeof body.email !== 'string' ? 'email musí být text' : null,
+      typeof body.email === 'string' && body.email.trim().length > 254 ? 'email je moc dlouhý' : null,
+      body.phone !== undefined && typeof body.phone !== 'string' ? 'phone musí být text' : null,
+      typeof body.phone === 'string' && body.phone.trim().length > 40 ? 'phone je moc dlouhý' : null
+    ]);
+  },
   userPasswordChange(body) {
     return collect([
       requiredString(body.currentPassword, 'currentPassword', 1),
@@ -315,10 +347,18 @@ export const validators = {
   },
   userProfileUpdate(body) {
     return collect([
+      body.email !== undefined ? requiredString(body.email, 'email', 3) : null,
+      body.email !== undefined ? optionalEmail(body.email, 'email') : null,
+      typeof body.email === 'string' && body.email.trim().length > 254 ? 'email je moc dlouhý' : null,
+      body.phone !== undefined && typeof body.phone !== 'string' ? 'phone musí být text' : null,
+      typeof body.phone === 'string' && body.phone.trim().length > 40 ? 'phone je moc dlouhý' : null,
       body.firstName !== undefined && typeof body.firstName !== 'string' ? 'firstName musí být text' : null,
       body.lastName !== undefined && typeof body.lastName !== 'string' ? 'lastName musí být text' : null,
       (body.firstName !== undefined && String(body.firstName).trim().length > 80) ? 'firstName je moc dlouhé' : null,
-      (body.lastName !== undefined && String(body.lastName).trim().length > 80) ? 'lastName je moc dlouhé' : null
+      (body.lastName !== undefined && String(body.lastName).trim().length > 80) ? 'lastName je moc dlouhé' : null,
+      optionalEnum(body.employmentType, 'employmentType', ['INTERNAL', 'EXTERNAL']),
+      ...['ico', 'dic', 'street', 'city', 'zip'].map((field) => body[field] !== undefined && typeof body[field] !== 'string' ? `${field} musí být text` : null),
+      ...['ico', 'dic', 'street', 'city', 'zip'].map((field) => body[field] !== undefined && String(body[field]).trim().length > 160 ? `${field} je moc dlouhé` : null)
     ]);
   }
 };

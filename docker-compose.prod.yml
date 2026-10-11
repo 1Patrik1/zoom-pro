@@ -48,6 +48,11 @@ services:
       TRUST_PROXY: "true"
       PG_POOL_MAX: "10"
       PG_IDLE_TIMEOUT_MS: "30000"
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_SERVICE_ACCOUNT_JSON: ${FCM_SERVICE_ACCOUNT_JSON:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@zoom-pro.app}
     depends_on:
       postgres:
         condition: service_healthy

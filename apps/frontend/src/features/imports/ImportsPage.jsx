@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client.js';
 import { ImportJobDetailPanel } from './ImportJobDetailPanel.jsx';
 
-const MODULE_HINTS = ['inventory', 'attendance', 'projects', 'documents', 'invoices'];
+const MODULE_HINTS = [['inventory', 'Sklad'], ['attendance', 'Docházka'], ['projects', 'Projekty'], ['documents', 'Dokumenty'], ['invoices', 'Faktury']];
 
 export function ImportsPage({ token }) {
   const [profiles, setProfiles] = useState([]);
@@ -81,14 +81,14 @@ export function ImportsPage({ token }) {
         <div className="space-y-6">
           <form onSubmit={handleCreateJob} className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="text-lg font-black text-blue-400">Nový import job</h2>
-            <p className="text-sm text-slate-400">Založí importní úlohu nad konkrétním modulem. URL zdroje je povinná, protože backend ukládá referenci na zdrojový soubor.</p>
-            <input name="moduleKey" required list="module-key-hints" placeholder="moduleKey (např. inventory)" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
-            <datalist id="module-key-hints">
-              {MODULE_HINTS.map((item) => <option key={item} value={item} />)}
-            </datalist>
+            <p className="text-sm text-slate-400">Založí auditovatelnou úlohu. Nejprve použijte zkušební import; ten ověří zdroj bez zápisu dat.</p>
+            <label className="block text-xs font-bold text-slate-400">Cílový modul</label>
+            <select name="moduleKey" required defaultValue="inventory" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
+              {MODULE_HINTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
             <input name="sourceFileName" required placeholder="Název souboru" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
-            <input name="sourceFileUrl" required placeholder="URL zdrojového souboru" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
-            <label className="flex items-center gap-2 text-sm text-slate-300"><input name="isDryRun" type="checkbox" /> Dry run bez zápisu</label>
+            <input name="sourceFileUrl" type="url" required placeholder="Adresa souboru (URL)" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
+            <label className="flex items-center gap-2 text-sm text-slate-300"><input name="isDryRun" type="checkbox" defaultChecked /> Zkušební import – bez zápisu dat</label>
             {message && <div className="rounded-2xl border border-emerald-900 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-300">{message}</div>}
             {error && <div className="rounded-2xl border border-rose-900 bg-rose-950/40 px-4 py-3 text-sm text-rose-300">{error}</div>}
             <button className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black uppercase text-white">Vytvořit import</button>

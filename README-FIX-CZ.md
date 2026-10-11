@@ -379,3 +379,13 @@ Co MUSÍ uživatel udělat sám (nelze z tohoto prostředí):
 - vytvořit GitHub Secrets (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, VITE_API_URL),
 - v Cloudflare připojit doménu zoom-pro.app a Pages custom domains,
 - backend: VPS (deploy.yml) nebo Windows stroj s Cloudflare Tunnel.
+
+## Kolo 14 — aktualizace modulů, migrací a návodů (2026-10-11)
+
+- Přehled aktuálního stavu funkcí je přesunut do `docs/AKTUALIZACE-2026-10-11.md`; toto README zůstává časovou historií jednotlivých oprav.
+- Přidány migrace `017_company_support_chat.sql` až `020_payment_gateway_settings.sql` pro chat podpory, žádosti o licenci, obchodní údaje členů a bezpečné výchozí předvolby brány.
+- `db:migrate:new` a `db:migrate:legacy` nyní používají jednotný řazený a evidovaný migrátor. Migrátor při skutečné chybě vrátí chybný exit kód.
+- Instalátor Termuxu používá stejný migrátor; doctor kontroluje soubory migrací až po `020`.
+- Produkční Docker předává backendu volitelné FCM proměnné. Push je připraven pro projektový a podpůrný chat, žádosti o licenci a nové registrace.
+- Platební panel zatím ukládá pouze volbu poskytovatele/prostředí/měny. Checkout, webhook a automatické zúčtování nejsou implementované.
+- Historická tvrzení v předchozích kolech o počtu migrací a tehdejším stavu push zůstávají zachovaná jako dobový záznam; nejsou aktuálním provozním potvrzením.

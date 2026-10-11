@@ -8,6 +8,7 @@ export const MEDIUM_PRESETS = {
     density: 1.2,
     viscosity: 1.81e-5,
     roughness: 0.00015,
+    designVelocity: 4.5,
     recommendedVelocity: 'hlavní tah 4–6 m/s, odbočky 2–4 m/s'
   },
   water: {
@@ -15,6 +16,7 @@ export const MEDIUM_PRESETS = {
     density: 998,
     viscosity: 0.001,
     roughness: 0.000045,
+    designVelocity: 1.2,
     recommendedVelocity: '0.8–1.8 m/s'
   },
   heating: {
@@ -22,6 +24,7 @@ export const MEDIUM_PRESETS = {
     density: 983,
     viscosity: 0.00047,
     roughness: 0.000045,
+    designVelocity: 0.8,
     recommendedVelocity: '0.4–1.2 m/s'
   }
 };
@@ -37,20 +40,20 @@ function round(value, digits = 3) {
 
 export function normalizeGeometry(inputs) {
   const shape = inputs.shape || 'rect';
-  const width = n(shape === 'round' ? inputs.diameter : inputs.width);
-  const height = n(shape === 'round' ? inputs.diameter : inputs.height || inputs.width);
-  const width2 = n(shape === 'round' ? inputs.diameter2 || inputs.diameter : inputs.width2 || inputs.width);
-  const height2 = n(shape === 'round' ? inputs.diameter2 || inputs.diameter : inputs.height2 || inputs.height || inputs.width);
-  const length = n(inputs.length);
-  const angle = n(inputs.angle);
-  const offset = n(inputs.offset);
+  const width = Math.max(0, n(shape === 'round' ? inputs.diameter : inputs.width));
+  const height = Math.max(0, n(shape === 'round' ? inputs.diameter : inputs.height || inputs.width));
+  const width2 = Math.max(0, n(shape === 'round' ? inputs.diameter2 || inputs.diameter : inputs.width2 || inputs.width));
+  const height2 = Math.max(0, n(shape === 'round' ? inputs.diameter2 || inputs.diameter : inputs.height2 || inputs.height || inputs.width));
+  const length = Math.max(0, n(inputs.length));
+  const angle = Math.min(180, Math.max(0, n(inputs.angle)));
+  const offset = Math.max(0, n(inputs.offset));
   const radiusRatio = Math.max(n(inputs.radiusRatio, 1.0), 0.6);
   return { shape, width, height, width2, height2, length, angle, offset, radiusRatio };
 }
 
 export function computeAreaM2(shape, widthMm, heightMm) {
-  const widthM = widthMm / 1000;
-  const heightM = heightMm / 1000;
+  const widthM = Math.max(0, n(widthMm)) / 1000;
+  const heightM = Math.max(0, n(heightMm)) / 1000;
   if (!widthM || !heightM) return 0;
   if (shape === 'round') {
     return Math.PI * Math.pow(widthM, 2) / 4;
@@ -59,8 +62,8 @@ export function computeAreaM2(shape, widthMm, heightMm) {
 }
 
 export function computePerimeterM(shape, widthMm, heightMm) {
-  const widthM = widthMm / 1000;
-  const heightM = heightMm / 1000;
+  const widthM = Math.max(0, n(widthMm)) / 1000;
+  const heightM = Math.max(0, n(heightMm)) / 1000;
   if (!widthM || !heightM) return 0;
   if (shape === 'round') {
     return Math.PI * widthM;
@@ -158,7 +161,8 @@ export function calculateComponentMetrics(rawInputs) {
 }
 
 export function calculateDimensionFromFlow({ medium, flowM3h, targetVelocity, aspectRatio = 2 }) {
-  const flowM3s = n(flowM3h) / 3600;
+  const safeFlowM3h = Math.max(0, n(flowM3h));
+  const flowM3s = safeFlowM3h / 3600;
   const velocity = Math.max(n(targetVelocity), 0.1);
   const areaRequiredM2 = flowM3s / velocity;
   const diameterM = Math.sqrt((4 * areaRequiredM2) / Math.PI);
@@ -171,7 +175,7 @@ export function calculateDimensionFromFlow({ medium, flowM3h, targetVelocity, as
 
   return {
     medium,
-    flowM3h: n(flowM3h),
+    flowM3h: safeFlowM3h,
     targetVelocity: velocity,
     areaRequiredM2: round(areaRequiredM2, 4),
     roundDiameterMm: Math.round(diameterM * 1000),
@@ -197,14 +201,14 @@ export function calculatePressureDrop({
   roughness
 }) {
   const preset = MEDIUM_PRESETS[medium] || MEDIUM_PRESETS.vzt;
-  const dimWidth = shape === 'round' ? n(diameter) : n(width);
-  const dimHeight = shape === 'round' ? n(diameter) : n(height || width);
+  const dimWidth = Math.max(0, shape === 'round' ? n(diameter) : n(width));
+  const dimHeight = Math.max(0, shape === 'round' ? n(diameter) : n(height || width));
   const area = computeAreaM2(shape, dimWidth, dimHeight);
   const dh = computeHydraulicDiameterM(shape, dimWidth, dimHeight);
-  const flowM3s = n(flowM3h) / 3600;
+  const flowM3s = Math.max(0, n(flowM3h)) / 3600;
   const velocity = area > 0 ? flowM3s / area : 0;
   const reynolds = preset.viscosity > 0 ? (preset.density * velocity * dh) / preset.viscosity : 0;
-  const eps = n(roughness, preset.roughness);
+  const eps = Math.max(0, n(roughness, preset.roughness));
 
   let frictionFactor = 0;
   if (reynolds > 0 && reynolds < 2300) {
@@ -214,8 +218,9 @@ export function calculatePressureDrop({
   }
 
   const dynamicPressurePa = 0.5 * preset.density * velocity * velocity;
-  const straightLossPa = dh > 0 ? frictionFactor * (n(lengthM) / dh) * dynamicPressurePa : 0;
-  const zetaTotal = (0.9 * n(elbows90)) + (0.4 * n(elbows45)) + (1.8 * n(tees)) + (0.2 * n(valves)) + (0.25 * n(reducers));
+  const safeLengthM = Math.max(0, n(lengthM));
+  const straightLossPa = dh > 0 ? frictionFactor * (safeLengthM / dh) * dynamicPressurePa : 0;
+  const zetaTotal = (0.9 * Math.max(0, n(elbows90))) + (0.4 * Math.max(0, n(elbows45))) + (1.8 * Math.max(0, n(tees))) + (0.2 * Math.max(0, n(valves))) + (0.25 * Math.max(0, n(reducers)));
   const fittingLossPa = zetaTotal * dynamicPressurePa;
   const totalLossPa = straightLossPa + fittingLossPa;
 
@@ -237,7 +242,7 @@ export function calculatePressureDrop({
     straightLossPa: round(straightLossPa, 2),
     fittingLossPa: round(fittingLossPa, 2),
     totalLossPa: round(totalLossPa, 2),
-    totalLossPerMeterPa: n(lengthM) > 0 ? round(totalLossPa / n(lengthM), 2) : 0,
+    totalLossPerMeterPa: safeLengthM > 0 ? round(totalLossPa / safeLengthM, 2) : 0,
     zetaTotal: round(zetaTotal, 2),
     recommendedVelocity: suggested,
     recommendation
@@ -297,8 +302,8 @@ export function calculateOffsetPiece({
   flangeAllowance = 0,
   totalAxialMm = null
 }) {
-  const w = shape === 'round' ? n(diameter) : n(width);
-  const h = shape === 'round' ? n(diameter) : n(height || width);
+  const w = Math.max(0, shape === 'round' ? n(diameter) : n(width));
+  const h = Math.max(0, shape === 'round' ? n(diameter) : n(height || width));
   const size = shape === 'round' ? w : Math.max(w, h);
   const ratio = Math.max(n(radiusRatio, 1.0), 0.6);
   const R = size * ratio;
@@ -312,13 +317,15 @@ export function calculateOffsetPiece({
   const twoElbowsOffset = 2 * R * (1 - cosA);
   const twoElbowsProjected = 2 * R * sinA;
 
-  let pieceLengthMm = 0; // eslint-disable-line no-useless-assignment
-  let projectedRunMm = 0; // eslint-disable-line no-useless-assignment
-  const off = n(offset);
+  let pieceLengthMm;
+  let projectedRunMm;
+  const off = Math.max(0, n(offset));
+  const safeFlangeAllowance = Math.max(0, n(flangeAllowance));
+  const requestedAxialMm = Math.max(0, n(totalAxialMm));
 
-  if (totalAxialMm && n(totalAxialMm) > twoElbowsProjected) {
-    pieceLengthMm = (n(totalAxialMm) - twoElbowsProjected) / cosA;
-    projectedRunMm = n(totalAxialMm);
+  if (requestedAxialMm > twoElbowsProjected + 2 * safeFlangeAllowance) {
+    pieceLengthMm = (requestedAxialMm - twoElbowsProjected - 2 * safeFlangeAllowance) / cosA;
+    projectedRunMm = requestedAxialMm;
   } else if (off > twoElbowsOffset) {
     pieceLengthMm = (off - twoElbowsOffset) / sinA;
     projectedRunMm = twoElbowsProjected + pieceLengthMm * cosA;
@@ -327,7 +334,7 @@ export function calculateOffsetPiece({
     projectedRunMm = twoElbowsProjected;
   }
 
-  const pieceLengthNetMm = Math.max(0, pieceLengthMm - 2 * n(flangeAllowance));
+  const pieceLengthNetMm = Math.max(0, pieceLengthMm - 2 * safeFlangeAllowance);
   const diagonalMm = Math.sqrt(off * off + projectedRunMm * projectedRunMm);
 
   const perimeterM = computePerimeterM(shape, w, h);
@@ -355,7 +362,7 @@ export function calculateOffsetPiece({
   return {
     shape,
     angleDeg: alphaDeg,
-    inputs: { width: w, height: h, offset: off, radiusRatio: ratio, flangeAllowance: n(flangeAllowance) },
+    inputs: { width: w, height: h, offset: off, radiusRatio: ratio, flangeAllowance: safeFlangeAllowance },
     elbowCenterRadiusMm: round(R, 1),
     elbowArcMm: round(elbowArcMm, 1),
     elbowSideMm: round(R * sinA, 1),
@@ -364,7 +371,7 @@ export function calculateOffsetPiece({
     elbowWeightKg: round(elbowWeightKg, 2),
     pieceLengthMm: round(pieceLengthMm, 1),
     pieceLengthNetMm: round(pieceLengthNetMm, 1),
-    totalAxialMm: round(2 * R * sinA + pieceLengthMm * cosA + 2 * n(flangeAllowance), 1),
+    totalAxialMm: round(2 * R * sinA + pieceLengthMm * cosA + 2 * safeFlangeAllowance, 1),
     projectedRunMm: round(projectedRunMm, 1),
     diagonalMm: round(diagonalMm, 1),
     minimumOffsetPossibleMm,
@@ -394,6 +401,13 @@ export function buildSavePayload(formValues, metrics) {
     length: metrics.length,
     angle: metrics.angle,
     offset: metrics.offset,
+    surfaceArea: metrics.surfaceAreaM2,
+    weight: metrics.weightKg,
+    estimatedScrews: metrics.estimatedScrews,
+    estimatedTapeM: metrics.estimatedTapeM,
+    estimatedRivets: metrics.estimatedRivets,
+    estimatedSealantKg: metrics.estimatedSealantKg,
+    requiresAccessDoor: metrics.requiresAccessDoor,
     note: [
       `Systém: ${formValues.systemType}`,
       `Tvar: ${formValues.shape === 'round' ? 'Kruhové' : 'Hranaté'}`,
@@ -402,7 +416,9 @@ export function buildSavePayload(formValues, metrics) {
       `Střední délka: ${metrics.centerLengthM} m`,
       `Vnitřní doměr: ${metrics.innerDevelopedM} m`,
       `Vnější doměr: ${metrics.outerDevelopedM} m`,
-      `Rozvinutá délka: ${metrics.slantLengthM} m`
+      `Rozvinutá délka: ${metrics.slantLengthM} m`,
+      `Poloměr kolena: ${metrics.centerRadiusM} m`,
+      `Rezerva plechu: ${SHEET_RESERVE_FACTOR}×`
     ].join(' | ')
   };
 }

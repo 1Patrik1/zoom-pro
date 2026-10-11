@@ -12,7 +12,14 @@ export const vztService = {
       length: payload.length,
       angle: payload.angle,
       offset: payload.offset,
-      note: payload.note
+      note: payload.note,
+      surfaceArea: payload.surfaceArea,
+      weight: payload.weight,
+      estimatedScrews: payload.estimatedScrews,
+      estimatedTapeM: payload.estimatedTapeM,
+      estimatedRivets: payload.estimatedRivets,
+      estimatedSealantKg: payload.estimatedSealantKg,
+      requiresAccessDoor: payload.requiresAccessDoor
     });
   }
 };

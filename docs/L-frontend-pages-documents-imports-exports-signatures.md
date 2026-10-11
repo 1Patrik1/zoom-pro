@@ -1,5 +1,7 @@
 # L — Frontend pages pro Documents / Imports / Exports / Signatures
 
+> Aktualizace 2026-10-11: formuláře a filtry nyní používají české popisky typů, stavů a formátů. Importní formulář zakládá ImportJob; samotné parsování/zápis dat vyžaduje navazující worker. Přípravné nastavení elektronického podpisu ani vytvořená žádost samy o sobě nepotvrzují platný kvalifikovaný podpis.
+
 Tento dokument popisuje nově připravené frontend stránky a jejich přesné soubory.
 
 Přímo v balíku jsou už vytvořené tyto implementace:

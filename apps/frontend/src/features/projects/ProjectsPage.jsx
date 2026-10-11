@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { userDisplayName } from '../../utils/user-name.js';
 
 const EMPTY_FORM = {
   name: '',
@@ -120,29 +121,6 @@ function readCurrentPosition() {
   });
 }
 
-function fileToImageDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Soubor se nepodařilo načíst'));
-    reader.onload = () => {
-      const image = new Image();
-      image.onerror = () => reject(new Error('Obrázek se nepodařilo zpracovat'));
-      image.onload = () => {
-        const maxSize = 1600;
-        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(image.width * scale));
-        canvas.height = Math.max(1, Math.round(image.height * scale));
-        const context = canvas.getContext('2d');
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      };
-      image.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 function metersLabel(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
   if (value >= 1000) return `${(value / 1000).toFixed(2)} km`;
@@ -157,33 +135,25 @@ function mapsLink(project) {
   return '';
 }
 
-export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAssign, onChat }) {
+export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onDeleteProject, onAssign }) {
   const [activeProject, setActiveProject] = useState(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [deviation, setDeviation] = useState(EMPTY_DEVIATION);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState('');
-  const [chatMessage, setChatMessage] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [isSendingChat, setIsSendingChat] = useState(false);
-  const [chatError, setChatError] = useState('');
-  const [lightbox, setLightbox] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
 
   const projects = db.projects || [];
   const users = db.users || [];
   const assignments = db.assignments || [];
-  const chats = db.chats || [];
-  const gallery = db.projectGallery || [];
 
   const selectedProject = useMemo(() => projects.find((project) => project.id === activeProject) || null, [projects, activeProject]);
   const activeAssignments = useMemo(() => assignments.filter((item) => item.projectId === activeProject), [assignments, activeProject]);
-  const activeChats = useMemo(() => chats.filter((item) => item.projectId === activeProject), [chats, activeProject]);
-  const activeGallery = useMemo(() => gallery.filter((item) => item.projectId === activeProject), [gallery, activeProject]);
 
   useEffect(() => {
-    if (!activeProject && projects.length && !isCreatingNew) {
+    if ((!activeProject || !projects.some((project) => project.id === activeProject)) && projects.length && !isCreatingNew) {
       setActiveProject(projects[0].id);
     }
   }, [projects, activeProject]);
@@ -293,36 +263,24 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
       return;
     }
     await onCreateProject(payload);
+    setIsCreatingNew(false);
     setForm(EMPTY_FORM);
     setSaveMessage('Projekt byl založen.');
   }
 
-  async function handleFileSelection(event) {
-    const files = Array.from(event.target.files || []).slice(0, 4);
-    setSelectedFiles(files);
-  }
-
-  async function handleChatSubmit(event) {
-    event.preventDefault();
-    setChatError('');
-    setIsSendingChat(true);
+  async function handleProjectDelete(project) {
+    const confirmed = window.confirm(`Opravdu smazat projekt „${project.name}“? Smažou se také přiřazení, chat, fotografie a navázané záznamy kolizí a troubleshootingu. Docházka, deník, dokumenty a obchodní záznamy zůstanou zachované bez vazby na projekt.`);
+    if (!confirmed) return;
+    setDeleteError('');
     try {
-      const attachments = [];
-      for (const file of selectedFiles) {
-        attachments.push(await fileToImageDataUrl(file));
+      await onDeleteProject({ projectId: project.id });
+      if (activeProject === project.id) {
+        setActiveProject(null);
+        setIsCreatingNew(false);
       }
-      await onChat({
-        projectId: activeProject,
-        text: chatMessage.trim(),
-        attachments
-      });
-      setChatMessage('');
-      setSelectedFiles([]);
-      event.currentTarget.reset();
+      setSaveMessage(`Projekt „${project.name}“ byl smazán.`);
     } catch (error) {
-      setChatError(error.message || 'Zprávu se nepodařilo odeslat');
-    } finally {
-      setIsSendingChat(false);
+      setDeleteError(error.message || 'Projekt se nepodařilo smazat');
     }
   }
 
@@ -338,10 +296,10 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
             type="button"
             onClick={() => {
               setActiveProject(null);
-    setIsCreatingNew(true);
-    setForm(EMPTY_FORM);
+              setIsCreatingNew(true);
               setForm(EMPTY_FORM);
               setDeviation(EMPTY_DEVIATION);
+              setSaveMessage('');
             }}
             className="rounded-2xl border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200"
           >
@@ -451,20 +409,19 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
 
         <div className="space-y-2">
           {projects?.map((project) => (
-            <button key={project.id} onClick={() => setActiveProject(project.id)} className={`w-full rounded-2xl border px-4 py-3 text-left ${activeProject === project.id ? 'border-blue-700 bg-blue-950/40 text-white' : 'border-slate-800 bg-slate-950 text-slate-300'}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-bold">{project.name}</p>
-                  <p className="text-xs text-slate-400">{project.code || 'Bez kódu'} · {project.status || 'ACTIVE'}</p>
+            <div key={project.id} className={`rounded-2xl border p-3 ${activeProject === project.id ? 'border-blue-700 bg-blue-950/40' : 'border-slate-800 bg-slate-950'}`}>
+              <button type="button" onClick={() => { setActiveProject(project.id); setIsCreatingNew(false); }} className="w-full text-left text-slate-300">
+                <div className="flex items-start justify-between gap-3">
+                  <div><p className="font-bold text-white">{project.name}</p><p className="text-xs text-slate-400">{project.code || 'Bez kódu'} · {project.status || 'ACTIVE'}</p></div>
+                  <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">{project.radius ?? 100} m</span>
                 </div>
-                <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
-                  {project.radius ?? 100} m
-                </span>
-              </div>
-              <p className="mt-2 line-clamp-2 text-xs text-slate-500">{project.address || 'Bez adresy'}</p>
-            </button>
+                <p className="mt-2 line-clamp-2 text-xs text-slate-500">{project.address || 'Bez adresy'}</p>
+              </button>
+              {['SUPERADMIN', 'REDITEL', 'VEDOUCI'].includes(user.role) && <button type="button" onClick={() => handleProjectDelete(project)} className="mt-3 rounded-xl border border-rose-900/70 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-950/50">Smazat projekt</button>}
+            </div>
           ))}
           {!projects.length && <p className="text-sm text-slate-500">Zatím není založená žádná stavba.</p>}
+          {deleteError && <p role="alert" className="text-sm text-rose-400">{deleteError}</p>}
         </div>
       </section>
 
@@ -499,10 +456,6 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
                   <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
                     <p className="text-xs uppercase tracking-widest text-slate-500">Zdroj GPS</p>
                     <p className="mt-2 text-sm font-bold text-white">{selectedProject.gpsMode || 'MANUAL'}</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
-                    <p className="text-xs uppercase tracking-widest text-slate-500">Galerie</p>
-                    <p className="mt-2 text-sm font-bold text-white">{activeGallery.length} fotek</p>
                   </div>
                 </div>
 
@@ -569,7 +522,8 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
                     <label key={teamUser.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${assigned ? 'border-emerald-800 bg-emerald-950/20 text-emerald-300' : 'border-slate-800 bg-slate-950 text-slate-300'}`}>
                       <input type="checkbox" className="hidden" checked={assigned} onChange={(event) => onAssign({ projectId: activeProject, userId: teamUser.id, assign: event.target.checked })} />
                       <div>
-                        <p className="font-bold">{teamUser.email}</p>
+                        <p className="font-bold">{userDisplayName(teamUser)}</p>
+                        {(teamUser.firstName || teamUser.lastName) && <p className="text-xs text-slate-500">{teamUser.email}</p>}
                         <p className="text-xs">{teamUser.role}</p>
                       </div>
                     </label>
@@ -580,103 +534,7 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onAss
           </div>
         </div>
 
-        <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-blue-400">Projektový chat</h2>
-            <div className="max-h-[420px] space-y-3 overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-4">
-              {activeChats?.map((chat) => (
-                <div key={chat.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold text-blue-400">{chat.authorName}</p>
-                    <p className="text-[11px] text-slate-500">{new Date(chat.createdAt).toLocaleString('cs-CZ')}</p>
-                  </div>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-slate-200">{chat.text}</p>
-                  {chat.attachmentUrl && (
-                    <button type="button" onClick={() => setLightbox({ url: chat.attachmentUrl, caption: chat.text })} className="mt-3 block overflow-hidden rounded-2xl border border-slate-800">
-                      <img src={chat.attachmentUrl} alt={chat.text || 'Foto z chatu'} className="max-h-80 w-full object-cover" />
-                    </button>
-                  )}
-                  {!!chat.galleryCount && <p className="mt-2 text-xs text-slate-400">Galerie příspěvku: {chat.galleryCount} fotek</p>}
-                </div>
-              ))}
-              {!activeChats.length && <p className="text-sm text-slate-500">Zatím bez zpráv.</p>}
-            </div>
-
-            {activeProject && (
-              <form onSubmit={handleChatSubmit} className="mt-4 space-y-3">
-                <textarea value={chatMessage} onChange={(event) => setChatMessage(event.target.value)} rows={3} placeholder="Zpráva, poznámka nebo popis fotek…" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
-                <div className="flex gap-2">
-                  <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800">
-                    <span>📷 Vyfotit</span>
-                    <input type="file" accept="image/*" capture="environment" onChange={handleFileSelection} className="hidden" />
-                  </label>
-                  <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800">
-                    <span>🖼️ Galerie</span>
-                    <input type="file" accept="image/*" multiple onChange={handleFileSelection} className="hidden" />
-                  </label>
-                </div>
-                {selectedFiles.length > 0 && <div className="mt-2 text-xs text-slate-400">Vybráno fotek: {selectedFiles.length}</div>}
-                {selectedFiles.length > 0 && (
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    {selectedFiles?.map((file) => (
-                      <div key={`${file.name}-${file.size}`} className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
-                        <p className="truncate text-xs text-slate-400">{file.name}</p>
-                        <p className="mt-1 text-[11px] text-slate-500">{Math.round(file.size / 1024)} kB</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {chatError && <p className="text-sm text-rose-400">{chatError}</p>}
-                <div className="flex gap-2">
-                  <button disabled={isSendingChat} className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50">
-                    {isSendingChat ? 'Odesílám…' : 'Odeslat do chatu'}
-                  </button>
-                  <button type="button" onClick={() => { setChatMessage(''); setSelectedFiles([]); setChatError(''); }} className="rounded-2xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-200">
-                    Vyčistit
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-
-          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-widest text-fuchsia-400">Galerie stavby</h2>
-                <p className="mt-1 text-sm text-slate-400">Fotky z projektového chatu se ukládají i sem.</p>
-              </div>
-              <span className="rounded-full border border-slate-700 px-3 py-2 text-xs font-black text-slate-200">{activeGallery.length} ks</span>
-            </div>
-
-            <div className="mt-4 grid max-h-[640px] gap-3 overflow-auto sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              {activeGallery?.map((item) => (
-                <button key={item.id} type="button" onClick={() => setLightbox({ url: item.imageUrl, caption: item.caption || item.projectName })} className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 text-left">
-                  <img src={item.imageUrl} alt={item.caption || 'Galerie projektu'} className="h-40 w-full object-cover" />
-                  <div className="p-3">
-                    <p className="line-clamp-2 text-sm text-white">{item.caption || 'Foto ze stavby'}</p>
-                    <p className="mt-1 text-xs text-slate-500">{item.authorName} · {new Date(item.createdAt).toLocaleString('cs-CZ')}</p>
-                  </div>
-                </button>
-              ))}
-              {!activeGallery.length && <p className="text-sm text-slate-500">Jakmile někdo pošle fotku do chatu, objeví se tady.</p>}
-            </div>
-          </div>
-        </div>
       </section>
-
-      {lightbox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-6" onClick={() => setLightbox(null)}>
-          <div className="max-w-5xl overflow-hidden rounded-3xl border border-slate-700 bg-slate-950" onClick={(event) => event.stopPropagation()}>
-            <img src={lightbox.url} alt={lightbox.caption || 'Náhled'} className="max-h-[80vh] w-full object-contain" />
-            <div className="flex items-center justify-between gap-3 p-4">
-              <p className="text-sm text-slate-200">{lightbox.caption || 'Foto ze stavby'}</p>
-              <button type="button" onClick={() => setLightbox(null)} className="rounded-2xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-200">
-                Zavřít
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

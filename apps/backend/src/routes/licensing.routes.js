@@ -34,6 +34,10 @@ router.post('/subscribe', auth, asyncHandler(async (req, res) => {
   res.json({ ok: true, ...(await licensingService.subscribe(req.user, req.body)) });
 }));
 
+router.post('/assign', auth, asyncHandler(async (req, res) => {
+  res.json({ ok: true, ...(await licensingService.assignToCompany(req.user, req.body)) });
+}));
+
 router.get('/platform-settings', auth, asyncHandler(async (req, res) => {
   res.json({ ok: true, settings: await licensingService.listPlatformSettings(req.user) });
 }));

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LogOut, Menu, X, Search, Bell, BellOff, Siren } from 'lucide-react';
+import { userDisplayName } from '../utils/user-name.js';
 
 export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onChangeTab, onLogout, alarm, branding, children }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -18,10 +19,11 @@ export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onCh
           </button>
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-blue-400" style={branding?.primaryColor ? { color: branding.primaryColor } : undefined}>
-              {branding?.logoUrl && <img src={branding.logoUrl} alt="" className="h-4 w-4 rounded" />}
-              {branding?.name || appName}
+              <img src={branding?.logoUrl || '/brand/zoom-pro-wordmark.png'} alt={branding?.name || appName} className="h-9 w-44 object-contain object-left" />
+              {branding?.logoUrl ? null : <span className="sr-only">{branding?.name || appName}</span>}
             </p>
-            <h1 className="truncate text-sm font-black">{user?.email}</h1>
+            <h1 className="truncate text-sm font-black">{userDisplayName(user)}</h1>
+            {user?.firstName || user?.lastName ? <p className="truncate text-[10px] text-slate-500">{user.email}</p> : null}
             <p className="text-[10px] text-slate-400">Role: {user?.role}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -104,7 +106,7 @@ export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onCh
               </div>
             )}
             <nav className="space-y-1">
-              {filtered?.map(({ id, label, icon: Icon, group }) => (
+              {filtered?.map(({ id, label, icon: Icon, group, badge }) => (
                 <button
                   key={id}
                   onClick={() => { onChangeTab(id); setMobileOpen(false); }}
@@ -113,6 +115,7 @@ export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onCh
                 style={activeTab === id && branding?.primaryColor ? { backgroundColor: branding.primaryColor } : undefined}>
                   <Icon size={17} className="shrink-0" />
                   {!collapsed && <span className="truncate">{label}</span>}
+                  {!!badge && <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-amber-950">{badge}</span>}
                 </button>
               ))}
               {!filtered.length && !collapsed && (

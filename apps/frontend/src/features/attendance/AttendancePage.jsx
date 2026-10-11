@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { userDisplayName } from '../../utils/user-name.js';
 
 function metersLabel(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
@@ -31,7 +32,7 @@ function statusLabel(status) {
   }
 }
 
-export function AttendancePage({ db, onCreate }) {
+export function AttendancePage({ db, onCreate, user }) {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [note, setNote] = useState('');
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
@@ -40,6 +41,19 @@ export function AttendancePage({ db, onCreate }) {
   const [error, setError] = useState('');
 
   const projects = db.projects || [];
+  const assignments = (db.assignments || []).filter((item) => item.userId === user?.id);
+  const assignedProjects = assignments.map((assignment) => projects.find((project) => project.id === assignment.projectId)).filter(Boolean);
+  const isMonter = user?.role === 'MONTER';
+  const todayKey = new Date().toLocaleDateString('sv-SE');
+  const latestOwnToday = (db.attendance || []).filter((item) => item.userId === user?.id
+    && new Date(item.createdAt || item.checkIn).toLocaleDateString('sv-SE') === todayKey)
+    .sort((a, b) => new Date(b.createdAt || b.checkIn) - new Date(a.createdAt || a.checkIn))[0];
+  const nextType = latestOwnToday?.type === 'PRICHOD' ? 'ODCHOD' : 'PRICHOD';
+  useEffect(() => {
+    if (selectedProjectId || !assignedProjects.length) return;
+    const active = assignedProjects.find((project) => project.status === 'ACTIVE');
+    setSelectedProjectId((active || assignedProjects[0]).id);
+  }, [assignedProjects, selectedProjectId]);
   const selectedProject = useMemo(() => projects.find((project) => project.id === selectedProjectId) || null, [projects, selectedProjectId]);
 
   async function getCurrentPosition() {
@@ -78,12 +92,16 @@ export function AttendancePage({ db, onCreate }) {
     setError('');
     setIsLoadingGeo(true);
     try {
-      const position = await getCurrentPosition();
-      const lat = Number(position.coords.latitude.toFixed(6));
-      const lng = Number(position.coords.longitude.toFixed(6));
-      setLastPosition({ lat, lng, accuracy: Math.round(position.coords.accuracy || 0) });
-      await onCreate({ type, status, projectId: selectedProjectId || null, lat, lng, note });
-      setMessage('Docházka byla uložena včetně GPS kontroly proti stavbě.');
+      let lat = null;
+      let lng = null;
+      if (type !== 'ABSENCE') {
+        const position = await getCurrentPosition();
+        lat = Number(position.coords.latitude.toFixed(6));
+        lng = Number(position.coords.longitude.toFixed(6));
+        setLastPosition({ lat, lng, accuracy: Math.round(position.coords.accuracy || 0) });
+      }
+      await onCreate({ type, status, projectId: type === 'ABSENCE' || isMonter ? null : selectedProjectId || null, lat, lng, note });
+      setMessage(type === 'ABSENCE' ? 'Nepřítomnost byla nahlášena.' : 'Docházka byla uložena včetně GPS kontroly proti stavbě.');
       if (type !== 'ABSENCE') setNote('');
     } catch (err) {
       setError(err.message || 'Zápis docházky selhal');
@@ -101,13 +119,16 @@ export function AttendancePage({ db, onCreate }) {
             <p className="mt-1 text-sm text-slate-400">Příchod a odchod teď kontroluje odchylku od vybrané stavby podle GPS a povoleného radiusu.</p>
           </div>
 
-          <label className="block space-y-2">
+          {!isMonter ? <label className="block space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-slate-500">Projekt / stavba</span>
             <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
               <option value="">Bez projektu</option>
               {projects?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
-          </label>
+          </label> : <div className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-300">
+            <span className="text-xs font-black uppercase tracking-widest text-slate-500">Přiřazený projekt</span>
+            <p className="mt-1 font-bold text-white">{assignedProjects.find((project) => project.id === selectedProjectId)?.name || 'Automaticky podle přiřazení'}</p>
+          </div>}
 
           <label className="block space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-slate-500">Poznámka</span>
@@ -150,11 +171,10 @@ export function AttendancePage({ db, onCreate }) {
         </div>
 
         <div className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <button onClick={() => submitWithGeo('PRICHOD', 'PRACE')} className="rounded-2xl bg-emerald-600 px-4 py-4 text-sm font-black uppercase text-white">Příchod</button>
-            <button onClick={() => submitWithGeo('ODCHOD', 'PRACE')} className="rounded-2xl bg-blue-600 px-4 py-4 text-sm font-black uppercase text-white">Odchod</button>
-            <button onClick={() => submitWithGeo('ABSENCE', 'NEMOC')} className="rounded-2xl bg-amber-600 px-4 py-4 text-sm font-black uppercase text-white">Nemoc</button>
-            <button onClick={() => submitWithGeo('ABSENCE', 'DOVOLENA')} className="rounded-2xl bg-rose-600 px-4 py-4 text-sm font-black uppercase text-white">Dovolená</button>
+          <div className="grid gap-3 md:grid-cols-2">
+            <button onClick={() => submitWithGeo(nextType, 'PRACE')} className={`rounded-2xl px-4 py-4 text-sm font-black uppercase text-white ${nextType === 'PRICHOD' ? 'bg-emerald-600' : 'bg-blue-600'}`}>{nextType === 'PRICHOD' ? 'Zaznamenat příchod' : 'Zaznamenat odchod'}</button>
+            <button onClick={() => submitWithGeo('ABSENCE', 'NEMOC')} className="rounded-2xl bg-amber-600 px-4 py-4 text-sm font-black uppercase text-white">Nahlásit nemoc</button>
+            <button onClick={() => submitWithGeo('ABSENCE', 'DOVOLENA')} className="rounded-2xl bg-rose-600 px-4 py-4 text-sm font-black uppercase text-white">Nahlásit dovolenou</button>
           </div>
 
           <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
@@ -164,7 +184,7 @@ export function AttendancePage({ db, onCreate }) {
                 <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-bold text-white">{item.email}</p>
+                      <p className="font-bold text-white">{userDisplayName(item)}</p>
                       <p className="text-slate-400">{item.projectName || 'Bez projektu'}</p>
                       {item.projectAddressSnapshot && <p className="mt-1 text-xs text-slate-500">{item.projectAddressSnapshot}</p>}
                     </div>

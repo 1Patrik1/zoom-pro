@@ -36,6 +36,8 @@ JWT_SECRET=$(head -c 32 /dev/urandom | base64)
 CORS_ORIGIN=http://localhost:5173
 APP_NAME=zoom-pro
 GEMINI_API_KEY=
+FCM_PROJECT_ID=
+FCM_SERVICE_ACCOUNT_JSON=
 EOF
 
 cat > apps/frontend/.env <<EOF
@@ -44,17 +46,8 @@ VITE_APP_NAME=Zoom Pro
 EOF
 
 # Migrace
-for f in 001_initial_schema.sql 002_seed_permissions.sql 003_seed_platform_admin.sql \
-         004_seed_module_settings.sql 005_seed_demo_data.sql 006_saas_platform_settings.sql \
-         007_project_geo_and_gallery.sql 008_invoice_automation_and_permissions.sql \
-         009_attendance_geo_guard_and_log_media.sql 010_collisions_and_qr_labels.sql \
-         011_zoom_pro_licensing.sql 012_monter_invoices.sql \
-         013_distribution_platform.sql; do
-  if [ -f "$f" ]; then
-    echo ">> apply $f"
-    PGPASSWORD=zoom_pass psql -h 127.0.0.1 -U zoom_user -d zoom_pro -f "$f" || true
-  fi
-done
+echo ">> apply all numbered SQL migrations"
+DATABASE_URL="postgresql://zoom_user:zoom_pass@127.0.0.1:5432/zoom_pro" node scripts/db-migrate-all.mjs
 
 echo ""
 echo "=== HOTOVO ==="

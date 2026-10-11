@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { BUILDING_TYPES, ROOM_TYPES, IDA_CATEGORIES, SOLAR_GAIN_WM2 } from './constants.js';
 import { requiredAirflowM3h, roomThermalLoads } from './engine.js';
 
@@ -9,15 +9,11 @@ const EMPTY_ROOM = () => ({
   areaM2: 25, heightM: 2.7, occupants: 2, orientation: 'S', ida: 'IDA2',
 });
 
-export function RoomLoadsPanel() {
-  const [buildingType, setBuildingType] = useState('office');
-  const [outdoorWinterC, setOutdoorWinterC] = useState(-12);
-  const [indoorC, setIndoorC] = useState(22);
-  const [rooms, setRooms] = useState([EMPTY_ROOM(), { ...EMPTY_ROOM(), name: 'WC', roomType: 'wc', areaM2: 6, occupants: 0 }]);
+export function RoomLoadsPanel({ rooms, onRoomsChange, buildingType, setBuildingType, outdoorWinterC, setOutdoorWinterC, indoorC, setIndoorC }) {
 
-  const update = (id, patch) => setRooms((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-  const remove = (id) => setRooms((rs) => rs.filter((r) => r.id !== id));
-  const add = () => setRooms((rs) => [...rs, EMPTY_ROOM()]);
+  const update = (id, patch) => onRoomsChange((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const remove = (id) => onRoomsChange((rs) => rs.filter((r) => r.id !== id));
+  const add = () => onRoomsChange((rs) => [...rs, EMPTY_ROOM()]);
 
   const rows = useMemo(() => (rooms || []).map((r) => {
     const flow = requiredAirflowM3h({
@@ -39,8 +35,8 @@ export function RoomLoadsPanel() {
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-black text-slate-900">Zátěže a průtok podle EU norem</h3>
-      <p className="text-xs text-slate-500">EN 16798-1 (IEQ), EN 13779 (IDA), EN 12831 (topení).</p>
+      <h3 className="text-lg font-black text-slate-900">Orientační zátěže a průtok místností</h3>
+      <p className="text-xs text-slate-500">Odhad z typu místnosti, IDA kategorie, počtu osob a zadaných teplot. Pro prováděcí návrh ověřte vstupy i výsledek podle projektu a platných norem.</p>
 
       <div className="mt-3 grid gap-3 md:grid-cols-4">
         <label className="block text-sm">

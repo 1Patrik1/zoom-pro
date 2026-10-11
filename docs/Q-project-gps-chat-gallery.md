@@ -1,5 +1,7 @@
 # Q – Projekty: GPS, adresa, odchylka, fotochat, galerie
 
+> Aktualizace 2026-10-11: chat projektů je samostatná položka navigace a SUPERADMIN/REDITEL/VEDOUCI mohou projekt odstranit. Push upozornění na projektový příspěvek dostanou registrované telefony přiřazených členů.
+
 ## Co je nově hotové
 
 ### Projekty

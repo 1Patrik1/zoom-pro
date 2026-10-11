@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { MonterInvoicesPanel } from './MonterInvoicesPanel.jsx';
+import { userDisplayName } from '../../utils/user-name.js';
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -131,7 +132,7 @@ export function InvoicesPage({ user, db, token, onCreate, onAutoCreate, onPay })
               {user.role !== 'MONTER' ? (
                 <SelectField name="employeeId" label="Přiřadit zaměstnanci">
                   <option value="">Bez zaměstnance</option>
-                  {users?.map((member) => <option key={member.id} value={member.id}>{member.email}</option>)}
+                  {users?.map((member) => <option key={member.id} value={member.id}>{userDisplayName(member)}</option>)}
                 </SelectField>
               ) : (
                 <InputField name="employeeId_hidden" label="Zaměstnanec" defaultValue={user.email} disabled />
@@ -161,7 +162,7 @@ export function InvoicesPage({ user, db, token, onCreate, onAutoCreate, onPay })
             {user.role !== 'MONTER' ? (
               <SelectField label="Zaměstnanec" value={autoForm.employeeId} onChange={(event) => setAutoForm((current) => ({ ...current, employeeId: event.target.value }))}>
                 <option value="">Vyber zaměstnance</option>
-                {users?.map((member) => <option key={member.id} value={member.id}>{member.email}</option>)}
+                {users?.map((member) => <option key={member.id} value={member.id}>{userDisplayName(member)}</option>)}
               </SelectField>
             ) : (
               <InputField label="Zaměstnanec" defaultValue={user.email} disabled />

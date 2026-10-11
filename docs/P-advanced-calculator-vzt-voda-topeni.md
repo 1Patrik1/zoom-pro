@@ -1,5 +1,7 @@
 # P — rozšířená kalkulačka pro VZT / vodu / topení
 
+> Aktualizace 2026-10-11: rozšíření vizualizace a kreslení potrubních tras/místností najdeš v `apps/frontend/src/features/vzt/RouteBuilder3D.jsx` a `SystemVisualizer.jsx`. Jde o technický návrh/rozvržení; výsledek nenahrazuje projektovou dokumentaci ani normový návrh.
+
 Do modulu kalkulačky byly doplněny nové funkce:
 
 ## 1. Tvarovky a doměry

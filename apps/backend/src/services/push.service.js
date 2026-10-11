@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { query } from '../config/db.js';
 import { logger } from '../utils/logger.js';
+import webPush from 'web-push';
 
 // Odesílací service pro push notifikace (FCM HTTP v1).
 //
@@ -90,28 +91,65 @@ export const pushService = {
   async sendToUsers(userIds, { title, body, data } = {}) {
     if (!userIds?.length) return { sent: 0, invalid: 0, reason: 'empty' };
     const rows = await query(
-      `SELECT "pushToken" FROM "DeviceRegistration" WHERE "userId" = ANY($1)`,
+      `SELECT "pushToken", platform FROM "DeviceRegistration" WHERE "userId" = ANY($1)`,
       [userIds]
     );
-    const tokens = rows.rows.map((r) => r.pushToken).filter(Boolean);
+    const tokens = rows.rows.filter((row) => row.pushToken);
     if (!tokens.length) return { sent: 0, invalid: 0, reason: 'no-devices' };
 
-    const auth = await getAccessToken();
-    if (!auth.ok) {
-      return { sent: 0, invalid: 0, reason: auth.reason, detail: auth.detail,
-        hint: 'Nastav FCM_PROJECT_ID + FCM_SERVICE_ACCOUNT_JSON (nebo FCM_SERVICE_ACCOUNT_FILE / FCM_OAUTH_TOKEN) v apps/backend/.env.' };
-    }
-    const projectId = process.env.FCM_PROJECT_ID;
     let sent = 0;
     let invalid = 0;
     const errors = [];
-    for (const t of tokens) {
+    const webTokens = tokens.filter((row) => row.pushToken.startsWith('webpush:'));
+    const fcmTokens = tokens.filter((row) => !row.pushToken.startsWith('webpush:'));
+
+    if (webTokens.length) {
+      const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT = 'mailto:admin@zoom-pro.app' } = process.env;
+      if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+        errors.push('Web push: chybí VAPID klíče.');
+        invalid += webTokens.length;
+      } else {
+        webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        for (const row of webTokens) {
+          try {
+            const subscription = JSON.parse(row.pushToken.slice('webpush:'.length));
+            await webPush.sendNotification(subscription, JSON.stringify({
+              title: title || 'Zoom Pro', body: body || '', data: data || {}
+            }), { TTL: 120, urgency: 'high' });
+            sent += 1;
+          } catch (error) {
+            invalid += 1;
+            errors.push(`Web push: ${error.statusCode || error.message || 'odeslání selhalo'}`);
+            if (error.statusCode === 404 || error.statusCode === 410) {
+              await query(`DELETE FROM "DeviceRegistration" WHERE "pushToken" = $1`, [row.pushToken]).catch(() => {});
+            }
+          }
+        }
+      }
+    }
+
+    if (!fcmTokens.length) return { sent, invalid, ...(errors.length ? { errors: errors.slice(0, 10) } : {}) };
+    const auth = await getAccessToken();
+    if (!auth.ok) {
+      return { sent, invalid: invalid + fcmTokens.length, reason: auth.reason, detail: auth.detail,
+        hint: 'Nastav FCM_PROJECT_ID + FCM_SERVICE_ACCOUNT_JSON (nebo FCM_SERVICE_ACCOUNT_FILE / FCM_OAUTH_TOKEN) v apps/backend/.env.' };
+    }
+    const projectId = process.env.FCM_PROJECT_ID;
+    for (const row of fcmTokens) {
+      const t = row.pushToken;
       try {
         const res = await sendFcmMessage(projectId, auth.token, {
           token: t,
           notification: { title: title || 'Zoom Pro', body: body || '' },
-          data: data || {},
-          android: { priority: 'high' },
+          data: Object.fromEntries(Object.entries(data || {}).map(([key, value]) => [key, String(value)])),
+          android: {
+            priority: 'high',
+            notification: { channel_id: 'zoom-pro-alerts', sound: 'default', priority: 'high' }
+          },
+          apns: {
+            headers: { 'apns-priority': '10' },
+            payload: { aps: { sound: 'default' } }
+          }
         });
         if (res.ok) { sent += 1; continue; }
         invalid += 1;

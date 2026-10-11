@@ -1,4 +1,5 @@
 import { syncRepo } from '../repositories/sync.repo.js';
+import QRCode from 'qrcode';
 
 function n(value) {
   const parsed = Number(value);
@@ -16,6 +17,15 @@ function escapeXml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+function placeQrSvg(svg, x, y, size) {
+  return svg
+    .replace(/^<\?xml[^>]*>\s*/i, '')
+    .replace(/<svg\b([^>]*)>/i, (_match, attributes) => {
+      const withoutDimensions = attributes.replace(/\s(?:x|y|width|height)=["'][^"']*["']/gi, '');
+      return `<svg${withoutDimensions} x="${x}" y="${y}" width="${size}" height="${size}">`;
+    });
 }
 
 function buildLayoutXml(items, { title, subtitle, columns, company, footer, signatureLines = true }) {
@@ -253,24 +263,44 @@ export const printService = {
     const project = projects.rows.find((item) => item.id === projectId);
     if (!project) return null;
 
+    const hasCoordinates = project.lat !== null && project.lat !== undefined && project.lng !== null && project.lng !== undefined
+      && Number.isFinite(Number(project.lat)) && Number.isFinite(Number(project.lng));
+
     const zonePayload = {
       kind: 'ZONE',
-      company: company.rows[0] || {},
+      projectId: project.id,
+      company: { id: company.rows[0]?.id, name: company.rows[0]?.name || '' },
       title: project.name,
       code: project.code || '',
       address: project.address || '',
-      gps: project.lat && project.lng ? `${project.lat.toFixed(5)}, ${project.lng.toFixed(5)}` : '',
-      tolerance: `${project.radius || 100} m`,
-      contact: user.email,
-      timestamp: new Date().toISOString()
+      gps: hasCoordinates ? `${Number(project.lat).toFixed(5)}, ${Number(project.lng).toFixed(5)}` : '',
+      tolerance: `${project.radius || 100} m`
     };
+    const mapQuery = hasCoordinates ? zonePayload.gps : (project.address || project.name);
+    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+    const qrSvg = await QRCode.toString(mapUrl, {
+      type: 'svg', errorCorrectionLevel: 'M', margin: 2, width: 240,
+      color: { dark: '#0f172a', light: '#ffffff' }
+    });
+    const gps = hasCoordinates ? `<text x="24" y="116" font-family="Helvetica" font-size="11">GPS: ${escapeXml(zonePayload.gps)}</text>` : '';
+    const qr = placeQrSvg(qrSvg, 24, 132, 220);
+    const payload = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="390" viewBox="0 0 280 390">
+  <rect width="100%" height="100%" fill="#fff"/>
+  <text x="24" y="32" font-family="Helvetica" font-size="18" font-weight="bold">${escapeXml(project.name)}</text>
+  <text x="24" y="56" font-family="Helvetica" font-size="12">${escapeXml(project.address || 'Adresa projektu není zadána')}</text>
+  <text x="24" y="78" font-family="Helvetica" font-size="11">Kód: ${escapeXml(project.code || '—')}</text>
+  ${gps}
+  ${qr}
+</svg>`;
 
     return {
       format: 'svg',
       title: `QR zóna – ${project.name}`,
       filename: `qr-zone-${project.code || project.id.slice(0, 6)}.svg`,
-      payload: zonePayload,
-      payloadString: JSON.stringify(zonePayload)
+      payload,
+      payloadString: mapUrl,
+      projectData: zonePayload
     };
   },
 
@@ -278,26 +308,34 @@ export const printService = {
     const cid = user.companyId;
     const items = (await syncRepo.getInventoryItems(cid)).rows || [];
     const codes = Array.isArray(payload?.codes) ? payload.codes : [];
+    const codedItems = items.filter((item) => item.code);
     const selected = codes.length
-      ? items.filter((item) => item.code && codes.includes(item.code))
-      : items.slice(0, 12);
+      ? codedItems.filter((item) => codes.includes(item.code))
+      : codedItems.slice(0, 12);
 
-    const labelsSvg = selected.map((item) => {
-      const data = JSON.stringify({ kind: 'ITEM', id: item.id, code: item.code, name: item.name });
+    const labelsSvg = await Promise.all(selected.map(async (item, index) => {
+      const row = Math.floor(index / 3);
+      const col = index % 3;
+      const x = col * 240;
+      const y = row * 150;
+      const qrSvg = await QRCode.toString(String(item.code), {
+        type: 'svg', errorCorrectionLevel: 'M', margin: 1, width: 104,
+        color: { dark: '#0f172a', light: '#ffffff' }
+      });
+      const qr = placeQrSvg(qrSvg, x + 122, y + 8, 106);
       return `
-        <g transform="translate(0,0)">
-          <rect x="0" y="0" width="240" height="120" fill="#ffffff" stroke="#222" stroke-width="1"/>
-          <text x="14" y="22" font-family="Helvetica" font-size="12" font-weight="bold">${escapeXml(item.name)}</text>
-          <text x="14" y="40" font-family="Helvetica" font-size="10">${escapeXml(item.code || '')}</text>
-          <text x="14" y="58" font-family="Helvetica" font-size="9">${escapeXml(item.location || '')}</text>
-          <text x="14" y="76" font-family="Helvetica" font-size="9">${escapeXml(item.category || '')}</text>
-          <rect x="14" y="84" width="120" height="28" fill="#0f172a"/>
-          <text x="20" y="104" font-family="Monospace" font-size="10" fill="#22d3ee">${escapeXml(data.length > 32 ? data.slice(0, 30) + '…' : data)}</text>
+        <g>
+          <rect x="${x}" y="${y}" width="240" height="150" fill="#ffffff" stroke="#222" stroke-width="1"/>
+          <text x="${x + 12}" y="${y + 24}" font-family="Helvetica" font-size="12" font-weight="bold">${escapeXml(item.name)}</text>
+          <text x="${x + 12}" y="${y + 46}" font-family="Helvetica" font-size="10">${escapeXml(item.code || '')}</text>
+          <text x="${x + 12}" y="${y + 66}" font-family="Helvetica" font-size="9">${escapeXml(item.location || '')}</text>
+          <text x="${x + 12}" y="${y + 84}" font-family="Helvetica" font-size="9">${escapeXml(item.category || '')}</text>
+          ${qr}
         </g>`;
-    }).join('\n');
+    })).then((labels) => labels.join('\n'));
 
-    const width = 240 * Math.max(1, Math.ceil(selected.length / 3));
-    const height = 120 * 3;
+    const width = 240 * 3;
+    const height = 150 * Math.max(1, Math.ceil(selected.length / 3));
     const layoutSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <rect width="100%" height="100%" fill="#f8fafc"/>

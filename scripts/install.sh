@@ -5,7 +5,7 @@ set -euo pipefail
 
 echo ""
 echo "══════════════════════════════════════════════════════════"
-echo "  Zoom Pro · Jednotná instalace v1.2.0"
+echo "  Zoom Pro · Jednotná instalace · migrace 001–020"
 echo "══════════════════════════════════════════════════════════"
 echo ""
 
@@ -93,13 +93,13 @@ fi
 
 # 7) Migrace
 echo ""
-echo "▶ Aplikuji všech 14 migrací…"
+echo "▶ Aplikuji všechny SQL migrace (aktuálně 001–020)…"
 DATABASE_URL="$DB_URL" node scripts/db-migrate-all.mjs
 
 # 8) Seed platform + demo
 echo ""
 echo "▶ Seed platform superadmin + demo data…"
-DATABASE_URL="$DB_URL" node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql 006_seed_demo_profiles_and_records.sql || true
+DATABASE_URL="$DB_URL" node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql 006_seed_demo_profiles_and_records.sql
 
 # 9) Volitelně seed distribuce
 read -r -p "Chceš naseedovat i vzorový katalog & dodavatele? [y/N]: " SEED_DIST || true

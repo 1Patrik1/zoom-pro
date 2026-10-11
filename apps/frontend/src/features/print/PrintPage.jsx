@@ -147,10 +147,10 @@ export function PrintPage({ db, token }) {
           <h2 className="mt-2 text-2xl font-black text-white">QR a tiskové štítky</h2>
           <ul className="mt-4 space-y-3 text-sm text-slate-200">
             <li className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
-              <strong>QR zóna projektu</strong> – vygeneruje SVG s JSON popisem stavby, který lze přečíst libovolnou čtečkou.
+              <strong>QR zóna projektu</strong> – skutečný QR kód otevře polohu stavby v Mapách Google; obsahuje GPS souřadnice, případně zadanou adresu.
             </li>
             <li className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
-              <strong>QR štítky materiálu</strong> – tisk archu 240×120 px s QR kódem, názvem a lokací.
+              <strong>QR štítky materiálu</strong> – každý kód vede na přesný skladový kód položky a lze jej načíst skladovou čtečkou.
             </li>
             <li className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
               <strong>Výdejka / příjemka / inventura</strong> – kompletní doklady s podpisovou linií, datem a součtem.

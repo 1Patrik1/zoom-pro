@@ -74,10 +74,10 @@ export const TroubleshootingDoctorView: React.FC<TroubleshootingDoctorViewProps>
     {
       id: 'chk-migrations',
       category: 'DATABASE',
-      name: 'PostgreSQL Schéma & 14 Migrací',
-      description: 'Kontrola kompletnosti migrací 001_initial až 014_mobile_devices',
-      status: 'SUCCESS',
-      detail: '14/14 migrací aplikováno, 57 public tabulek, idempotentní baseline OK',
+      name: 'PostgreSQL Schéma & 20 Migrací',
+      description: 'Kontrola kompletnosti migrací 001_initial až 020_payment_gateway_settings',
+      status: 'WARNING',
+      detail: 'Ověřte aplikační log migrátoru a tabulku _migrations; zobrazený počet souborů není potvrzením jejich aplikace.',
     },
     {
       id: 'chk-permissions',

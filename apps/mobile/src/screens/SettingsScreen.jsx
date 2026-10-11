@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Server, LogOut, Trash2, Bell } from 'lucide-react';
 import { store, queue } from '../lib/storage.js';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { PushNotifications } from '@capacitor/push-notifications';
 import { Device } from '@capacitor/device';
+import { api } from '../lib/api.js';
+import { registerPush } from '../lib/push.js';
 
 // ONBOARDING: první spuštění musí nastavit adresu serveru — jinak appka volá
 // neexistující https://api.zoom-pro.app. Wizard se ukáže, dokud uživatel adresu neuloží.
@@ -52,18 +53,41 @@ export function ApiUrlOnboarding({ onDone }) {
   );
 }
 
-export function SettingsScreen({ user, onLogout }) {
+export function SettingsScreen({ user, token, onUserUpdated, onLogout }) {
   const [apiUrl, setApiUrl] = useState('');
   const [device, setDevice] = useState(null);
   const [pushToken, setPushToken] = useState('');
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [alarmMelody, setAlarmMelody] = useState('siren');
   const [msg, setMsg] = useState('');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [savingContacts, setSavingContacts] = useState(false);
 
   useEffect(() => {
     store.getApiUrl().then(setApiUrl);
+    store.getAlarmMelody().then(setAlarmMelody);
     Device.getInfo().then(setDevice).catch(() => {});
   }, []);
 
   const saveApi = async () => { await store.setApiUrl(apiUrl); setMsg('Uloženo.'); setTimeout(() => setMsg(''), 1200); };
+
+  const saveContacts = async () => {
+    setSavingContacts(true); setMsg('');
+    try {
+      const result = await api.request('/api/users/profile', { method: 'POST', token, body: {
+        email, phone,
+        firstName: user?.firstName || '', lastName: user?.lastName || '',
+        employmentType: user?.employmentType || 'INTERNAL',
+        ico: user?.ico || '', dic: user?.dic || '', street: user?.street || '', city: user?.city || '', zip: user?.zip || ''
+      } });
+      await onUserUpdated?.({ ...user, ...(result.user || {} ) });
+      setEmail(result.user?.email || email);
+      setPhone(result.user?.phone || '');
+      setMsg('Kontaktní údaje uloženy.');
+    } catch (error) { setMsg(error.message || 'Uložení kontaktních údajů selhalo.'); }
+    finally { setSavingContacts(false); }
+  };
 
   const clearQueue = async () => {
     const items = await queue.list();
@@ -73,12 +97,11 @@ export function SettingsScreen({ user, onLogout }) {
 
   const enablePush = async () => {
     try {
-      const perm = await PushNotifications.requestPermissions();
-      if (perm.receive === 'granted') {
-        await PushNotifications.register();
-        PushNotifications.addListener('registration', (t) => setPushToken(t.value));
-        setMsg('Push aktivní.');
-      }
+      const result = await registerPush(token);
+      if (!result.ok) { setMsg(result.reason === 'denied' ? 'Povolte oznámení v nastavení telefonu.' : `Push se nepodařilo aktivovat: ${result.reason}`); return; }
+      setPushToken(result.token);
+      setPushEnabled(true);
+      setMsg('Upozornění na telefon jsou aktivní.');
     } catch (e) { setMsg('Push chyba: ' + e.message); }
   };
 
@@ -94,8 +117,20 @@ export function SettingsScreen({ user, onLogout }) {
       <header><h2 className="text-xl font-black">Nastavení</h2></header>
 
       <div className="card space-y-2">
+        <p className="text-xs font-black text-slate-300">Melodie alarmu</p>
+        <select value={alarmMelody} onChange={async (event) => { setAlarmMelody(event.target.value); await store.setAlarmMelody(event.target.value); }} className="w-full rounded-xl bg-slate-800 px-3 py-3 text-white">
+          <option value="siren">Siréna</option><option value="bell">Zvonek</option><option value="pulse">Krátké tóny</option>
+        </select>
+      </div>
+
+      <div className="card space-y-2">
         <p className="text-xs font-black text-slate-300">Účet</p>
-        <p className="text-sm">{user?.email}</p>
+        {(user?.firstName || user?.lastName) && <p className="text-sm font-bold">{[user.firstName, user.lastName].filter(Boolean).join(' ')}</p>}
+        <div className="space-y-2 pt-2">
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Přihlašovací e-mail" className="w-full rounded-xl bg-slate-800 px-3 py-3 text-white" />
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefonní číslo" className="w-full rounded-xl bg-slate-800 px-3 py-3 text-white" />
+          <button disabled={savingContacts} onClick={saveContacts} className="btn-ghost w-full disabled:opacity-50">{savingContacts ? 'Ukládám…' : 'Uložit e-mail a telefon'}</button>
+        </div>
         <p className="text-xs text-slate-400">Role: {user?.role}</p>
       </div>
 
@@ -108,9 +143,10 @@ export function SettingsScreen({ user, onLogout }) {
 
       <div className="card space-y-2">
         <p className="flex items-center gap-2 text-xs font-black text-slate-300"><Bell size={14} /> Notifikace</p>
-        <button onClick={enablePush} className="btn-ghost w-full">Aktivovat push notifikace</button>
+        <p className="text-xs text-slate-400">Zprávy z projektového chatu a další systémová upozornění se zobrazí v oznámeních telefonu.</p>
+        <button onClick={enablePush} className="btn-ghost w-full">{pushEnabled ? 'Obnovit registraci telefonu' : 'Zapnout upozornění na telefonu'}</button>
         <button onClick={testLocalNotif} className="btn-ghost w-full">Test lokální notifikace</button>
-        {pushToken && <p className="text-[10px] text-slate-400 break-all">Token: {pushToken}</p>}
+        {pushToken && <p className="text-xs text-emerald-300">Telefon je zaregistrován pro push oznámení.</p>}
       </div>
 
       <div className="card space-y-2">

@@ -25,6 +25,14 @@ router.post(
 );
 
 router.post(
+  '/delete',
+  auth,
+  requireCapability('projects.create'),
+  validateRequest({ body: validators.projectDelete }),
+  asyncHandler(async (req, res) => res.json(await projectsService.remove(req.user, req.body.projectId)))
+);
+
+router.post(
   '/assign',
   auth,
   requireCapability('projects.assign_team'),

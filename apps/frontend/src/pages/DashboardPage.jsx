@@ -1,3 +1,5 @@
+import { userDisplayName } from '../utils/user-name.js';
+
 function metersLabel(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
   const number = Number(value);
@@ -79,7 +81,7 @@ export function DashboardPage({ db }) {
               <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-bold text-white">{item.email}</p>
+                    <p className="font-bold text-white">{userDisplayName(item)}</p>
                     <p className="text-xs text-slate-500">{item.projectName || 'Bez projektu'} • {new Date(item.createdAt).toLocaleString('cs-CZ')}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-black ${item.geoStatus === 'OUT_OF_RADIUS' ? 'bg-amber-950 text-amber-300' : 'bg-rose-950 text-rose-300'}`}>

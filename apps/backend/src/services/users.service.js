@@ -26,11 +26,28 @@ export const usersService = {
   },
 
   // Každý uživatel si může doplnit jméno a příjmení
-  async updateProfile(user, { firstName, lastName }) {
-    const result = await usersRepo.updateProfile(user.id, {
+  async updateProfile(user, { email, phone, firstName, lastName, employmentType, ico, dic, street, city, zip }) {
+    const nextEmail = String(email || user.email).trim().toLowerCase();
+    if (!nextEmail || !nextEmail.includes('@')) throw new HttpError(400, 'Zadejte platný e-mail.');
+    const duplicate = await usersRepo.emailInUse(nextEmail, user.id);
+    if (duplicate.length) throw new HttpError(409, 'Tento e-mail už používá jiný účet.');
+    try {
+      const result = await usersRepo.updateProfile(user.id, {
+      email: nextEmail,
+      phone: phone?.trim() || null,
       firstName: firstName?.trim() || null,
       lastName: lastName?.trim() || null,
-    });
-    return result.rows[0];
+      employmentType: employmentType === 'EXTERNAL' ? 'EXTERNAL' : 'INTERNAL',
+      ico: employmentType === 'EXTERNAL' ? ico?.trim() || null : null,
+      dic: employmentType === 'EXTERNAL' ? dic?.trim() || null : null,
+      street: employmentType === 'EXTERNAL' ? street?.trim() || null : null,
+      city: employmentType === 'EXTERNAL' ? city?.trim() || null : null,
+      zip: employmentType === 'EXTERNAL' ? zip?.trim() || null : null,
+      });
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === '23505') throw new HttpError(409, 'Tento e-mail už používá jiný účet.');
+      throw error;
+    }
   }
 };

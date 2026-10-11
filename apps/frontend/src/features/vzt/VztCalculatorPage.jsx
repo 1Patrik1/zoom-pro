@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   MEDIUM_PRESETS,
   buildSavePayload,
@@ -11,6 +11,7 @@ import { MiniCalculatorsBundle } from './MiniCalculators.jsx';
 import { RouteBuilder3D } from './RouteBuilder3D.jsx';
 import { RoomLoadsPanel } from './RoomLoadsPanel.jsx';
 import { PressureDropPanel } from './PressureDropPanel.jsx';
+import { SystemVisualizer } from './SystemVisualizer.jsx';
 
 const SYSTEM_OPTIONS = [
   { value: 'VZT', medium: 'vzt', label: 'VZT / vzduchotechnika' },
@@ -22,6 +23,25 @@ export function VztCalculatorPage({ db, onCreate }) {
   const [activeTab, setActiveTab] = useState('component');
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [rooms, setRooms] = useState(() => [
+    { id: crypto.randomUUID(), name: 'Místnost', roomType: 'office', areaM2: 25, heightM: 2.7, occupants: 2, orientation: 'S', ida: 'IDA2' },
+    { id: crypto.randomUUID(), name: 'WC', roomType: 'wc', areaM2: 6, heightM: 2.7, occupants: 0, orientation: 'S', ida: 'IDA2' }
+  ]);
+  const [buildingType, setBuildingType] = useState('office');
+  const [outdoorWinterC, setOutdoorWinterC] = useState(-12);
+  const [indoorC, setIndoorC] = useState(22);
+  const [layers, setLayers] = useState({ vzt: true, heating: true, water: true });
+  const storageKey = `zoompro:engineering-plan:${db.company?.id || 'local'}`;
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+      if (saved?.rooms && Array.isArray(saved.rooms)) setRooms(saved.rooms);
+      if (saved?.buildingType) setBuildingType(saved.buildingType);
+      if (Number.isFinite(saved?.outdoorWinterC)) setOutdoorWinterC(saved.outdoorWinterC);
+      if (Number.isFinite(saved?.indoorC)) setIndoorC(saved.indoorC);
+      if (saved?.layers) setLayers((current) => ({ ...current, ...saved.layers }));
+    } catch { /* Ignore malformed local save and keep a usable empty plan. */ }
+  }, [storageKey]);
   const [componentForm, setComponentForm] = useState({
     systemType: 'VZT',
     medium: 'vzt',
@@ -83,6 +103,17 @@ export function VztCalculatorPage({ db, onCreate }) {
       setSaveMessage('Výpočet byl uložen do seznamu komponent.');
     } catch (error) {
       setSaveError(error.message || 'Uložení selhalo');
+    }
+  }
+
+  function saveEngineeringPlan(visibleLayers) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ rooms, buildingType, outdoorWinterC, indoorC, layers: visibleLayers, savedAt: new Date().toISOString() }));
+      setLayers(visibleLayers);
+      return true;
+    } catch (error) {
+      setSaveError(error.message || 'Návrh se nepodařilo uložit v tomto prohlížeči.');
+      return false;
     }
   }
 
@@ -162,8 +193,8 @@ export function VztCalculatorPage({ db, onCreate }) {
             <OffsetPiecePanel />
             <MiniCalculatorsBundle />
             <PressureDropPanel />
-            <RoomLoadsPanel />
-            <RouteBuilder3D />
+            <RoomLoadsPanel rooms={rooms} onRoomsChange={setRooms} buildingType={buildingType} setBuildingType={setBuildingType} outdoorWinterC={outdoorWinterC} setOutdoorWinterC={setOutdoorWinterC} indoorC={indoorC} setIndoorC={setIndoorC} />
+            <SystemVisualizer rooms={rooms} buildingType={buildingType} outdoorWinterC={outdoorWinterC} indoorC={indoorC} visible={layers} onVisibilityChange={setLayers} onSave={saveEngineeringPlan} />
             <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
               <h3 className="text-sm font-black uppercase tracking-widest text-amber-400">Co jsem přidal navíc</h3>
               <ul className="mt-3 space-y-2 text-sm text-slate-300">
@@ -181,7 +212,7 @@ export function VztCalculatorPage({ db, onCreate }) {
         <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
           <div className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="text-lg font-black text-blue-400">Výpočet průtoku na dimenzi</h2>
-            <select value={dimensionForm.medium} onChange={(e) => setDimensionForm((c) => ({ ...c, medium: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
+            <select value={dimensionForm.medium} onChange={(e) => setDimensionForm((c) => ({ ...c, medium: e.target.value, targetVelocity: MEDIUM_PRESETS[e.target.value].designVelocity }))} className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
               {Object.entries(MEDIUM_PRESETS).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
             </select>
             <NumberField label="Průtok (m³/h)" value={dimensionForm.flowM3h} onChange={(value) => setDimensionForm((c) => ({ ...c, flowM3h: value }))} />
@@ -261,16 +292,11 @@ export function VztCalculatorPage({ db, onCreate }) {
       {activeTab === '3d' && (
         <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-5">
           <div>
-            <h2 className="text-lg font-black text-blue-400">3D VZT konfigurátor</h2>
-            <p className="mt-1 text-sm text-slate-400">Do appky jsem vložil i nahraný 3D modul pro rychlé prostorové ověření přechodů, offsetů a rozměrů. Běží přímo uvnitř systému jako samostatný konfigurátor.</p>
+            <h2 className="text-lg font-black text-blue-400">Trasy a společné vizualizace</h2>
+            <p className="mt-1 text-sm text-slate-400">3D editor používá lokálně zabalený vykreslovací engine a schéma místností níže propojuje VZT, topení a vodu.</p>
           </div>
-          <div className="rounded-3xl border border-slate-800 bg-slate-950 p-3">
-            <iframe
-              title="3D VZT konfigurátor"
-              src="/configurator-3d.html"
-              className="h-[780px] w-full rounded-2xl border border-slate-800 bg-white"
-            />
-          </div>
+          <RouteBuilder3D storageKey={storageKey} />
+          <SystemVisualizer rooms={rooms} buildingType={buildingType} outdoorWinterC={outdoorWinterC} indoorC={indoorC} visible={layers} onVisibilityChange={setLayers} onSave={saveEngineeringPlan} />
           <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300">
             <p><span className="font-bold text-white">Tip:</span> 3D konfigurátor je vhodný hlavně pro rychlé vizuální posouzení redukcí a změn osy. Výpočtová část nahoře zůstává přesnější pro doměry, tlakovou ztrátu a výkaz materiálu.</p>
           </div>

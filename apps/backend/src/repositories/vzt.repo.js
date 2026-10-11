@@ -15,7 +15,7 @@ function areaMeters(widthMm, heightMm, isRound) {
 }
 
 export const vztRepo = {
-  async createComponentAndUpdateConsumables({ companyId, type, width, height, width2, height2, length, angle, offset, note }) {
+  async createComponentAndUpdateConsumables({ companyId, type, width, height, width2, height2, length, angle, offset, note, surfaceArea, weight, estimatedScrews, estimatedTapeM, estimatedRivets, estimatedSealantKg, requiresAccessDoor }) {
     return withTransaction(async (client) => {
       const W = Number(width || 0);
       const H = Number(height || width || 0);
@@ -40,14 +40,17 @@ export const vztRepo = {
       const sizeDelta = isRound ? Math.abs((W2 - W) / 2000) : Math.sqrt(Math.pow((W2 - W) / 2000, 2) + Math.pow((H2 - H) / 2000, 2));
       const slantLength = Math.sqrt(Math.pow(L, 2) + Math.pow(offsetNumber / 1000, 2) + Math.pow(sizeDelta, 2));
       const shellLength = isElbow ? centerArcLength : ((isOffset || isTransition) ? slantLength : L);
-      const area = avgPerimeter * shellLength * 1.15;
-      const weight = area * 7.85 * 0.9;
+      const computedArea = avgPerimeter * shellLength * 1.15;
+      const computedWeight = computedArea * 7.85 * 0.9;
       const hydraulicDiameter = avgPerimeter > 0 ? (4 * ((areaStart + areaEnd) / 2)) / avgPerimeter : 0;
-      const requiresAccessDoor = (L >= 4) || angleNumber >= 45 || hydraulicDiameter >= 0.6;
-      const screws = Math.max(8, Math.ceil(avgPerimeter * 12));
-      const tapeMeters = Number((avgPerimeter * (isElbow ? 1.5 : 1.0)).toFixed(2));
-      const rivets = Math.max(0, Math.ceil(avgPerimeter * 8));
-      const sealant = Number(((isRound ? 0.15 : 0.22) * shellLength).toFixed(2));
+      const accessDoor = requiresAccessDoor ?? ((isElbow && angleNumber >= 45) || (isTransition ? hydraulicDiameter >= 0.6 : L >= 4 || hydraulicDiameter >= 0.6));
+      const hasNumber = (value) => value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value));
+      const savedArea = hasNumber(surfaceArea) ? Number(surfaceArea) : computedArea;
+      const savedWeight = hasNumber(weight) ? Number(weight) : computedWeight;
+      const screws = hasNumber(estimatedScrews) ? Number(estimatedScrews) : Math.max(8, Math.ceil(avgPerimeter * 12));
+      const tapeMeters = hasNumber(estimatedTapeM) ? Number(estimatedTapeM) : Number((avgPerimeter * (isElbow ? 1.5 : 1.0)).toFixed(2));
+      const rivets = hasNumber(estimatedRivets) ? Number(estimatedRivets) : Math.max(0, Math.ceil(avgPerimeter * 8));
+      const sealant = hasNumber(estimatedSealantKg) ? Number(estimatedSealantKg) : Number(((isRound ? 0.15 : 0.22) * shellLength).toFixed(2));
 
       const component = await client.query(
         `INSERT INTO "VztComponent" (
@@ -67,9 +70,9 @@ export const vztRepo = {
           Number(length),
           angleNumber || null,
           offsetNumber || null,
-          Number(area.toFixed(2)),
-          Number(weight.toFixed(2)),
-          requiresAccessDoor,
+          Number(savedArea.toFixed(2)),
+          Number(savedWeight.toFixed(2)),
+          accessDoor,
           note || null
         ]
       );

@@ -1,5 +1,7 @@
 import { projectsRepo } from '../repositories/projects.repo.js';
 import { HttpError } from '../utils/http-error.js';
+import { query } from '../config/db.js';
+import { pushService } from './push.service.js';
 
 const MANAGER_ROLES = ['SUPERADMIN', 'REDITEL', 'VEDOUCI'];
 
@@ -61,6 +63,13 @@ export const projectsService = {
     return result.rows[0];
   },
 
+  async remove(user, projectId) {
+    ensureProjectManager(user, 'Nemáte oprávnění mazat projekty');
+    const result = await projectsRepo.remove(projectId, user.companyId);
+    if (!result.rows[0]) throw new HttpError(404, 'Projekt nebyl nalezen');
+    return { ok: true, projectId: result.rows[0].id };
+  },
+
   async assign(user, payload) {
     ensureProjectManager(user, 'Nemáte oprávnění přiřazovat tým');
     if (payload.assign) {
@@ -94,10 +103,23 @@ export const projectsService = {
       await projectsRepo.addGalleryItems(payload.projectId, user.id, user.companyId, chat.id, attachments, text || null);
     }
 
+    // Push only to this project's assigned teammates, never to unrelated company users.
+    query(
+      `SELECT DISTINCT u.id, p.name AS "projectName" FROM "ProjectAssignment" pa
+       JOIN "User" u ON u.id = pa."userId"
+       JOIN "Project" p ON p.id = pa."projectId" AND p."companyId" = pa."companyId"
+       WHERE pa."projectId" = $1 AND pa."companyId" = $2 AND u.id <> $3`,
+      [payload.projectId, user.companyId, user.id]
+    ).then(({ rows }) => pushService.sendToUsers(rows.map((row) => row.id), {
+      title: `Projektový chat · ${rows[0]?.projectName || 'nová zpráva'}`,
+      body: `${[user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email}: ${text || 'Poslal(a) fotografii'}`.slice(0, 180),
+      data: { type: 'project-chat', projectId: String(payload.projectId), chatId: String(chat.id) }
+    })).catch((error) => console.warn('[push] Project chat notification failed:', error.message));
+
     return {
       ...chat,
       attachments,
-      authorName: user.email
+      authorName: [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email
     };
   }
 };

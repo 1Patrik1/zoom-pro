@@ -1,6 +1,17 @@
 import { query } from '../config/db.js';
 
 export const attendanceRepo = {
+  getUserAssignments(companyId, userId) {
+    return query(
+      `SELECT p.id, p.name, p.lat, p.lng, p.radius, p.address, p.status,
+              p."plannedStart", p."plannedEnd", pa."assignedAt"
+       FROM "ProjectAssignment" pa
+       JOIN "Project" p ON p.id = pa."projectId"
+       WHERE pa."companyId" = $1 AND pa."userId" = $2
+       ORDER BY pa."assignedAt" DESC`,
+      [companyId, userId]
+    );
+  },
   getProjectSnapshot(companyId, projectId) {
     return query(
       `SELECT id, name, lat, lng, radius, address

@@ -18,6 +18,29 @@ function haversineDistanceMeters(lat1, lng1, lat2, lng2) {
 
 export const attendanceService = {
   async create(user, payload) {
+    let projectId = payload.projectId || null;
+    if (user.role === 'MONTER' && payload.type !== 'ABSENCE') {
+      const assignmentResult = await attendanceRepo.getUserAssignments(user.companyId, user.id);
+      const assignments = assignmentResult.rows;
+      if (projectId && !assignments.some((project) => project.id === projectId)) {
+        throw new HttpError(403, 'Docházku lze zapsat pouze na přiřazený projekt');
+      }
+      if (!projectId) {
+        const now = Date.now();
+        const active = assignments.filter((project) => project.status === 'ACTIVE'
+          && (!project.plannedStart || new Date(project.plannedStart).getTime() <= now)
+          && (!project.plannedEnd || new Date(project.plannedEnd).getTime() >= now));
+        const candidates = active.length ? active : assignments;
+        if (candidates.length !== 1) {
+          throw new HttpError(409, candidates.length
+            ? 'Máte přiřazeno více projektů. Požádejte stavbyvedoucího o výběr aktuálního projektu.'
+            : 'Nemáte přiřazený projekt. Požádejte stavbyvedoucího o jeho přiřazení.');
+        }
+        projectId = candidates[0].id;
+      }
+    }
+    if (payload.type === 'ABSENCE') projectId = null;
+
     let distanceFromProjectM = null;
     let withinProjectRadius = null;
     let geoStatus = 'NO_PROJECT';
@@ -27,8 +50,8 @@ export const attendanceService = {
     const lat = toNumber(payload.lat);
     const lng = toNumber(payload.lng);
 
-    if (payload.projectId) {
-      const projectResult = await attendanceRepo.getProjectSnapshot(user.companyId, payload.projectId);
+    if (projectId) {
+      const projectResult = await attendanceRepo.getProjectSnapshot(user.companyId, projectId);
       const project = projectResult.rows[0];
       if (!project) throw new HttpError(404, 'Projekt pro docházku nebyl nalezen');
 
@@ -47,12 +70,12 @@ export const attendanceService = {
     }
 
     const noteParts = [payload.note?.trim()].filter(Boolean);
-    if (payload.projectId && distanceFromProjectM !== null) noteParts.push(`Odchylka ${distanceFromProjectM} m`);
+    if (projectId && distanceFromProjectM !== null) noteParts.push(`Odchylka ${distanceFromProjectM} m`);
 
     const result = await attendanceRepo.create({
       userId: user.id,
       companyId: user.companyId,
-      projectId: payload.projectId || null,
+      projectId,
       type: payload.type,
       status: payload.status,
       lat,

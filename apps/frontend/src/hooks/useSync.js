@@ -62,10 +62,10 @@ export function useSync(token) {
     }
   }, [token]);
 
-  const postAction = useCallback(async (endpoint, payload) => {
+  const postAction = useCallback(async (endpoint, payload, { fullSync = false } = {}) => {
     if (!token) throw new Error('Chybí token');
     await api.post(endpoint, token, payload);
-    await reload();
+    await reload({ full: fullSync });
   }, [token, reload]);
 
   useEffect(() => {

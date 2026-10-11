@@ -67,6 +67,12 @@ Backend musí povolit CORS z `capacitor://localhost` a `https://localhost`:
 CORS_ORIGIN=http://localhost:5173,capacitor://localhost,https://localhost
 ```
 
+## Push oznámení
+
+Oznámení zapni v aplikaci **Nastavení → Notifikace** a povol systémové oznámení i zvuk. Registrace uloží token zařízení na backend; Android používá kanál `zoom-pro-alerts` se systémovým zvukem. Backend musí mít nastavené `FCM_PROJECT_ID` a `FCM_SERVICE_ACCOUNT_JSON` (v produkci přes chráněné proměnné serveru). Pro Android přidej Firebase konfiguraci do nativního projektu; pro iOS nakonfiguruj APNs/Firebase ve Xcode. Bez nativní konfigurace, oprávnění a FCM údajů se oznámení na pozadí nedoručí. Režim Nerušit, vypnutý zvuk kanálu nebo systémové „Vynutit ukončení“ mohou doručení či zvuk potlačit.
+
+Push je zapojen pro projektový chat, chat podpory, žádosti o licenci a registrace firem a členů. Zprávy se doručují jako push, nikoli SMS. Web/PWA používá Web Push: nastav v kořenovém `.env` `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` a `VAPID_SUBJECT`; klíče vygeneruje příkaz `node --input-type=module -e "import webPush from 'web-push'; console.log(webPush.generateVAPIDKeys())"` (soukromý klíč nikomu neposílej). Potom obnov backend a frontend přes Compose a v aplikaci otevři **Nastavení → Zapnout push na tomto zařízení**. Upozornění mohou přijít i při zavřené PWA; zvuk a vibrace řídí také nastavení systému/prohlížeče. Melodii alarmu lze nastavit v mobilním Nastavení.
+
 ## Podepsání APK pro Play Store
 ```bash
 cd android

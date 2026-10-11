@@ -3,7 +3,8 @@ import { query } from '../config/db.js';
 export const troubleshootingRepo = {
   listForProject(companyId, projectId) {
     return query(
-      `SELECT pt.*, u.email as "authorEmail"
+      `SELECT pt.*, u.email as "authorEmail",
+              COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName"
        FROM "ProjectTroubleshooting" pt
        JOIN "User" u ON pt."userId" = u.id
        WHERE pt."companyId" = $1 AND pt."projectId" = $2

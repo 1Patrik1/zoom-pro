@@ -7,15 +7,26 @@ import { pushService } from '../services/push.service.js';
 
 const r = Router();
 
+r.get('/public-key', (_req, res) => {
+  const publicKey = process.env.VAPID_PUBLIC_KEY || '';
+  if (!publicKey) return res.status(503).json({ ok: false, error: 'Web push není na serveru nakonfigurovaný.' });
+  return res.json({ ok: true, publicKey });
+});
+
 r.post('/register', auth, asyncHandler(async (req, res) => {
-  const { pushToken, platform } = req.body || {};
-  if (!pushToken) return res.status(400).json({ ok: false, error: 'Chybí pushToken' });
+  const { pushToken, pushSubscription, platform } = req.body || {};
+  let storedToken = pushToken;
+  if (platform === 'web' && pushSubscription && typeof pushSubscription.endpoint === 'string'
+    && pushSubscription.endpoint.startsWith('https://') && pushSubscription.keys?.p256dh && pushSubscription.keys?.auth) {
+    storedToken = `webpush:${JSON.stringify(pushSubscription)}`;
+  }
+  if (typeof storedToken !== 'string' || !storedToken) return res.status(400).json({ ok: false, error: 'Chybí platný push token nebo web push subscription.' });
   await query(
     `INSERT INTO "DeviceRegistration" ("userId","companyId","pushToken",platform,"lastSeen")
      VALUES ($1,$2,$3,$4,NOW())
-     ON CONFLICT ("pushToken") DO UPDATE SET "lastSeen" = NOW(), "userId" = EXCLUDED."userId"`,
-    [req.user.id, req.user.companyId, pushToken, platform || 'unknown']
-  ).catch(() => {});
+     ON CONFLICT ("pushToken") DO UPDATE SET "lastSeen" = NOW(), "userId" = EXCLUDED."userId", "companyId" = EXCLUDED."companyId", platform = EXCLUDED.platform`,
+    [req.user.id, req.user.companyId, storedToken, platform || 'unknown']
+  );
   res.json({ ok: true });
 }));
 

@@ -22,11 +22,13 @@ check(nodeMajor >= 20, `Node.js ${process.versions.node} (>=20 vyžadováno)`);
 
 // 2) Soubory
 const files = ['package.json', 'apps/backend/package.json', 'apps/frontend/package.json',
-  'apps/backend/.env', 'apps/frontend/.env', '001_initial_schema.sql', '014_mobile_devices.sql'];
+  'apps/backend/.env', 'apps/frontend/.env', '001_initial_schema.sql', '014_mobile_devices.sql',
+  '017_company_support_chat.sql', '018_license_requests.sql', '019_company_member_business_details.sql',
+  '020_payment_gateway_settings.sql'];
 for (const f of files) check(fs.existsSync(path.join(ROOT, f)), `soubor ${f}`);
 
-// 3) Migrace 001–014
-for (let i = 1; i <= 14; i++) {
+// 3) SQL migrace 001–020
+for (let i = 1; i <= 20; i++) {
   const num = String(i).padStart(3, '0');
   const found = fs.readdirSync(ROOT).some((f) => f.startsWith(`${num}_`) && f.endsWith('.sql'));
   check(found, `SQL migrace ${num}_*.sql`);
@@ -59,6 +61,7 @@ try {
     check(new RegExp(`^${key}=.+`, 'm').test(envText), `.env obsahuje ${key}`);
   }
   check(/GEMINI_API_KEY=.+/.test(envText) ? true : 'warn', 'GEMINI_API_KEY (volitelné pro AI)');
+  check(/FCM_PROJECT_ID=.+/.test(envText) && /FCM_SERVICE_ACCOUNT_JSON=.+/.test(envText) ? true : 'warn', 'FCM credentials (volitelné; bez nich se mobilní push neodešle)');
 } catch { /* ignore */ }
 
 // 6) node_modules

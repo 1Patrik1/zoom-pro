@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client.js';
 
-const ALL_MODULES = [
+export const ALL_LICENSE_MODULES = [
   'projects', 'attendance', 'dailyLog', 'vzt', 'team', 'reports',
   'invoices', 'inventory', 'exports', 'imports', 'documents', 'print',
   'collisions', 'signatures', 'assistant', 'troubleshooting',
@@ -13,6 +13,7 @@ export function LicensingPage({ token, user }) {
   const [quote, setQuote] = useState(null);
   const [my, setMy] = useState({ license: null, activeUsers: 0 });
   const [error, setError] = useState(null);
+  const [requestSent, setRequestSent] = useState(false);
 
   const load = async () => {
     try {
@@ -41,13 +42,19 @@ export function LicensingPage({ token, user }) {
     }).then((r) => setQuote(r.pricing)).catch((e) => setError(e.message));
   }, [state, token]);
 
-  const subscribe = async () => {
+  const requestLicense = async () => {
     try {
-      const r = await api.request('/api/licensing/subscribe', {
+      const extras = state.modules.filter((module) => !(selectedPlan?.includedModules || []).includes(module));
+      await api.request('/api/support', {
         method: 'POST', token,
-        body: { planCode: state.planCode, users: state.users, modules: state.modules, period: state.period },
+        body: {
+          requestType: 'LICENSE_REQUEST',
+          requestDetails: { planCode: state.planCode, users: state.users, modules: extras, period: state.period },
+          text: `Žádost o tarif ${selectedPlan?.name || state.planCode}, ${state.users} členů, období ${state.period} měsíců${extras.length ? `, příplatkové moduly: ${extras.join(', ')}` : ''}.`
+        },
       });
-      setMy({ ...my, license: r.license });
+      setRequestSent(true);
+      setError(null);
     } catch (e) { setError(e.message); }
   };
 
@@ -55,7 +62,7 @@ export function LicensingPage({ token, user }) {
     <div className="space-y-6">
       <header className="rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white shadow">
         <h2 className="text-2xl font-black">Licence firmy</h2>
-        <p className="mt-1 text-sm opacity-90">Vyber tarif, počet lidí, moduly a období. Vše se spočítá okamžitě.</p>
+        <p className="mt-1 text-sm opacity-90">Vyberte požadovaný tarif, počet členů, příplatkové moduly a období. Požadavek odešlete superadminovi ke schválení.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <Info label="Aktivní uživatelé" value={my.activeUsers} />
           <Info label="Aktuální plán" value={my.license?.planCode || '—'} />
@@ -64,6 +71,7 @@ export function LicensingPage({ token, user }) {
       </header>
 
       {error && <div className="rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+      {requestSent && <div role="status" className="rounded-2xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">Žádost byla odeslána do Chatu podpory. Balíček ani moduly se nezapnou, dokud je nepotvrdí superadmin.</div>}
 
       <div className="grid gap-3 md:grid-cols-4">
         {plans?.map((p) => (
@@ -106,27 +114,27 @@ export function LicensingPage({ token, user }) {
 
         <p className="mt-5 text-sm font-black text-slate-800">Moduly</p>
         <div className="mt-2 grid gap-2 md:grid-cols-4">
-          {ALL_MODULES.map((m) => {
+          {ALL_LICENSE_MODULES.map((m) => {
             const included = (selectedPlan?.includedModules || []).includes(m);
             const active = state.modules.includes(m);
             const addonPrice = selectedPlan?.moduleAddons?.[m];
             return (
-              <label key={m} className={`flex items-center gap-2 rounded-2xl border p-2 text-sm ${active ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'}`}>
-                <input type="checkbox" checked={active} disabled={included}
+              <label key={m} className={`flex items-center gap-2 rounded-2xl border p-2 text-sm ${active ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'} ${!included && addonPrice == null ? 'opacity-50' : ''}`}>
+                <input type="checkbox" checked={active} disabled={included || addonPrice == null}
                   onChange={(e) => {
                     setState((s) => ({ ...s, modules: e.target.checked ? [...s.modules, m] : s.modules.filter((x) => x !== m) }));
                   }} />
                 <span className="flex-1">{m}</span>
                 {included ? <span className="text-xs font-black text-emerald-600">v tarifu</span>
-                  : addonPrice != null ? <span className="text-xs text-slate-500">+{addonPrice} Kč</span> : null}
+                  : addonPrice != null ? <span className="text-xs text-slate-500">+{addonPrice} Kč</span> : <span className="text-xs text-slate-500">nedostupné</span>}
               </label>
             );
           })}
         </div>
 
         <div className="mt-5 flex justify-end">
-          <button onClick={subscribe} className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow hover:bg-blue-700">
-            Aktivovat balíček
+          <button onClick={requestLicense} className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow hover:bg-blue-700">
+            Odeslat žádost superadminovi
           </button>
         </div>
       </section>
@@ -173,7 +181,7 @@ function SuperAdminPlanEditor({ token, plans, onReload }) {
       <div className="mt-5">
         <p className="text-xs font-black uppercase text-purple-700">Zapnuté moduly v tarifu:</p>
         <div className="mt-2 grid gap-2 md:grid-cols-4">
-          {ALL_MODULES.map((m) => (
+          {ALL_LICENSE_MODULES.map((m) => (
             <label key={m} className="flex items-center gap-2 rounded-xl border border-purple-200 bg-white p-2 text-sm">
               <input type="checkbox" checked={draft.includedModules.includes(m)}
                 onChange={(e) => setDraft({ ...draft, includedModules: e.target.checked ? [...draft.includedModules, m] : draft.includedModules.filter((x) => x !== m) })} />

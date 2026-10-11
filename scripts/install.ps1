@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 Write-Host ""
 Write-Host "══════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  Zoom Pro · Windows instalátor v1.2.0" -ForegroundColor Cyan
+Write-Host "  Zoom Pro · Windows instalátor · migrace 001–020" -ForegroundColor Cyan
 Write-Host "══════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 

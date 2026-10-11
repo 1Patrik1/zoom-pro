@@ -4,6 +4,12 @@ coverage/
 .env
 .env.*
 !.env.example
+!*.example
+# Database backups and dumps may contain customer/company data.
+*.dump
+*.sql.gz
+*.backup
+backups/
 *.log
 .DS_Store
 .vscode/

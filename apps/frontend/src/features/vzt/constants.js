@@ -105,10 +105,12 @@ export const HEAT_LOSS_COEFF_WKM3 = 0.33; // objemové ztráty větráním
 
 // Ekvivalentní hydraulický průměr — pro tlakové ztráty
 export function hydraulicDiameterMm(shape, aMm, bMm) {
-  if (shape === 'round') return aMm;
-  if (!aMm || !bMm) return 0;
+  const a = Math.max(0, Number(aMm) || 0);
+  const b = Math.max(0, Number(bMm) || 0);
+  if (shape === 'round') return a;
+  if (!a || !b) return 0;
   // pro obdélníkový: Dh = 2·A·B/(A+B)  (EN 13779)
-  return (2 * aMm * bMm) / (aMm + bMm);
+  return (2 * a * b) / (a + b);
 }
 
 // Colebrook (řešeno iteračně) pro součinitel tření λ

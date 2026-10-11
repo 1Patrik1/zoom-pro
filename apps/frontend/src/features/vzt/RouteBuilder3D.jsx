@@ -1,20 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STANDARD_ROUND_DIAMETERS_MM } from './constants.js';
 import { sizeDuctForFlow } from './engine.js';
 
-// 3D Route Builder — "turtle" v Three.js. Načítá Three přes CDN dynamickým importem,
-// aby stránka nespadla ani bez třídy Three v bundleru.
+// Three.js se načítá z lokálního balíčku aplikace, bez závislosti na CDN.
 
-async function loadThree() {
-  if (typeof window === 'undefined') return null;
-  if (window.__zoomProThree) return window.__zoomProThree;
-  const three = await import(/* @vite-ignore */ 'https://unpkg.com/three@0.160.0/build/three.module.js');
-  const oc = await import(/* @vite-ignore */ 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js');
-  window.__zoomProThree = { THREE: three, OrbitControls: oc.OrbitControls };
-  return window.__zoomProThree;
+function aggregateBom(segments) {
+  const aggregate = {};
+  (segments || []).forEach((segment) => {
+    const spec = segment.shape === 'round' ? `ø${segment.dia}` : `${segment.a}x${segment.b}`;
+    const isStraight = segment.type === 'straight';
+    const key = `${isStraight ? 'PIPE' : 'BEND'}-${segment.shape}-${spec}`;
+    const name = isStraight
+      ? (segment.shape === 'round' ? `Spiro Ø${segment.dia}` : `Kanál ${segment.a}×${segment.b}`)
+      : (segment.shape === 'round' ? `Koleno Ø${segment.dia} 90°` : `Oblouk ${segment.a}×${segment.b} 90°`);
+    if (!aggregate[key]) aggregate[key] = { name, spec, qty: 0, unit: isStraight ? 'm' : 'ks' };
+    aggregate[key].qty += isStraight ? Math.max(0, Number(segment.length) || 0) / 1000 : 1;
+  });
+  return Object.values(aggregate);
 }
 
-export function RouteBuilder3D() {
+export function RouteBuilder3D({ storageKey = 'zoompro:vzt:routes' }) {
   const containerRef = useRef(null);
   const stateRef = useRef({ segments: [] });
   const rebuildRef = useRef(() => {});
@@ -28,34 +35,53 @@ export function RouteBuilder3D() {
   const [bom, setBom] = useState([]);
   const [suggest, setSuggest] = useState(null);
   const [ready, setReady] = useState(false);
+  const [renderError, setRenderError] = useState('');
+  const [segments, setSegments] = useState([]);
+  const [routeMessage, setRouteMessage] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(`${storageKey}:routes`) || '[]');
+      if (Array.isArray(saved)) {
+        stateRef.current.segments = saved;
+        setSegments(saved);
+        setBom(aggregateBom(saved));
+      }
+    } catch { /* Keep the empty editable route if saved data is invalid. */ }
+  }, [storageKey]);
 
   useEffect(() => {
     let disposed = false;
-    let renderer, scene, camera, controls, animFrame;
-    (async () => {
+    let renderer, scene, camera, controls, animFrame, resizeObserver;
+    (() => {
       const container = containerRef.current;
       if (!container) return;
-      let three;
-      try { three = await loadThree(); } catch { setReady(false); return; }
-      if (!three || disposed) return;
-      const { THREE, OrbitControls } = three;
-      setReady(true);
+      if (disposed) return;
 
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0f172a);
+      scene.background = new THREE.Color(0xf8fafc);
       scene.add(new THREE.GridHelper(10, 10, 0x2563eb, 0x334155));
       scene.add(new THREE.AxesHelper(1));
       scene.add(new THREE.AmbientLight(0xffffff, 0.6));
       const dir = new THREE.DirectionalLight(0xffffff, 0.8);
       dir.position.set(5, 10, 7); scene.add(dir);
 
-      const w = container.clientWidth || 800;
-      const h = container.clientHeight || 480;
+      const w = Math.max(container.clientWidth, 320);
+      const h = Math.max(container.clientHeight, 360);
       camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
       camera.position.set(3, 3, 5); camera.lookAt(0, 0, 0);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(w, h);
+      try {
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+      } catch {
+        setRenderError('WebGL není v tomto prohlížeči dostupné. 2D náhled a výkaz materiálu zůstávají funkční.');
+        return;
+      }
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w, h, false);
+      renderer.domElement.style.display = 'block';
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '100%';
       container.appendChild(renderer.domElement);
 
       controls = new OrbitControls(camera, renderer.domElement);
@@ -67,7 +93,7 @@ export function RouteBuilder3D() {
       const rebuild = () => {
         const toRemove = [];
         scene.traverse((c) => { if (c.isMesh) toRemove.push(c); });
-        toRemove.forEach((m) => scene.remove(m));
+        toRemove.forEach((m) => { scene.remove(m); m.geometry?.dispose(); });
 
         let pos = new THREE.Vector3(0, 0, 0);
         let dir3 = new THREE.Vector3(1, 0, 0);
@@ -120,6 +146,12 @@ export function RouteBuilder3D() {
             bomAgg[key].qty += 1;
           }
         });
+        const routeSpan = Math.max(1, stateRef.current.segments.reduce((sum, segment) => sum + (segment.type === 'straight' ? segment.length / 1000 : 0), 0));
+        const target = pos.clone().multiplyScalar(0.5);
+        controls.target.copy(target);
+        camera.position.copy(target.clone().add(new THREE.Vector3(routeSpan * 0.8, routeSpan * 0.7, routeSpan * 1.2)));
+        camera.far = Math.max(1000, routeSpan * 10);
+        camera.updateProjectionMatrix();
         setBom(Object.values(bomAgg));
       };
       rebuildRef.current = rebuild;
@@ -133,29 +165,54 @@ export function RouteBuilder3D() {
       animate();
 
       const onResize = () => {
-        const w2 = container.clientWidth, h2 = container.clientHeight;
-        renderer.setSize(w2, h2);
+        const w2 = Math.max(container.clientWidth, 320), h2 = Math.max(container.clientHeight, 360);
+        renderer.setSize(w2, h2, false);
         camera.aspect = w2 / h2; camera.updateProjectionMatrix();
       };
-      window.addEventListener('resize', onResize);
+      resizeObserver = new ResizeObserver(onResize);
+      resizeObserver.observe(container);
       rebuild();
+      setReady(true);
     })();
     return () => {
       disposed = true;
       if (animFrame) cancelAnimationFrame(animFrame);
+      resizeObserver?.disconnect();
+      controls?.dispose();
       if (renderer) { try { renderer.dispose(); renderer.domElement.remove(); } catch {} }
     };
   }, []);
 
   const addStraight = () => {
     stateRef.current.segments.push({ type: 'straight', length: Number(segLen), shape, dia: Number(dia), a: Number(a), b: Number(b) });
+    setSegments([...stateRef.current.segments]);
+    setBom(aggregateBom(stateRef.current.segments));
     rebuildRef.current();
   };
   const addTurn = (d) => {
     stateRef.current.segments.push({ type: 'turn', dir: d, shape, dia: Number(dia), a: Number(a), b: Number(b) });
+    setSegments([...stateRef.current.segments]);
+    setBom(aggregateBom(stateRef.current.segments));
     rebuildRef.current();
   };
-  const reset = () => { stateRef.current.segments = []; rebuildRef.current(); };
+  const reset = () => { stateRef.current.segments = []; setSegments([]); setBom([]); rebuildRef.current(); };
+
+  const saveRoute = () => {
+    try {
+      localStorage.setItem(`${storageKey}:routes`, JSON.stringify(segments));
+      setRouteMessage('Trasa byla uložena v tomto prohlížeči.');
+    } catch (error) { setRouteMessage(error.message || 'Trasu se nepodařilo uložit.'); }
+  };
+
+  const downloadBom = () => {
+    const csv = ['Položka;Specifikace;Množství;Jednotka', ...bom.map((item) => `${item.name};${item.spec};${item.qty.toFixed(2)};${item.unit}`)].join('\n');
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'vzt-vykaz-materialu.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const runSuggest = () => {
     const r = sizeDuctForFlow({ shape, flowM3h: Number(flow), maxVelocity: Number(vmax), fixedDim: shape === 'rect' ? Number(b) : null });
@@ -210,7 +267,7 @@ export function RouteBuilder3D() {
       )}
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div ref={containerRef} className="h-96 rounded-2xl border border-slate-200 bg-slate-950" />
+        <div ref={containerRef} className="h-96 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" />
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-black uppercase text-slate-500">Editor trasy (turtle)</p>
@@ -223,7 +280,10 @@ export function RouteBuilder3D() {
             <button onClick={() => addTurn('up')}    className="btn btn-ghost">⬆ Nahoru</button>
             <button onClick={() => addTurn('down')}  className="btn btn-ghost">⬇ Dolů</button>
             <button onClick={reset} className="btn btn-danger">❌ Smazat</button>
+            <button onClick={saveRoute} className="btn btn-primary">Uložit trasu</button>
+            <button onClick={downloadBom} disabled={!bom.length} className="btn btn-ghost disabled:opacity-50">Stáhnout BOM CSV</button>
           </div>
+          {routeMessage && <p role="status" className="mt-2 text-xs font-bold text-emerald-700">{routeMessage}</p>}
 
           <div className="mt-4">
             <p className="text-xs font-black uppercase text-slate-500">Výpis materiálu (BOM)</p>
@@ -244,7 +304,7 @@ export function RouteBuilder3D() {
       </div>
 
       {!ready && <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
-        3D engine (Three.js) se načítá z CDN. Pokud běžíš offline, editor trasy a BOM funguje i bez 3D.
+        {renderError || '3D náhled není dostupný; editor trasy a výkaz materiálu fungují i bez něj.'}
       </div>}
 
       <style>{`

@@ -3,6 +3,7 @@ import { api } from '../../api/client.js';
 import { SignatureRequestDetailPanel } from './SignatureRequestDetailPanel.jsx';
 
 const LEVELS = ['INTERNAL_APPROVAL', 'SIMPLE', 'ADVANCED', 'QUALIFIED', 'ELECTRONIC_SEAL', 'TIMESTAMP_ONLY'];
+const LEVEL_LABELS = { INTERNAL_APPROVAL: 'Interní schválení', SIMPLE: 'Jednoduchý elektronický podpis', ADVANCED: 'Pokročilý elektronický podpis', QUALIFIED: 'Kvalifikovaný elektronický podpis', ELECTRONIC_SEAL: 'Elektronická pečeť', TIMESTAMP_ONLY: 'Časové razítko' };
 
 export function SignaturesPage({ token }) {
   const [providers, setProviders] = useState([]);
@@ -95,7 +96,7 @@ export function SignaturesPage({ token }) {
             <input name="signerName" required placeholder="Jméno podepisujícího" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
             <input name="signerEmail" type="email" placeholder="E-mail podepisujícího" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
             <select name="signatureLevel" defaultValue="INTERNAL_APPROVAL" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
-              {LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+              {LEVELS.map((level) => <option key={level} value={level}>{LEVEL_LABELS[level]}</option>)}
             </select>
             <input name="expiresAt" type="datetime-local" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
             {message && <div className="rounded-2xl border border-emerald-900 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-300">{message}</div>}

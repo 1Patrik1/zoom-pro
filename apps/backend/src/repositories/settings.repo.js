@@ -1,6 +1,12 @@
 import { query } from '../config/db.js';
 
 export const settingsRepo = {
+  updateCompanyContact({ companyId, email, phone }) {
+    return query(
+      'UPDATE "Company" SET email = $1, phone = $2, "updatedAt" = NOW() WHERE id = $3 RETURNING id, name, email, phone',
+      [email, phone, companyId]
+    );
+  },
   updatePricing({ companyId, cost, sell }) {
     return query(
       `UPDATE "Company"

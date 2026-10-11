@@ -71,6 +71,13 @@ export const projectsRepo = {
     );
   },
 
+  remove(projectId, companyId) {
+    return query(
+      'DELETE FROM "Project" WHERE id = $1 AND "companyId" = $2 RETURNING id',
+      [projectId, companyId]
+    );
+  },
+
   assign(projectId, userId, companyId) {
     return query(
       'INSERT INTO "ProjectAssignment" (id, "projectId", "userId", "companyId", "assignedAt") VALUES (gen_random_uuid(), $1, $2, $3, NOW()) ON CONFLICT ("projectId", "userId", "companyId") DO NOTHING RETURNING *',

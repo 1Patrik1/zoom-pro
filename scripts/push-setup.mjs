@@ -66,7 +66,8 @@ if (deviceToken) {
   const res = await sendFcmMessage(process.env.FCM_PROJECT_ID, mint.token, {
     token: deviceToken,
     notification: { title: 'Zoom Pro test', body: 'Push notifikace fungují 🎉' },
-    android: { priority: 'high' },
+    android: { priority: 'high', notification: { channel_id: 'zoom-pro-alerts', sound: 'default', priority: 'high' } },
+    apns: { headers: { 'apns-priority': '10' }, payload: { aps: { sound: 'default' } } },
   });
   if (res.ok) { console.log('✅ Google přijal zprávu — doručí se na zařízení (pokud je aktivní).'); }
   else { console.log(`❌ FCM odmítl (${res.status}): ${res.body?.error?.message || JSON.stringify(res.body).slice(0, 200)}`); }

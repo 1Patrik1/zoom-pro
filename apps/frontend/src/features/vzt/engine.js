@@ -10,7 +10,7 @@ function r(v, d = 2) { return Number(Number(v).toFixed(d)); }
 
 // ---- 1) Dimenzování průřezu pro daný průtok a rychlost ----
 export function sizeDuctForFlow({ shape = 'round', flowM3h, maxVelocity = 5, fixedDim = null }) {
-  const Q = n(flowM3h) / 3600; // m³/s
+  const Q = Math.max(0, n(flowM3h)) / 3600; // m³/s
   const v = Math.max(n(maxVelocity), 0.5);
   const areaNeeded = Q / v; // m²
 
@@ -23,7 +23,7 @@ export function sizeDuctForFlow({ shape = 'round', flowM3h, maxVelocity = 5, fix
   }
 
   // rect: fixedDim = pevný rozměr (výška B). Dopočítat A
-  const bMm = fixedDim || 250;
+  const bMm = Math.max(50, fixedDim === null ? 250 : n(fixedDim, 250));
   const aRawMm = (areaNeeded / (bMm / 1000)) * 1000;
   const aStd = nearestStandardRect(aRawMm);
   const areaActual = (aStd / 1000) * (bMm / 1000);
@@ -38,23 +38,27 @@ export function pressureDropSegment({
 }) {
   const air = AIR_PROPERTIES;
   const mat = DUCT_MATERIALS[material] || DUCT_MATERIALS.galvanized_steel;
-  const Q = n(flowM3h) / 3600;
-  const dhMm = hydraulicDiameterMm(shape, shape === 'round' ? diameterMm : widthMm, shape === 'round' ? diameterMm : heightMm);
+  const Q = Math.max(0, n(flowM3h)) / 3600;
+  const safeDiameterMm = Math.max(0, n(diameterMm));
+  const safeWidthMm = Math.max(0, n(widthMm));
+  const safeHeightMm = Math.max(0, n(heightMm));
+  const dhMm = hydraulicDiameterMm(shape, shape === 'round' ? safeDiameterMm : safeWidthMm, shape === 'round' ? safeDiameterMm : safeHeightMm);
   const dhM = dhMm / 1000;
   const areaM2 = shape === 'round'
-    ? Math.PI * (diameterMm / 1000) ** 2 / 4
-    : (widthMm / 1000) * (heightMm / 1000);
+    ? Math.PI * (safeDiameterMm / 1000) ** 2 / 4
+    : (safeWidthMm / 1000) * (safeHeightMm / 1000);
   const v = areaM2 > 0 ? Q / areaM2 : 0;
   const reynolds = (v * dhM) / air.kinematicViscosityM2S;
   const lambda = frictionFactor(reynolds, mat.roughnessM, dhM || 0.001);
   const dynPressure = 0.5 * air.densityKgM3 * v * v; // Pa
-  const frictionPa = lambda * (n(lengthM) / (dhM || 0.001)) * dynPressure;
+  const frictionPa = lambda * (Math.max(0, n(lengthM)) / (dhM || 0.001)) * dynPressure;
 
   // Local losses from fittings — support {zeta, count} nebo přímou tlakovou ztrátu {paDirect}
   const localPa = (fittings || []).reduce((acc, f) => {
-    if (f.paDirect != null) return acc + n(f.paDirect) * (n(f.count) || 1);
+    const count = Math.max(0, n(f.count, 1));
+    if (f.paDirect != null) return acc + Math.max(0, n(f.paDirect)) * count;
     const zeta = f.zeta != null ? n(f.zeta) : (FITTING_ZETA[f.type] || 0);
-    return acc + zeta * (n(f.count) || 1) * dynPressure;
+    return acc + Math.max(0, zeta) * count * dynPressure;
   }, 0);
 
   return {
@@ -72,7 +76,7 @@ export function pressureDropSegment({
 export function requiredAirflowM3h({
   areaM2, heightM, occupants = 0, ida = 'IDA2', roomType = null, buildingType = null,
 }) {
-  const A = n(areaM2), H = n(heightM);
+  const A = Math.max(0, n(areaM2)), H = Math.max(0, n(heightM));
   const volume = A * H;
 
   // ACH podle typu místnosti nebo budovy
@@ -102,7 +106,7 @@ export function requiredAirflowM3h({
 export function roomThermalLoads({
   areaM2, heightM, buildingType = 'office', orientation = 'S', outdoorWinterC = -12, indoorC = 22,
 }) {
-  const A = n(areaM2), H = n(heightM);
+  const A = Math.max(0, n(areaM2)), H = Math.max(0, n(heightM));
   const bt = BUILDING_TYPES[buildingType] || BUILDING_TYPES.office;
   const peopleW = A * bt.peoplePerM2 * 100;   // 100 W / os. senzibilní
   const equipmentW = A * bt.equipmentWm2;
@@ -110,7 +114,7 @@ export function roomThermalLoads({
   const solarW = A * (SOLAR_GAIN_WM2[orientation] || 50);
 
   const coolingKw = (peopleW + equipmentW + lightingW + solarW) / 1000;
-  const heatingKw = (A * H * HEAT_LOSS_COEFF_WKM3 * (n(indoorC) - n(outdoorWinterC))) / 1000;
+  const heatingKw = (A * H * HEAT_LOSS_COEFF_WKM3 * Math.max(0, n(indoorC) - n(outdoorWinterC))) / 1000;
 
   return {
     peopleW: Math.round(peopleW),

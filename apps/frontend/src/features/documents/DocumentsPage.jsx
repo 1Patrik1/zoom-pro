@@ -13,6 +13,8 @@ const DOCUMENT_TYPES = [
 ];
 
 const DOCUMENT_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED'];
+const TYPE_LABELS = { INVOICE: 'Faktura', ATTENDANCE_STATEMENT: 'Výkaz docházky', DAILY_LOG_REPORT: 'Záznam ze stavebního deníku', PROJECT_HANDOVER_PROTOCOL: 'Předávací protokol', VZT_CALCULATION_SHEET: 'Výpočet VZT', PRICE_OFFER: 'Cenová nabídka', SERVICE_REPORT: 'Servisní zpráva' };
+const STATUS_LABELS = { DRAFT: 'Koncept', PENDING_APPROVAL: 'Čeká na schválení', APPROVED: 'Schváleno' };
 
 export function DocumentsPage({ token }) {
   const [items, setItems] = useState([]);
@@ -117,13 +119,13 @@ export function DocumentsPage({ token }) {
           <h2 className="text-lg font-black text-blue-400">Nový dokument</h2>
           <p className="text-sm text-slate-400">Formulář pro rychlé založení draftu dokumentu se základními metadaty a datovým JSON payloadem.</p>
           <select name="documentType" defaultValue="INVOICE" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
-            {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+            {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{TYPE_LABELS[type] || type}</option>)}
           </select>
           <input name="title" required placeholder="Název dokumentu" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
           <input name="referenceNumber" placeholder="Reference / číslo" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
           <input name="customerName" placeholder="Klient / partner" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
           <input name="amount" type="number" step="0.01" placeholder="Částka" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
-          <input name="locale" defaultValue="cs" placeholder="Locale" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
+          <select name="locale" defaultValue="cs" aria-label="Jazyk dokumentu" className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none"><option value="cs">Čeština</option><option value="en">Angličtina</option><option value="sk">Slovenština</option></select>
           <textarea name="description" placeholder="Popis dat dokumentu" className="h-24 w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
           <textarea name="note" placeholder="Interní poznámka" className="h-24 w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none" />
           {message && <div className="rounded-2xl border border-emerald-900 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-300">{message}</div>}
@@ -143,11 +145,11 @@ export function DocumentsPage({ token }) {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
               <option value="">Všechny stavy</option>
-              {DOCUMENT_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+              {DOCUMENT_STATUSES.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
             </select>
             <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none">
               <option value="">Všechny typy</option>
-              {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+              {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{TYPE_LABELS[type] || type}</option>)}
             </select>
             <div className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-xs text-slate-400">
               Aktivní detail: <span className="font-bold text-white">{selectedItem?.title || 'žádný'}</span>
@@ -166,11 +168,11 @@ export function DocumentsPage({ token }) {
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="text-lg font-black text-white">{item.title}</p>
-                    <p className="text-xs text-slate-500">{item.documentType} • {item.locale}</p>
+                    <p className="text-xs text-slate-500">{TYPE_LABELS[item.documentType] || item.documentType} • {item.locale}</p>
                     <p className="mt-2 text-sm text-slate-300">{item.note || 'Bez poznámky'}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-xs font-black ${item.status === 'APPROVED' ? 'text-emerald-400' : item.status === 'PENDING_APPROVAL' ? 'text-amber-400' : 'text-sky-400'}`}>{item.status}</p>
+                    <p className={`text-xs font-black ${item.status === 'APPROVED' ? 'text-emerald-400' : item.status === 'PENDING_APPROVAL' ? 'text-amber-400' : 'text-sky-400'}`}>{STATUS_LABELS[item.status] || item.status}</p>
                     <p className="text-xs text-slate-500">{item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}</p>
                     {item.status !== 'APPROVED' && (
                       <button

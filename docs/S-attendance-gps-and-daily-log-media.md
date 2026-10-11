@@ -1,5 +1,7 @@
 # S – Docházka s GPS kontrolou stavby + fotky ve stavebním deníku
 
+> Aktualizace 2026-10-11: montér může použít projekt ze svého přiřazení bez výběru při běžném příchodu/odchodu; vedoucí projektu vybírá nebo mění projekt. Absence (nemoc/dovolená) je samostatný typ záznamu bez projektu.
+
 ## Co je nově hotové
 
 ### Docházka

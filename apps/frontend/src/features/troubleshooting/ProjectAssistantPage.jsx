@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bot, Camera, Compass, Sparkles, Wand2 } from 'lucide-react';
 import { api } from '../../api/client.js';
+import { userDisplayName } from '../../utils/user-name.js';
 
 const CATEGORY_LABEL = {
   COLLISION: 'Kolize',
@@ -247,7 +248,7 @@ export function ProjectAssistantPage({ db, token }) {
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Docházka na projektu</p>
                 <ul className="mt-2 space-y-1 text-sm text-slate-200">
                   {(context.projectAttendance || []).slice(0, 8).map((item) => (
-                    <li key={item.id}>• {item.email} – {item.type}/{item.status} – {item.geoStatus} – {new Date(item.createdAt).toLocaleString('cs-CZ')}</li>
+                    <li key={item.id}>• {userDisplayName(item)} – {item.type}/{item.status} – {item.geoStatus} – {new Date(item.createdAt).toLocaleString('cs-CZ')}</li>
                   ))}
                   {!context.projectAttendance?.length ? <li className="text-slate-500">Bez docházky na projektu.</li> : null}
                 </ul>
@@ -276,7 +277,7 @@ export function ProjectAssistantPage({ db, token }) {
                 {issue.imageUrl ? <img src={issue.imageUrl} className="mt-3 max-h-56 rounded-2xl object-cover" alt={issue.title} /> : null}
               </div>
               <div className="text-right">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{issue.authorEmail}</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{userDisplayName(issue)}</p>
                 <p className="mt-1 text-xs text-slate-300">{new Date(issue.createdAt).toLocaleString('cs-CZ')}</p>
               </div>
             </div>

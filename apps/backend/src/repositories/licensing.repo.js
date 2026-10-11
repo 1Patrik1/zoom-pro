@@ -7,6 +7,9 @@ export const licensingRepo = {
   getPlanByCode(code) {
     return query('SELECT * FROM "LicensePlan" WHERE code = $1', [code]);
   },
+  getCompany(companyId) {
+    return query('SELECT id FROM "Company" WHERE id = $1', [companyId]);
+  },
   upsertPlan(payload) {
     return query(
       `INSERT INTO "LicensePlan"(code, name, description, "basePricePerUserMonth", "flatPricePerMonth",

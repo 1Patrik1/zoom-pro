@@ -9,6 +9,8 @@ export const store = {
   async getUser() { const { value } = await Preferences.get({ key: 'user' }); try { return JSON.parse(value); } catch { return null; } },
   async setApiUrl(u) { await Preferences.set({ key: 'apiUrl', value: u }); },
   async getApiUrl() { const { value } = await Preferences.get({ key: 'apiUrl' }); return value || 'https://api.zoom-pro.app'; },
+  async setAlarmMelody(value) { await Preferences.set({ key: 'alarmMelody', value: value || 'siren' }); },
+  async getAlarmMelody() { const { value } = await Preferences.get({ key: 'alarmMelody' }); return value || 'siren'; },
   async clear() { await Preferences.clear(); }
 };
 

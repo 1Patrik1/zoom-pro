@@ -14,21 +14,30 @@ function getCtx() {
   return audioCtx;
 }
 
-export function playSirenOnce(seconds = 5) {
+export function playSirenOnce(seconds = 5, melody = 'siren') {
   return new Promise((resolve) => {
     try {
       const ctx = getCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sawtooth';
+      osc.type = melody === 'bell' ? 'sine' : melody === 'pulse' ? 'square' : 'sawtooth';
       gain.gain.setValueAtTime(0.9, ctx.currentTime);
       const end = ctx.currentTime + seconds;
       let t = ctx.currentTime;
       while (t < end) {
-        osc.frequency.setValueAtTime(600, t);
-        osc.frequency.linearRampToValueAtTime(1200, t + 0.25);
-        osc.frequency.linearRampToValueAtTime(600, t + 0.5);
-        t += 0.5;
+        if (melody === 'bell') {
+          osc.frequency.setValueAtTime(880, t);
+          osc.frequency.setValueAtTime(660, t + 0.16);
+          t += 0.55;
+        } else if (melody === 'pulse') {
+          osc.frequency.setValueAtTime(740, t);
+          t += 0.34;
+        } else {
+          osc.frequency.setValueAtTime(600, t);
+          osc.frequency.linearRampToValueAtTime(1200, t + 0.25);
+          osc.frequency.linearRampToValueAtTime(600, t + 0.5);
+          t += 0.5;
+        }
       }
       osc.connect(gain).connect(ctx.destination);
       activeOscs.push(osc);
@@ -42,8 +51,9 @@ export function playSirenOnce(seconds = 5) {
 }
 
 export async function playCriticalAlarm({ times = 3, seconds = 5 } = {}) {
+  const melody = localStorage.getItem('zp_alarm_melody') || 'siren';
   for (let i = 0; i < times; i += 1) {
-    await playSirenOnce(seconds);
+    await playSirenOnce(seconds, melody);
     if (i < times - 1) await new Promise((r) => setTimeout(r, 400));
   }
 }

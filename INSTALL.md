@@ -1,6 +1,8 @@
 # Zoom Pro — kompletní instalace jako nová aplikace
 
-Datum revize: **2026-08-22** · verze **1.2.0** (web + backend + mobile + distribuce + AI)
+Datum revize: **2026-10-11** · web + backend + mobile + distribuce + podpora + licence
+
+Aktuální provozní stav, nové funkce, migrace 017–020 a jejich omezení popisuje [souhrnný přehled](docs/AKTUALIZACE-2026-10-11.md). Tento návod obsahuje i starší historické poznámky; při rozporu použij aktuální přehled.
 
 Tento návod tě provede instalací **od nuly** na čistý stroj (Linux / macOS / Windows / Termux) i kontejnerovým nasazením přes Docker. Nemusíš znát nic mimo `node` a `git`.
 
@@ -14,13 +16,13 @@ zoom-pro/
 │  ├─ backend/          # Node.js + Express + PostgreSQL
 │  ├─ frontend/         # React 18 + Vite + Tailwind (web PWA)
 │  └─ mobile/           # Capacitor 6 + React (Android/iOS/PWA)
-├─ 001…014_*.sql        # 14 DB migrací (schema, seedy, upgrades)
+├─ 001…020_*.sql        # 20 očíslovaných DB migrací (schema, seedy, upgrades)
 ├─ scripts/
 │  ├─ install.sh                    # ★ jednotný instalátor pro Linux/macOS
 │  ├─ install.ps1                   # ★ Windows PowerShell instalátor
 │  ├─ doctor.mjs                    # ★ diagnostika prostředí
 │  ├─ db-run-sql.mjs                # aplikace SQL migrací
-│  ├─ db-migrate-all.mjs            # ★ automatické spuštění všech 14 migrací
+│  ├─ db-migrate-all.mjs            # ★ automatické spuštění všech migrací v pořadí
 │  ├─ seed-distribution.mjs         # ★ seed katalogu + dodavatelů + ceníků
 │  └─ termux/                       # skripty pro Android/Termux
 ├─ docker-compose.yml               # jen postgres (pro dev)
@@ -142,11 +144,13 @@ docker compose up -d postgres
 
 ### 4. Migrace + seedy
 
-Jedním příkazem spustí všech 14 migrací + platform superadmin + demo data:
+Jedním příkazem spustí hlavní migrátor; nové DB získají také platformní a demo výchozí data:
 
 ```bash
 npm run db:setup:full
 ```
+
+Hlavní migrátor načítá všechny kořenové soubory `NNN_*.sql`, eviduje je v `_migrations` a umí zavést baseline pro známé starší databáze. Před produkční aktualizací vždy vytvoř zálohu. Migrace se nespouštějí automaticky pouhým `npm install`.
 
 Nebo ručně po částech (viz `package.json` sekce `db:*`).
 
@@ -204,8 +208,8 @@ Změň hesla ihned po instalaci v **Team → uživatel → reset hesla**.
 **„Missing required environment variable: DATABASE_URL"**
 → Backend se spouští bez `.env`. Zkopíruj `apps/backend/.env.example` do `apps/backend/.env`.
 
-**Migrace 013 selže na `role_enum` / `Permission.code`**
-→ Musíš mít nejdřív aplikované migrace 001–012. Použij `npm run db:migrate:all`.
+**SQL migrace selže**
+→ Zkontroluj první chybovou hlášku, ověř správné `DATABASE_URL` a před opakováním zálohuj DB. Použij hlavní `npm run db:migrate:all`; neopakuj stejné soubory současně přes ruční `db-run-sql.mjs`.
 
 **Frontend vidí `Network Error` u `/api/*`**
 → Zkontroluj CORS v `apps/backend/.env`:
@@ -218,6 +222,9 @@ CORS_ORIGIN=http://localhost:5173,capacitor://localhost,https://localhost
 
 **Gemini AI vrací „offline"**
 → Doplň `GEMINI_API_KEY` do `apps/backend/.env` nebo přes UI **Platforma → Gemini AI klíč**.
+
+**Mobilní push nedorazí**
+→ Nastav `FCM_PROJECT_ID` a `FCM_SERVICE_ACCOUNT_JSON` backendu, doplň nativní Android Firebase / iOS APNs konfiguraci a povol oznámení v mobilním **Nastavení → Notifikace**. Push se neposílá jako SMS.
 
 ---
 

@@ -128,6 +128,7 @@ POSTGRES_PASSWORD=SEM_DEJ_SILNE_DB_HESLO
 JWT_SECRET=SEM_DEJ_VELMI_SILNY_SECRET
 CORS_ORIGIN=http://app.tvoje-domena.cz
 HTTP_PORT=80
+# Volitelný mobilní push: FCM_PROJECT_ID a FCM_SERVICE_ACCOUNT_JSON
 ```
 
 ### Poznámky
@@ -256,6 +257,8 @@ Po prvním loginu doporučeno ihned změnit heslo v další implementační fáz
 
 ## 11. Upgrade / update aplikace
 
+Před aktualizací udělej databázovou zálohu. Služba `migrate` při startu automaticky spouští `scripts/db-migrate-all.mjs`, který aplikuje všechny nové kořenové `NNN_*.sql` migrace v pořadí. Migrace ručně nespouštěj současně s produkčním migrátorem.
+
 Při nové verzi:
 
 ```bash
@@ -265,7 +268,7 @@ docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Pokud přibudou nové SQL migrace, musí být zařazené do migration kroku.
+Nastav `FCM_PROJECT_ID` a jednorádkový `FCM_SERVICE_ACCOUNT_JSON` v chráněném produkčním `.env`, pokud chceš mobilní push. Tajemství necommituj. Platební brána je nyní jen administrační panel předvoleb; v této verzi neprovádí transakce ani neaktivuje licence.
 
 ---
 

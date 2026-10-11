@@ -10,6 +10,7 @@
 ## Aplikace
 - [ ] běží `postgres`
 - [ ] proběhl `migrate` kontejner bez chyby
+- [ ] tabulka `_migrations` obsahuje požadované SQL migrace (včetně 017–020)
 - [ ] běží `backend`
 - [ ] běží `frontend`
 - [ ] login SUPERADMIN funguje
@@ -18,6 +19,11 @@
 - [ ] importy se načítají
 - [ ] exporty se načítají
 - [ ] podpisy se načítají
+- [ ] chat projektu a chat podpory se načítají
+- [ ] registrace firmy/člena odešle push při zapnutém FCM
+- [ ] FCM tajemství jsou nastavená mimo Git a dostupná backend kontejneru
+- [ ] Android/iOS nativní push konfigurace je připravená a testovací telefon povolil oznámení
+- [ ] platební brána: potvrdit, že současný panel obsahuje jen předvolby; online platby nejsou aktivní
 
 ## Doména a dostupnost
 - [ ] doména směřuje na správný VPS

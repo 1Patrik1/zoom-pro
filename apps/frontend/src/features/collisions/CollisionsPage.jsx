@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Check, Eye, Hammer, RefreshCcw, ShieldCheck, Sparkles, Wand2 } from 'lucide-react';
 import { api } from '../../api/client.js';
+import { userDisplayName } from '../../utils/user-name.js';
 
 const KIND_LABEL = {
   PERSON_OVERLAP_DAY: 'Kolize lidí',
@@ -147,7 +148,7 @@ export function CollisionsPage({ db, token }) {
                   <p className="mt-2 text-lg font-bold text-white">{detail.message || 'Detekovaný konflikt'}</p>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-300">
                     {collision.projectName ? <span className="rounded-full bg-slate-800/60 px-3 py-1">Projekt: {collision.projectName}</span> : null}
-                    {collision.userEmail ? <span className="rounded-full bg-slate-800/60 px-3 py-1">Člověk: {collision.userEmail}</span> : null}
+                    {collision.userEmail ? <span className="rounded-full bg-slate-800/60 px-3 py-1">Člověk: {userDisplayName(collision)}</span> : null}
                     {collision.itemName ? <span className="rounded-full bg-slate-800/60 px-3 py-1">Materiál: {collision.itemName}</span> : null}
                     {collision.day ? <span className="rounded-full bg-slate-800/60 px-3 py-1">Den: {collision.day}</span> : null}
                     {detail.overrun ? <span className="rounded-full bg-rose-500/20 px-3 py-1">Překročení: {detail.overrun} CZK</span> : null}

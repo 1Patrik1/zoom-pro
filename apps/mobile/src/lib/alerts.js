@@ -1,6 +1,7 @@
 // Hlasitá kritická upozornění — siréna 5 s, opakování 3× + vibrace + lokální notifikace
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { store } from './storage.js';
 
 let audioCtx = null;
 
@@ -11,21 +12,30 @@ function getCtx() {
 }
 
 // Jedna siréna: 5 sekund, střídavý tón 600↔1200 Hz, plná hlasitost
-export function playSirenOnce(seconds = 5) {
+export function playSirenOnce(seconds = 5, melody = 'siren') {
   return new Promise((resolve) => {
     try {
       const ctx = getCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sawtooth';
+      osc.type = melody === 'bell' ? 'sine' : melody === 'pulse' ? 'square' : 'sawtooth';
       gain.gain.setValueAtTime(0.9, ctx.currentTime);
       const end = ctx.currentTime + seconds;
       let t = ctx.currentTime;
       while (t < end) {
-        osc.frequency.setValueAtTime(600, t);
-        osc.frequency.linearRampToValueAtTime(1200, t + 0.25);
-        osc.frequency.linearRampToValueAtTime(600, t + 0.5);
-        t += 0.5;
+        if (melody === 'bell') {
+          osc.frequency.setValueAtTime(880, t);
+          osc.frequency.setValueAtTime(660, t + 0.16);
+          t += 0.55;
+        } else if (melody === 'pulse') {
+          osc.frequency.setValueAtTime(740, t);
+          t += 0.34;
+        } else {
+          osc.frequency.setValueAtTime(600, t);
+          osc.frequency.linearRampToValueAtTime(1200, t + 0.25);
+          osc.frequency.linearRampToValueAtTime(600, t + 0.5);
+          t += 0.5;
+        }
       }
       osc.connect(gain).connect(ctx.destination);
       osc.start();
@@ -39,8 +49,9 @@ export function playSirenOnce(seconds = 5) {
 
 // Opakování 3× s krátkou pauzou
 export async function playCriticalAlarm({ times = 3, seconds = 5 } = {}) {
+  const melody = await store.getAlarmMelody();
   for (let i = 0; i < times; i += 1) {
-    await playSirenOnce(seconds);
+    await playSirenOnce(seconds, melody);
     if (i < times - 1) await new Promise((r) => setTimeout(r, 400));
   }
 }

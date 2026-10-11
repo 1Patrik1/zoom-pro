@@ -5,6 +5,7 @@ import { queue } from '../lib/storage.js';
 export function HomeScreen({ user, goto, online }) {
   const [pending, setPending] = useState(0);
   useEffect(() => { queue.list().then((l) => setPending(l.length)); }, []);
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.name || user?.email;
 
   const tiles = [
     { id: 'attendance', title: 'Nová docházka', desc: 'Pípni s GPS', icon: Clock,   color: 'from-emerald-600 to-teal-600' },
@@ -18,7 +19,7 @@ export function HomeScreen({ user, goto, online }) {
     <div className="space-y-4">
       <section className="card bg-gradient-to-br from-brand-700 to-brand-900 border-brand-600/40">
         <p className="text-[10px] uppercase tracking-widest opacity-80">Dobrý den</p>
-        <h2 className="text-xl font-black">{user?.name || user?.email}</h2>
+        <h2 className="text-xl font-black">{displayName}</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="chip">Role: {user?.role || 'MONTER'}</span>
           {pending > 0 && (

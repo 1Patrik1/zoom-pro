@@ -1,5 +1,7 @@
 # Architektura pro tvoji PWA appku — Zoom Pro
 
+> Stav 2026-10-11: aktuální implementace zahrnuje samostatný projektový chat a chat podpory, registrovaná FCM zařízení a platformní předvolby platební brány. Platební předvolby zatím nejsou platební integrace. Kompletní seznam změn a provozních požadavků je v `docs/AKTUALIZACE-2026-10-11.md`.
+
 Tento dokument je architektonický blueprint pro tvoji aplikaci jako celek. Je psaný prakticky: ne jen „jak by to mohlo vypadat“, ale jak to má být rozdělené, proč je to tak a co kam přesně patří.
 
 ---

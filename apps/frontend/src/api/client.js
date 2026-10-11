@@ -20,7 +20,7 @@ export async function apiRequest(path, { method = 'GET', token, body, headers = 
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const message = typeof payload === 'string' ? payload : payload?.message || payload?.msg || 'Požadavek selhal';
+    const message = typeof payload === 'string' ? payload : payload?.message || payload?.msg || payload?.error || 'Požadavek selhal';
     throw new Error(message);
   }
 

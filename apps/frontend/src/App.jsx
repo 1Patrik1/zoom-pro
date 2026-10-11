@@ -5,6 +5,8 @@ import { DashboardPage } from './pages/DashboardPage.jsx';
 import { ReportsPage } from './features/reports/ReportsPage.jsx';
 import { AttendancePage } from './features/attendance/AttendancePage.jsx';
 import { ProjectsPage } from './features/projects/ProjectsPage.jsx';
+import { ProjectChatPage } from './features/project-chat/ProjectChatPage.jsx';
+import { SupportChatPage } from './features/support/SupportChatPage.jsx';
 import { DailyLogPage } from './features/daily-log/DailyLogPage.jsx';
 import { VztCalculatorPage } from './features/vzt/VztCalculatorPage.jsx';
 import { InvoicesPage } from './features/invoices/InvoicesPage.jsx';
@@ -33,8 +35,9 @@ import { getVisibleNav } from './utils/permissions.js';
 
 export default function App() {
   const auth = useAuth();
-  const { db, postAction } = useSync(auth.token);
+  const { db, postAction, reload } = useSync(auth.token);
   const [branding, setBranding] = useState(null);
+  const [openLicenseRequestCount, setOpenLicenseRequestCount] = useState(0);
   const [alarmOn, setAlarmOn] = useState(() => localStorage.getItem('zp_alarm_enabled') !== 'off');
   const [alarmEvents, setAlarmEvents] = useState([]);
   useCriticalAlerts(db, {
@@ -47,7 +50,24 @@ export default function App() {
     return nv;
   });
   const visibleNav = useMemo(() => getVisibleNav(auth.user, NAV_ITEMS), [auth.user]);
-  const [tab, setTab] = useState('reporty');
+  const navItems = useMemo(() => visibleNav.map((item) => item.id === 'chat-podpora'
+    ? { ...item, badge: openLicenseRequestCount }
+    : item), [visibleNav, openLicenseRequestCount]);
+  const [tab, setTab] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get('tab');
+    return ['chat-podpora', 'chat-projektu'].includes(requested) ? requested : 'reporty';
+  });
+
+  useEffect(() => {
+    if (!auth.token || auth.user?.role !== 'SUPERADMIN') { setOpenLicenseRequestCount(0); return undefined; }
+    let active = true;
+    const refreshRequests = () => api.request('/api/support/requests', { token: auth.token })
+      .then((result) => active && setOpenLicenseRequestCount(result.requests?.length || 0))
+      .catch(() => {});
+    refreshRequests();
+    const interval = window.setInterval(refreshRequests, 15000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [auth.token, auth.user?.role]);
 
   useEffect(() => {
     if (visibleNav.length && !visibleNav.some((item) => item.id === tab)) {
@@ -70,6 +90,7 @@ export default function App() {
     attendanceCreate: (payload) => postAction('attendance', payload),
     projectCreate: (payload) => postAction('projects', payload),
     projectUpdate: (payload) => postAction('projects/update', payload),
+    projectDelete: (payload) => postAction('projects/delete', payload, { fullSync: true }),
     projectAssign: (payload) => postAction('projects/assign', payload),
     projectChat: (payload) => postAction('projects/chat', payload),
     logCreate: (payload) => postAction('logs', payload),
@@ -89,9 +110,13 @@ export default function App() {
       case 'reporty':
         return <><DashboardPage db={db} /><ReportsPage db={db} /></>;
       case 'dochazka':
-        return <AttendancePage db={db} onCreate={actions.attendanceCreate} />;
+        return <AttendancePage user={auth.user} db={db} onCreate={actions.attendanceCreate} />;
       case 'projekty':
-        return <ProjectsPage user={auth.user} db={db} onCreateProject={actions.projectCreate} onUpdateProject={actions.projectUpdate} onAssign={actions.projectAssign} onChat={actions.projectChat} />;
+        return <ProjectsPage user={auth.user} db={db} onCreateProject={actions.projectCreate} onUpdateProject={actions.projectUpdate} onDeleteProject={actions.projectDelete} onAssign={actions.projectAssign} />;
+      case 'chat-projektu':
+        return <ProjectChatPage db={db} onChat={actions.projectChat} />;
+      case 'chat-podpora':
+        return <SupportChatPage user={auth.user} token={auth.token} />;
       case 'denik':
         return <DailyLogPage db={db} onCreate={actions.logCreate} />;
       case 'kalkulacka':
@@ -119,7 +144,12 @@ export default function App() {
       case 'team':
         return <TeamPage user={auth.user} db={db} onApprove={actions.userApprove} onChangeRole={actions.userRole} />;
       case 'nastaveni':
-        return <SettingsPage user={auth.user} db={db} token={auth.token} onSavePricing={actions.savePricing} />;
+        return <SettingsPage user={auth.user} db={db} token={auth.token} onSavePricing={actions.savePricing} onCompanySaved={() => reload({ full: true })} onProfileSaved={(profile) => {
+          const updatedUser = { ...auth.user, ...profile };
+          auth.setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          return reload({ full: true });
+        }} />;
       case 'documents':
         return <DocumentsPage token={auth.token} />;
       case 'imports':
@@ -136,7 +166,7 @@ export default function App() {
   return (
     <AppShell
       user={auth.user}
-      navItems={visibleNav}
+      navItems={navItems}
       activeTab={tab}
       onChangeTab={setTab}
       onLogout={auth.logout}

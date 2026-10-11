@@ -1,7 +1,7 @@
 // =============================================================================
 // PWA-VZT-SYSTEM — Kompletní Prisma schema
-// Verze: 2.0.0
-// Zahrnuje: core, settings, permissions, documents, imports, exports, signatures, audit
+// Verze: 2.1.0
+// Zahrnuje: core, settings, permissions, documents, imports, exports, signatures, audit, support
 // =============================================================================
 
 generator client {
@@ -259,7 +259,13 @@ model User {
   lastName    String?
   phone       String?
   avatarUrl   String?
-  employeeId  String?                            /// Osobní číslo zaměstnance
+  employeeId  String?                             /// Osobní číslo zaměstnance
+  employmentType String @default("INTERNAL")     /// Interní zaměstnanec nebo externí spolupracovník
+  ico         String?                             /// IČO (pro externisty)
+  dic         String?                             /// DIČ (pro externisty)
+  street      String?                             /// Ulice (pro externisty)
+  city        String?                             /// Město (pro externisty)
+  zip         String?                             /// PSČ (pro externisty)
 
   // 2FA
   twoFactorSecret  String?
@@ -628,6 +634,34 @@ model ModuleSettings {
 
   @@unique([companyId, moduleKey])
   @@map("ModuleSettings")
+}
+
+/// Globální platformní nastavení (např. bezpečné předvolby platební brány).
+/// Tajné klíče poskytovatelů do této tabulky nepatří.
+model PlatformSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  value       Json     @default("{}")
+  description String?
+  updatedAt   DateTime @default(now())
+
+  @@map("PlatformSetting")
+}
+
+/// Chat podpory mezi účty firem a SUPERADMINem.
+model SupportMessage {
+  id             String    @id @default(uuid()) @db.Uuid
+  companyId      String    @db.Uuid
+  userId         String    @db.Uuid
+  text           String
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  requestType    String?
+  requestDetails Json      @default("{}")
+  handledAt      DateTime? @db.Timestamptz(6)
+  handledBy      String?   @db.Uuid
+
+  @@index([companyId, createdAt], map: "idx_support_message_company_created")
+  @@map("SupportMessage")
 }
 
 // =============================================================================

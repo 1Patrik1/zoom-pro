@@ -14,7 +14,7 @@ async function request(path, { method = 'GET', body, token, apiUrl } = {}) {
   });
   const text = await res.text();
   let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
-  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(data?.error || data?.message || data?.msg || `HTTP ${res.status}`);
   return data;
 }
 

@@ -13,11 +13,11 @@ export function useAuth() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  async function submitAuth({ isRegister, email, password, companyName, joinId }) {
+  async function submitAuth({ isRegister, email, password, companyName, joinId, ico, dic, street, city, zip, employmentType, phone, companyEmail, companyPhone }) {
     setAuthLoading(true);
     setAuthError('');
     try {
-      const payload = { email, password, companyName, joinId };
+      const payload = { email, password, companyName, joinId, ico, dic, street, city, zip, employmentType, phone, companyEmail, companyPhone };
       if (isRegister) {
         const result = await api.register(payload);
         return { mode: 'register', ...result };
