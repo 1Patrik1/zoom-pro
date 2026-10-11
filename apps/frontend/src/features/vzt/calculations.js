@@ -312,8 +312,8 @@ export function calculateOffsetPiece({
   const twoElbowsOffset = 2 * R * (1 - cosA);
   const twoElbowsProjected = 2 * R * sinA;
 
-  let pieceLengthMm = 0;
-  let projectedRunMm = 0;
+  let pieceLengthMm = 0; // eslint-disable-line no-useless-assignment
+  let projectedRunMm = 0; // eslint-disable-line no-useless-assignment
   const off = n(offset);
 
   if (totalAxialMm && n(totalAxialMm) > twoElbowsProjected) {
