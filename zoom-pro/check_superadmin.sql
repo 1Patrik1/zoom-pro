@@ -1,1 +1,0 @@
-SELECT email FROM "User" WHERE role='SUPERADMIN' LIMIT 1;
