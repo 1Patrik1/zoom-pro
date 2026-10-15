@@ -35,10 +35,20 @@ jobs:
         env:
           PGPASSWORD: zoom_pass
         run: |
-          for f in $(ls *.sql | sort); do
+          # Only run numbered schema/seed migrations; never execute ad-hoc diagnostics or reset scripts.
+          shopt -s nullglob
+          migrations=(./[0-9][0-9][0-9]_*.sql)
+          if [ ${#migrations[@]} -eq 0 ]; then
+            echo "No numbered SQL migrations found" >&2
+            exit 1
+          fi
+          for f in "${migrations[@]}"; do
             echo "== $f =="
-            psql -h localhost -U zoom_user -d zoom_pro -f "$f"
+            psql -v ON_ERROR_STOP=1 -h localhost -U zoom_user -d zoom_pro -f "$f"
           done
+
+      - name: Run frontend unit tests
+        run: npm run test -w apps/frontend
 
       - name: Build frontend
         working-directory: apps/frontend
