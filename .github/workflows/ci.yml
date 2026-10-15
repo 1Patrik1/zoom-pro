@@ -35,10 +35,11 @@ jobs:
         env:
           PGPASSWORD: zoom_pass
         run: |
-          for f in $(ls *.sql | sort); do
+          # Never run the destructive local reset script in CI. Fail immediately on SQL errors.
+          while IFS= read -r f; do
             echo "== $f =="
-            psql -h localhost -U zoom_user -d zoom_pro -f "$f"
-          done
+            psql -v ON_ERROR_STOP=1 -h localhost -U zoom_user -d zoom_pro -f "$f"
+          done < <(find . -maxdepth 1 -type f -name '*.sql' ! -name 'reset_db.sql' ! -name 'verify_data.sql' -print | sort)
 
       - name: Run frontend unit tests
         run: npm run test -w apps/frontend
