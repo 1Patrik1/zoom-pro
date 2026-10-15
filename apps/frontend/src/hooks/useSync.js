@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client.js';
+import { normalizeFullSync } from '../utils/sync-normalizer.js';
 
 const EMPTY_DB = {
   company: {},
@@ -49,7 +50,7 @@ export function useSync(token) {
           return next;
         });
       } else {
-        setDb(result);
+        setDb((prev) => normalizeFullSync(result, prev));
       }
       lastSyncRef.current = result?.serverTime || new Date().toISOString();
       setError('');
