@@ -53,21 +53,23 @@ export function normalizeGeometry(inputs) {
 
 export function computeAreaM2(shape, widthMm, heightMm) {
   const widthM = Math.max(0, n(widthMm)) / 1000;
-  const heightM = Math.max(0, n(heightMm)) / 1000;
-  if (!widthM || !heightM) return 0;
+  if (!widthM) return 0;
   if (shape === 'round') {
     return Math.PI * Math.pow(widthM, 2) / 4;
   }
+  const heightM = Math.max(0, n(heightMm)) / 1000;
+  if (!heightM) return 0;
   return widthM * heightM;
 }
 
 export function computePerimeterM(shape, widthMm, heightMm) {
   const widthM = Math.max(0, n(widthMm)) / 1000;
-  const heightM = Math.max(0, n(heightMm)) / 1000;
-  if (!widthM || !heightM) return 0;
+  if (!widthM) return 0;
   if (shape === 'round') {
     return Math.PI * widthM;
   }
+  const heightM = Math.max(0, n(heightMm)) / 1000;
+  if (!heightM) return 0;
   return 2 * (widthM + heightM);
 }
 
