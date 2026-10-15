@@ -40,6 +40,9 @@ jobs:
             psql -h localhost -U zoom_user -d zoom_pro -f "$f"
           done
 
+      - name: Run frontend unit tests
+        run: npm run test -w apps/frontend
+
       - name: Build frontend
         working-directory: apps/frontend
         run: npx vite build
