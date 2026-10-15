@@ -1,76 +1,80 @@
 #!/usr/bin/env node
-// Funkční smoke test API — spusť proti běžícímu backendu:
-//   BASE=http://localhost:5000 node scripts/audit-functionality.mjs
-//   BASE=https://api.zoom-pro.app node scripts/audit-functionality.mjs
-const BASE = process.env.BASE || 'http://localhost:5000';
+// Read-only funkční smoke test API — spusť proti testovacímu backendu:
+// BASE=http://localhost:5000 TEST_ADMIN_EMAIL=... TEST_ADMIN_PASSWORD=... node scripts/audit-functionality.mjs
+// Nepoužívej produkční administrátorský účet. Test nikdy nemění heslo ani profil.
+const BASE = (process.env.BASE || 'http://localhost:5000').replace(/\/$/, '');
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
+
 if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-  console.error('Set TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD for authenticated checks.');
+  console.error('Set TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD for authenticated checks. Use a dedicated test account.');
   process.exit(2);
 }
-const BACKEND_URL_CHECK = process.env.BASE_URL || '';
-async function assertBackendUp() {
-  try { const h = await fetch(`${BASE}/health`); if (h.ok) return; } catch {}
-  console.error(`\n❌ BACKEND_DOWN: backend neběží na ${BASE} — spusť npm run dev (nebo bash scripts/audit-all.sh, který ho spustí sám).`);
-  process.exit(2);
-}
+
 const results = [];
 
-async function call(name, path, { method = 'GET', token, body } = {}) {
+async function call(name, path, { method = 'GET', token, body, expectedStatus } = {}) {
   try {
     const res = await fetch(`${BASE}${path}`, {
       method,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
-    const data = await res.json().catch(() => ({}));
-    results.push({ name, status: res.status, ok: res.status < 500, note: data?.error || '' });
+    const raw = await res.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch { data = { raw }; }
+    const ok = expectedStatus !== undefined && res.status === expectedStatus;
+    results.push({
+      name, status: res.status, expectedStatus, ok,
+      note: ok ? '' : `očekáváno HTTP ${expectedStatus ?? '(nenastaveno)'}, odpověď ${String(data?.error || data?.message || '').slice(0, 180)}`,
+    });
     return { res, data };
-  } catch (e) {
-    results.push({ name, status: 0, ok: false, note: e.message });
+  } catch (error) {
+    results.push({ name, status: 0, expectedStatus, ok: false, note: error.message });
     return { res: null, data: null };
   }
 }
 
 console.log(`Funkční test proti: ${BASE}\n`);
 
-// 1) Health
-await call('GET /health', '/health');
-
-// 2) Login — správné i špatné heslo
-const bad = await call('Login špatné heslo (oček. 401)', '/api/auth/login', { method: 'POST', body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD + '-invalid' } });
-const good = await call('Login configured admin', '/api/auth/login', { method: 'POST', body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
-const token = good?.data?.token;
-
-// 3) Auth-gated endpointy bez tokenu musí vrátit 401
-await call('GET /api/sync bez tokenu (oček. 401)', '/api/sync');
-
-if (token) {
-  await call('GET /api/sync', '/api/sync', { token });
-  await call('GET /api/licensing/mine', '/api/licensing/mine', { token });
-  await call('GET /api/licensing/plans', '/api/licensing/plans', { token });
-  await call('GET /api/collisions', '/api/collisions', { token });
-  await call('GET /api/monter-invoices/mine', '/api/monter-invoices/mine', { token });
-
-  // 4) Změna hesla → zpět (self-test)
-  if (process.env.TEST_ADMIN_NEW_PASSWORD) {
-    const ch = await call('POST /api/users/password (self-test)', '/api/users/password', {
-      method: 'POST', token, body: { currentPassword: ADMIN_PASSWORD, newPassword: process.env.TEST_ADMIN_NEW_PASSWORD },
-    });
-    if (ch?.res?.status === 400) results[results.length - 1].note = 'ověř, že hesla mohou být stejná';
-  } else {
-    results.push({ name: 'Změna hesla přeskočena', status: '-', ok: true, note: 'nastav TEST_ADMIN_NEW_PASSWORD pro spuštění self-testu' });
-  }
-
-  // 5) Profil
-  await call('POST /api/users/profile', '/api/users/profile', { method: 'POST', token, body: { firstName: 'Test', lastName: 'User' } });
-} else {
-  results.push({ name: 'PŘESKOČENO: gated endpointy', status: '-', ok: false, note: 'login neprošel — zkontroluj DB seed a heslo' });
+const health = await call('GET /health', '/health', { expectedStatus: 200 });
+if (!health.res) {
+  console.error('Backend není dostupný; zkontroluj BASE a stav služby.');
+  process.exit(2);
 }
 
-const fails = results.filter((r) => !r.ok);
-console.log('=== FUNKČNÍ TEST ===');
-for (const r of results) console.log(`  ${r.ok ? '✅' : '❌'} [${r.status}] ${r.name}${r.note ? ` — ${r.note}` : ''}`);
-console.log(`\nCelkem: ${results.length}, chyb: ${fails.length}`);
-process.exit(fails.length ? 1 : 0);
+await call('Login se záměrně chybným heslem', '/api/auth/login', {
+  method: 'POST',
+  body: { email: ADMIN_EMAIL, password: `${ADMIN_PASSWORD}-invalid` },
+  expectedStatus: 401,
+});
+
+const good = await call('Login testovacího účtu', '/api/auth/login', {
+  method: 'POST',
+  body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+  expectedStatus: 200,
+});
+const token = good.data?.token;
+
+await call('GET /api/sync bez tokenu', '/api/sync', { expectedStatus: 401 });
+
+if (token) {
+  // Pouze GET požadavky: žádné změny hesla, profilu, licence ani provozních dat.
+  await call('GET /api/sync s tokenem', '/api/sync', { token, expectedStatus: 200 });
+  await call('GET /api/licensing/mine', '/api/licensing/mine', { token, expectedStatus: 200 });
+  await call('GET /api/licensing/plans', '/api/licensing/plans', { token, expectedStatus: 200 });
+  await call('GET /api/collisions', '/api/collisions', { token, expectedStatus: 200 });
+  await call('GET /api/monter-invoices/mine', '/api/monter-invoices/mine', { token, expectedStatus: 200 });
+} else {
+  results.push({ name: 'Autorizované GET endpointy', status: '-', expectedStatus: '-', ok: false,
+    note: 'login nevrátil token; ověř testovací účet a tvar odpovědi API' });
+}
+
+const failures = results.filter((result) => !result.ok);
+console.log('\n=== FUNKČNÍ TEST ===');
+for (const result of results) {
+  const expectation = result.expectedStatus === undefined ? '' : ` očekáváno=${result.expectedStatus}`;
+  console.log(`  ${result.ok ? '✅ PASS' : '❌ FAIL'} [${result.status}]${expectation} ${result.name}${result.note ? ` — ${result.note}` : ''}`);
+}
+console.log(`\nCelkem: ${results.length}, úspěšných: ${results.length - failures.length}, chyb: ${failures.length}`);
+process.exit(failures.length ? 1 : 0);
