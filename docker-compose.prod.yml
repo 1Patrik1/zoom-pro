@@ -42,7 +42,7 @@ services:
       NODE_ENV: production
       PORT: "5000"
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-vzt_system}
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required; set a unique random secret of at least 32 characters}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
       APP_NAME: zoom-pro
       TRUST_PROXY: "true"
