@@ -39,7 +39,7 @@ Po změně proměnné je potřeba vytvořit nový Pages deployment. Ověř, že 
 2. Zkontroluj CI a aplikuj číslované SQL migrace včetně 021_notifications.sql podle zavedeného postupu projektu.
 3. Nasazuj backend, potom frontend.
 4. Ověř přihlášení, GET /api/notifications, označení jedné notifikace i všech notifikací a zprávu v chatu podpory.
-5. Na telefonu otevři web přes HTTPS, přihlas se, otevři centrum upozornění a stiskni ikonu telefonu. Uděl oprávnění a zkontroluj, že registrace zařízení proběhla.
+5. Na telefonu otevři web přes HTTPS, přihlas se, otevři centrum upozornění a stiskni ikonu telefonu. Udělit oprávnění a zkontroluj, že registrace zařízení proběhla.
 6. Pošli testovací událost a ověř doručení, když je karta zavřená. Prohlížeč/OS může push omezovat podle nastavení úspory baterie nebo oprávnění.
 
 ## API
