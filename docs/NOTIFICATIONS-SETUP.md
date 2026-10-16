@@ -65,4 +65,4 @@ GitHub monitoring z PR #12 je samostatný: nastav repository variable ZOOM_PRO_H
 
 ## Co ještě není potvrzené
 
-Kód v této větvi neznamená, že jsou produkční secrets, migrace, CORS ani push oprávnění už nastavené. Skutečné doručení push nelze potvrdit bez platných klíčů, přihlášeného zařízení a testu na nasazeném HTTPS webu. Zatím se trvalá aplikační upozornění vytvářejí při událostech chatu podpory; další doménové události (projekty, kolize, faktury, sklad) je potřeba připojit jednotlivě a pokrýt testy.
+Kód v této větvi neznamená, že jsou produkční secrets, migrace, CORS ani push oprávnění už nastavené. Skutečné doručení push nelze potvrdit bez platných klíčů, přihlášeného zařízení a testu na nasazeném HTTPS webu. Trvalá aplikační upozornění se nyní vytvářejí při událostech chatu podpory a projektového chatu. Další doménové události (kolize, faktury, sklad) je potřeba připojit jednotlivě a pokrýt testy.
