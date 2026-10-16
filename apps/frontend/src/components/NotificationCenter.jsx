@@ -22,7 +22,6 @@ export function NotificationCenter({ token, onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [pushEnabled, setPushEnabled] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -108,7 +107,6 @@ export function NotificationCenter({ token, onNavigate }) {
         token,
         body: { platform: 'web', pushSubscription: subscription.toJSON() }
       });
-      setPushEnabled(true);
       setMessage('Push upozornění jsou pro toto zařízení aktivní.');
     } catch (error) {
       setMessage(error.message || 'Push upozornění se nepodařilo aktivovat.');
