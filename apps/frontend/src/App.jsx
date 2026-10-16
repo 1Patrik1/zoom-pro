@@ -166,6 +166,8 @@ export default function App() {
   return (
     <AppShell
       user={auth.user}
+      token={auth.token}
+      onNavigateTab={setTab}
       navItems={navItems}
       activeTab={tab}
       onChangeTab={setTab}
