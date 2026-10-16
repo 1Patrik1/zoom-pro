@@ -28,6 +28,7 @@ import geminiRoutes from './routes/gemini.routes.js';
 import distributionRoutes from './routes/distribution.routes.js';
 import autodetectRoutes from './routes/autodetect.routes.js';
 import devicesRoutes from './routes/devices.routes.js';
+import notificationsRoutes from './routes/notifications.routes.js';
 import supportRoutes from './routes/support.routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 
@@ -68,6 +69,7 @@ export function createApp() {
   app.use('/api/distribution', distributionRoutes);
   app.use('/api/autodetect', autodetectRoutes);
   app.use('/api/devices', devicesRoutes);
+  app.use('/api/notifications', notificationsRoutes);
   app.use('/api/support', supportRoutes);
 
   app.use(errorHandler);
