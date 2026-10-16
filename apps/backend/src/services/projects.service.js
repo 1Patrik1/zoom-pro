@@ -1,7 +1,7 @@
 import { projectsRepo } from '../repositories/projects.repo.js';
 import { HttpError } from '../utils/http-error.js';
 import { query } from '../config/db.js';
-import { pushService } from './push.service.js';
+import { notificationsService } from './notifications.service.js';
 
 const MANAGER_ROLES = ['SUPERADMIN', 'REDITEL', 'VEDOUCI'];
 
@@ -110,11 +110,12 @@ export const projectsService = {
        JOIN "Project" p ON p.id = pa."projectId" AND p."companyId" = pa."companyId"
        WHERE pa."projectId" = $1 AND pa."companyId" = $2 AND u.id <> $3`,
       [payload.projectId, user.companyId, user.id]
-    ).then(({ rows }) => pushService.sendToUsers(rows.map((row) => row.id), {
+    ).then(({ rows }) => notificationsService.createForUsers(rows.map((row) => row.id), {
       title: `Projektový chat · ${rows[0]?.projectName || 'nová zpráva'}`,
-      body: `${[user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email}: ${text || 'Poslal(a) fotografii'}`.slice(0, 180),
+      body: `${[user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email}: ${text || 'Poslal(a) fotografii'}`.slice(0, 1000),
+      type: 'project',
       data: { type: 'project-chat', projectId: String(payload.projectId), chatId: String(chat.id) }
-    })).catch((error) => console.warn('[push] Project chat notification failed:', error.message));
+    })).catch((error) => console.warn('[notifications] Project chat notification failed:', error.message));
 
     return {
       ...chat,
