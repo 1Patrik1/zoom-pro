@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, CheckCheck, LoaderCircle, Smartphone, X } from 'lucide-react';
+import { Bell, CheckCheck, Loader2, Smartphone, X } from 'lucide-react';
 import { api } from '../api/client.js';
 
 function decodeVapidKey(value) {
@@ -148,10 +148,10 @@ export function NotificationCenter({ token, onNavigate }) {
             </div>
             <div className="flex items-center gap-1">
               <button type="button" onClick={enablePush} disabled={pushLoading} title="Zapnout push na tomto zařízení" className="rounded-lg border border-slate-700 p-2 text-slate-300 hover:border-blue-500 disabled:opacity-50">
-                {pushLoading ? <LoaderCircle size={15} className="animate-spin" /> : <Smartphone size={15} />}
+                {pushLoading ? <Loader2 size={15} className="animate-spin" /> : <Smartphone size={15} />}
               </button>
               <button type="button" onClick={markAllRead} disabled={!unreadCount || loading} title="Označit vše jako přečtené" className="rounded-lg border border-slate-700 p-2 text-slate-300 hover:border-blue-500 disabled:opacity-50">
-                {loading ? <LoaderCircle size={15} className="animate-spin" /> : <CheckCheck size={15} />}
+                {loading ? <Loader2 size={15} className="animate-spin" /> : <CheckCheck size={15} />}
               </button>
               <button type="button" onClick={() => setOpen(false)} aria-label="Zavřít upozornění" className="rounded-lg border border-slate-700 p-2 text-slate-300 hover:border-slate-500">
                 <X size={15} />
