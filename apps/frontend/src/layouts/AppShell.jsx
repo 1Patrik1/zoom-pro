@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { LogOut, Menu, X, Search, Bell, BellOff, Siren } from 'lucide-react';
 import { userDisplayName } from '../utils/user-name.js';
+import { NotificationCenter } from '../components/NotificationCenter.jsx';
 
-export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onChangeTab, onLogout, alarm, branding, children }) {
+export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onChangeTab, onLogout, alarm, branding, token, onNavigateTab, children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [alarmOpen, setAlarmOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -27,6 +28,7 @@ export function AppShell({ appName = 'Zoom Pro', user, navItems, activeTab, onCh
             <p className="text-[10px] text-slate-400">Role: {user?.role}</p>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationCenter token={token} onNavigate={onNavigateTab} />
             {alarm && (
               <div className="relative">
                 <button
