@@ -1,7 +1,7 @@
 import { supportRepo } from '../repositories/support.repo.js';
 import { HttpError } from '../utils/http-error.js';
 import { query } from '../config/db.js';
-import { pushService } from './push.service.js';
+import { notificationsService } from './notifications.service.js';
 
 export const supportService = {
   async listMessages(user, requestedCompanyId) {
@@ -51,11 +51,12 @@ export const supportService = {
     const recipientQuery = user.role === 'SUPERADMIN'
       ? query(`SELECT id FROM "User" WHERE "companyId" = $1 AND id <> $2`, [companyId, user.id])
       : query(`SELECT id FROM "User" WHERE role = 'SUPERADMIN' AND id <> $1`, [user.id]);
-    recipientQuery.then(({ rows }) => pushService.sendToUsers(rows.map((row) => row.id), {
+    recipientQuery.then(({ rows }) => notificationsService.createForUsers(rows.map((row) => row.id), {
       title: requestType === 'LICENSE_REQUEST' ? 'Nová žádost o licenci' : `Chat-podpora · ${createdMessage.companyName || 'firma'}`,
-      body: `${createdMessage.companyName ? `${createdMessage.companyName}: ` : ''}${createdMessage.authorName || user.email}: ${message}`.slice(0, 180),
+      body: `${createdMessage.companyName ? `${createdMessage.companyName}: ` : ''}${createdMessage.authorName || user.email}: ${message}`.slice(0, 1000),
+      type: 'support',
       data: { type: 'support-chat', companyId: String(companyId), messageId: String(createdMessage.id) }
-    })).catch((error) => console.warn('[push] Support chat notification failed:', error.message));
+    })).catch((error) => console.warn('[notifications] Support chat notification failed:', error.message));
     return createdMessage;
   },
 
