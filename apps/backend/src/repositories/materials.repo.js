@@ -16,12 +16,12 @@ export const materialsRepo = {
     return query(text, [companyId, payload.code, payload.name, payload.unit, payload.price, payload.category]);
   },
 
-  async seed(rows = []) {
+  async seed(companyId, rows = []) {
     const results = [];
     for (const r of rows) {
       const res = await query(
         `INSERT INTO "Material" ("companyId","code","name","unit","price","category") VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-        [r.companyId || null, r.code, r.name, r.unit || 'ks', r.price || 0, r.category || 'Materi·l']
+        [companyId, r.code, r.name, r.unit || 'ks', r.price ?? 0, r.category || 'Materi√°l']
       );
       results.push(res.rows[0]);
     }
