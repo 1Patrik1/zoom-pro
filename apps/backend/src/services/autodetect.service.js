@@ -114,7 +114,7 @@ async function detect(user, payload) {
        "suggestedPieceKind","suggestedSku",confidence,"aiRaw")
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
     [
-      user.companyId, projectId, user.id, imageDataUrl, referenceObject, refSize,
+      user.companyId, projectId, user.id, null, referenceObject, refSize,
       shape,
       parsed.widthMm ?? null, parsed.heightMm ?? null, parsed.diameterMm ?? null,
       parsed.offsetMm ?? null, parsed.angleDeg ?? null, parsed.runMm ?? null,
