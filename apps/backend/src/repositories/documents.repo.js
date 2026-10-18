@@ -17,6 +17,15 @@ export const documentsRepo = {
   get(companyId, id) {
     return query('SELECT * FROM "Document" WHERE "companyId" = $1 AND id = $2', [companyId, id]);
   },
+  validateCreateReferences(companyId, { templateId, projectId, invoiceId }) {
+    return query(
+      `SELECT
+         ($2::uuid IS NULL OR EXISTS(SELECT 1 FROM "DocumentTemplate" WHERE id=$2 AND "companyId"=$1)) AS "templateExists",
+         ($3::uuid IS NULL OR EXISTS(SELECT 1 FROM "Project" WHERE id=$3 AND "companyId"=$1)) AS "projectExists",
+         ($4::uuid IS NULL OR EXISTS(SELECT 1 FROM "Invoice" WHERE id=$4 AND "companyId"=$1)) AS "invoiceExists"`,
+      [companyId, templateId || null, projectId || null, invoiceId || null]
+    );
+  },
   create(payload) {
     return query(
       `INSERT INTO "Document" (id, "companyId", "documentType", status, "templateId", "projectId", "invoiceId", "authorId", locale, title, "dataJson", note, attachments, "createdAt", "updatedAt")
