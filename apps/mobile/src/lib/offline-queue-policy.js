@@ -1,7 +1,7 @@
 export function queueOwnerId(user) {
   return user?.id === undefined || user?.id === null || String(user.id).trim() === ''
     ? null
-    : String(user.id);
+    : String(user.id).trim();
 }
 
 export function stripQueuedCredentials(options = {}) {
