@@ -382,6 +382,7 @@ async function receivePO(companyId, user, id, lines) {
       [id, companyId]
     );
     const poLines = lineResult.rows;
+    if (!poLines.length) throw new HttpError(400, 'Objednávka nemá platné položky.');
 
     const requestedLines = Array.isArray(lines) ? lines : [];
     const seenIds = new Set();
@@ -451,8 +452,8 @@ async function listPO(companyId) {
     `SELECT po.*, s.name AS "supplierName", p.name AS "projectName",
             (SELECT COUNT(*)::int FROM "PurchaseOrderLine" l WHERE l."poId" = po.id) AS "lineCount"
        FROM "PurchaseOrder" po
-       LEFT JOIN "Supplier" s ON s.id = po."supplierId"
-       LEFT JOIN "Project" p ON p.id = po."projectId"
+       LEFT JOIN "Supplier" s ON s.id = po."supplierId" AND s."companyId" = po."companyId"
+       LEFT JOIN "Project" p ON p.id = po."projectId" AND p."companyId" = po."companyId"
       WHERE po."companyId" = $1
       ORDER BY po."createdAt" DESC
       LIMIT 200`,
