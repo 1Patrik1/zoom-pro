@@ -9,7 +9,7 @@ import {
 
 test('queue owner IDs are normalized and missing identities are rejected', () => {
   assert.equal(queueOwnerId({ id: 123 }), '123');
-  assert.equal(queueOwnerId({ id: ' user-a ' }), ' user-a ');
+  assert.equal(queueOwnerId({ id: ' user-a ' }), 'user-a');
   assert.equal(queueOwnerId(null), null);
   assert.equal(queueOwnerId({}), null);
   assert.equal(queueOwnerId({ id: '' }), null);
