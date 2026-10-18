@@ -29,7 +29,7 @@ Tento dokument shrnuje první cílený audit veřejné větve `main` repozitář
 
 GitHub Actions CI úspěšně prošlo na hlavní větvi po PR #62. CI nyní zahrnuje migrace proti izolované PostgreSQL, frontendové testy/build, mobilní produkční build, backendové testy a kontrolu syntaxe. Samostatný audit workflow publikuje JSON reporty pro root a mobile lockfile.
 
-PR #16, #18–#20, #22–#23, #27, #30–#34, #36–#38, #41, #51, #56–#62 jsou sloučeny do `main`. Úspěšný CI nenahrazuje dvoufiremní integrační testy ani produkční smoke test.
+PR #16, #18–#20, #22–#23, #27, #30–#34, #36–#38, #41, #51, #56–#62 a #64 jsou sloučeny do `main`. Úspěšný CI nenahrazuje dvoufiremní integrační testy ani produkční smoke test.
 
 ## Provoz a funkční mezery
 
@@ -52,7 +52,7 @@ Před tímto auditem bylo ve vzdáleném stromu nalezeno jen několik automatick
 
 ## Stav po první vlně oprav
 
-Bezpečnostní opravy, readiness endpoint, AI validace, Dependabot, automatické audit reporty, mobilní build v CI a kompatibilní lockfile opravy byly sloučeny. Po PR #62 prošlo CI hlavní větve včetně mobilního buildu. Kritické npm audit nálezy byly sníženy na nulu v obou lockfilech; zbývá 7 high nálezů v root workspace a 6 high v mobilní aplikaci, převážně navázaných na major upgrady Vite/Tailwind a související nástroje.
+Bezpečnostní opravy, readiness endpoint, AI validace, zabezpečení mobilní offline fronty, Dependabot, automatické audit reporty, mobilní unit testy/build v CI a kompatibilní lockfile opravy byly sloučeny. Po PR #62 prošlo CI hlavní větve včetně mobilního buildu. Kritické npm audit nálezy byly sníženy na nulu v obou lockfilech; zbývá 7 high nálezů v root workspace a 6 high v mobilní aplikaci, převážně navázaných na major upgrady Vite/Tailwind a související nástroje.
 
 Toto není potvrzení úplné bezpečnosti: stále chybí produkční deploy/monitoring, dvoufiremní integrační testy, zpracování import/export jobů a úplný audit lokální administrační aplikace.
 
@@ -62,6 +62,6 @@ Toto není potvrzení úplné bezpečnosti: stále chybí produkční deploy/mon
 2. Vyřešit GitHub secrets/variables pro deploy a monitor; ověřit skutečně nasazenou aplikaci.
 3. Projít zbývající high nálezy a naplánovat kompatibilní upgrady Vite/Tailwind/Nodemon; Vite 8 nyní selhává na konfiguraci `manualChunks`.
 4. Dokončit sdílené limity AI požadavků podle Issue #39.
-5. Implementovat/ověřit worker pro import/export a posílit offline frontu podle Issues #24 a #25.
+5. Implementovat/ověřit worker pro import/export podle Issue #24; u offline fronty doplnit idempotenci, konflikty a uživatelskou správu zablokovaných položek podle Issue #25.
 6. Auditovat lokální `apps/control` po zpřístupnění jeho aktuálního zdrojového stavu.
 
