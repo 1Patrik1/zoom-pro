@@ -14,8 +14,8 @@ export const syncRepo = {
     return query(
       `SELECT pa.*
        FROM "ProjectAssignment" pa
-       JOIN "Project" p ON pa."projectId" = p.id
-       WHERE p."companyId" = $1`,
+       JOIN "Project" p ON pa."projectId" = p.id AND p."companyId" = pa."companyId"
+       WHERE pa."companyId" = $1`,
       [companyId]
     );
   },
@@ -23,8 +23,8 @@ export const syncRepo = {
     return query(
       `SELECT pc.*, COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName", p.name as "projectName"
        FROM "ProjectChat" pc
-       JOIN "User" u ON pc."userId" = u.id
-       JOIN "Project" p ON pc."projectId" = p.id
+       JOIN "User" u ON pc."userId" = u.id AND u."companyId" = pc."companyId"
+       JOIN "Project" p ON pc."projectId" = p.id AND p."companyId" = pc."companyId"
        WHERE pc."companyId" = $1
        ORDER BY pc."createdAt" ASC`,
       [companyId]
@@ -34,8 +34,8 @@ export const syncRepo = {
     return query(
       `SELECT gi.*, COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName", p.name as "projectName"
        FROM "ProjectGalleryItem" gi
-       JOIN "User" u ON gi."userId" = u.id
-       JOIN "Project" p ON gi."projectId" = p.id
+       JOIN "User" u ON gi."userId" = u.id AND u."companyId" = gi."companyId"
+       JOIN "Project" p ON gi."projectId" = p.id AND p."companyId" = gi."companyId"
        WHERE gi."companyId" = $1
        ORDER BY gi."createdAt" DESC`,
       [companyId]
@@ -47,8 +47,8 @@ export const syncRepo = {
               COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "userName",
               p.name as "projectName"
        FROM "Attendance" a
-       JOIN "User" u ON a."userId" = u.id
-       LEFT JOIN "Project" p ON a."projectId" = p.id
+       JOIN "User" u ON a."userId" = u.id AND u."companyId" = a."companyId"
+       LEFT JOIN "Project" p ON a."projectId" = p.id AND p."companyId" = a."companyId"
        WHERE a."companyId" = $1
        ORDER BY a."createdAt" DESC
        LIMIT 100`,
@@ -60,8 +60,8 @@ export const syncRepo = {
       `SELECT d.*, p.name as "projectName",
               COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName"
        FROM "DailyLog" d
-       LEFT JOIN "Project" p ON d."projectId" = p.id
-       LEFT JOIN "User" u ON d."authorId" = u.id
+       LEFT JOIN "Project" p ON d."projectId" = p.id AND p."companyId" = d."companyId"
+       LEFT JOIN "User" u ON d."authorId" = u.id AND u."companyId" = d."companyId"
        WHERE d."companyId" = $1
        ORDER BY d."createdAt" DESC`,
       [companyId]
@@ -78,9 +78,9 @@ export const syncRepo = {
       `SELECT m.*, i.name as "itemName", i.code as "itemCode", p.name as "projectName",
               COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName"
        FROM "InventoryMovement" m
-       JOIN "InventoryItem" i ON m."itemId" = i.id
-       LEFT JOIN "Project" p ON m."projectId" = p.id
-       LEFT JOIN "User" u ON m."createdBy" = u.id
+       JOIN "InventoryItem" i ON m."itemId" = i.id AND i."companyId" = m."companyId"
+       LEFT JOIN "Project" p ON m."projectId" = p.id AND p."companyId" = m."companyId"
+       LEFT JOIN "User" u ON m."createdBy" = u.id AND u."companyId" = m."companyId"
        WHERE m."companyId" = $1
        ORDER BY m."createdAt" DESC
        LIMIT 200`,
@@ -99,9 +99,9 @@ export const syncRepo = {
               COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "userName",
               i.name as "itemName"
        FROM "CollisionAlert" ca
-       LEFT JOIN "Project" p ON ca."projectId" = p.id
-       LEFT JOIN "User" u ON ca."userId" = u.id
-       LEFT JOIN "InventoryItem" i ON ca."itemId" = i.id
+       LEFT JOIN "Project" p ON ca."projectId" = p.id AND p."companyId" = ca."companyId"
+       LEFT JOIN "User" u ON ca."userId" = u.id AND u."companyId" = ca."companyId"
+       LEFT JOIN "InventoryItem" i ON ca."itemId" = i.id AND i."companyId" = ca."companyId"
        WHERE ca."companyId" = $1
        ORDER BY ca."createdAt" DESC
        LIMIT 200`,
@@ -114,8 +114,8 @@ export const syncRepo = {
               COALESCE(NULLIF(BTRIM(CONCAT_WS(' ', NULLIF(u."firstName", ''), NULLIF(u."lastName", ''))), ''), u.email) as "authorName",
               p.name as "projectName"
        FROM "ProjectTroubleshooting" pt
-       JOIN "User" u ON pt."userId" = u.id
-       JOIN "Project" p ON pt."projectId" = p.id
+       JOIN "User" u ON pt."userId" = u.id AND u."companyId" = pt."companyId"
+       JOIN "Project" p ON pt."projectId" = p.id AND p."companyId" = pt."companyId"
        WHERE pt."companyId" = $1
        ORDER BY pt."createdAt" DESC
        LIMIT 200`,
