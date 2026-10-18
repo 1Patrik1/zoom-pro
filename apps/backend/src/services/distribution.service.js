@@ -38,7 +38,7 @@ async function listSuppliers(companyId) {
 async function upsertSupplier(companyId, s) {
   if (s.id) {
     const result = await query(
-      `UPDATE "Supplier" SET name=$1,ico=$2,dic=$3,email=$4,phone=$5,"apiType"=$6,"apiUrl"=$7,"apiKeyEnc"=$8,currency=$9,"paymentTermDays"=$10,"discountPct"=$11,active=$12,metadata=$13
+      `UPDATE "Supplier" SET name=$1,ico=$2,dic=$3,email=$4,phone=$5,"apiType"=$6,"apiUrl"=$7,"apiKeyEnc"=COALESCE(NULLIF($8, ''), "apiKeyEnc"),currency=$9,"paymentTermDays"=$10,"discountPct"=$11,active=$12,metadata=$13
        WHERE id=$14 AND "companyId"=$15 RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
       [s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc, s.currency || 'CZK',
        s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}, s.id, companyId],
@@ -68,6 +68,7 @@ async function listPrices(companyId, catalogItemId) {
 }
 
 async function upsertPrice(companyId, p) {
+  if (!Number.isFinite(Number(p.price)) || Number(p.price) < 0) throw new HttpError(400, 'Cena musí být nezáporné číslo.');
   if (p.id) {
     const curResult = await query(
       `SELECT sp.price
@@ -256,10 +257,11 @@ async function createPO(companyId, user, payload) {
     }
 
     const currency = payload.currency || supplier.currency || 'CZK';
+    const totalAmount = safeLines.reduce((sum, line) => sum + Number(line.qty) * Number(line.unitPrice), 0);
     const result = await client.query(
       `INSERT INTO "PurchaseOrder" ("companyId","projectId","supplierId","rfqQuoteId","poNumber",status,"totalAmount",currency,"createdBy","expectedAt")
        VALUES ($1,$2,$3,$4,$5,'DRAFT',$6,$7,$8,$9) RETURNING *`,
-      [companyId, payload.projectId || null, payload.supplierId, payload.rfqQuoteId || null, payload.poNumber || null, payload.totalAmount, currency, user.id, payload.expectedAt || null],
+      [companyId, payload.projectId || null, payload.supplierId, payload.rfqQuoteId || null, payload.poNumber || null, totalAmount, currency, user.id, payload.expectedAt || null],
     );
     const po = result.rows[0];
     for (const line of safeLines) {
