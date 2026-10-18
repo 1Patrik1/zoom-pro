@@ -4,6 +4,17 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "30 7 * * 1"
+  push:
+    branches:
+      - main
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "apps/backend/package.json"
+      - "apps/frontend/package.json"
+      - "apps/mobile/package.json"
+      - "apps/mobile/package-lock.json"
+      - ".github/workflows/dependency-audit.yml"
   pull_request:
     paths:
       - "package.json"
