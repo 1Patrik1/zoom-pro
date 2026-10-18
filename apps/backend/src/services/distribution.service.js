@@ -54,29 +54,58 @@ async function upsertSupplier(companyId, s) {
   return result.rows;
 }
 
-async function listPrices(catalogItemId) {
+async function listPrices(companyId, catalogItemId) {
   const result = await query(
     `SELECT sp.*, s.name as "supplierName", s.currency as "supplierCurrency"
-     FROM "SupplierPrice" sp JOIN "Supplier" s ON s.id = sp."supplierId"
-     WHERE sp."catalogItemId" = $1 ORDER BY sp.price ASC`,
-    [catalogItemId],
+     FROM "SupplierPrice" sp
+     JOIN "Supplier" s ON s.id = sp."supplierId" AND s."companyId" = $2
+     JOIN "CatalogItem" ci ON ci.id = sp."catalogItemId" AND ci."companyId" = $2
+     WHERE sp."catalogItemId" = $1
+     ORDER BY sp.price ASC`,
+    [catalogItemId, companyId],
   );
   return result.rows;
 }
-async function upsertPrice(p) {
-  const curResult = await query(`SELECT price FROM "SupplierPrice" WHERE id=$1`, [p.id || '00000000-0000-0000-0000-000000000000']);
-  const current = curResult.rows[0];
+
+async function upsertPrice(companyId, p) {
   if (p.id) {
-    if (current && Number(current.price) !== Number(p.price)) {
+    const curResult = await query(
+      `SELECT sp.price
+       FROM "SupplierPrice" sp
+       JOIN "Supplier" s ON s.id = sp."supplierId" AND s."companyId" = $2
+       JOIN "CatalogItem" ci ON ci.id = sp."catalogItemId" AND ci."companyId" = $2
+       WHERE sp.id = $1`,
+      [p.id, companyId],
+    );
+    const current = curResult.rows[0];
+    if (!current) throw new HttpError(404, 'Ceníková položka nenalezena.');
+    if (Number(current.price) !== Number(p.price)) {
       await query(`INSERT INTO "PriceHistory" ("supplierPriceId", price) VALUES ($1,$2)`, [p.id, current.price]);
     }
     const result = await query(
-      `UPDATE "SupplierPrice" SET "supplierSku"=$1, price=$2, currency=$3, moq=$4,"leadTimeDays"=$5,"qtyAvailable"=$6,"validFrom"=$7,"validTo"=$8, priority=$9, "updatedAt"=NOW()
-       WHERE id=$10 RETURNING *`,
-      [p.supplierSku, p.price, p.currency || 'CZK', p.moq ?? 1, p.leadTimeDays ?? 3, p.qtyAvailable, p.validFrom, p.validTo, p.priority ?? 100, p.id],
+      `UPDATE "SupplierPrice" sp
+       SET "supplierSku"=$1, price=$2, currency=$3, moq=$4, "leadTimeDays"=$5,
+           "qtyAvailable"=$6, "validFrom"=$7, "validTo"=$8, priority=$9, "updatedAt"=NOW()
+       FROM "Supplier" s, "CatalogItem" ci
+       WHERE sp.id=$10
+         AND s.id=sp."supplierId" AND s."companyId"=$11
+         AND ci.id=sp."catalogItemId" AND ci."companyId"=$11
+       RETURNING sp.*`,
+      [p.supplierSku, p.price, p.currency || 'CZK', p.moq ?? 1, p.leadTimeDays ?? 3, p.qtyAvailable, p.validFrom, p.validTo, p.priority ?? 100, p.id, companyId],
     );
+    if (!result.rows.length) throw new HttpError(404, 'Ceníková položka nenalezena.');
     return result.rows;
   }
+
+  const ownership = await query(
+    `SELECT s.id AS "supplierId", ci.id AS "catalogItemId"
+     FROM "Supplier" s
+     JOIN "CatalogItem" ci ON ci.id = $2 AND ci."companyId" = $3
+     WHERE s.id = $1 AND s."companyId" = $3`,
+    [p.supplierId, p.catalogItemId, companyId],
+  );
+  if (!ownership.rows.length) throw new HttpError(404, 'Dodavatel nebo katalogová položka nebyli nalezeni ve vaší firmě.');
+
   const result = await query(
     `INSERT INTO "SupplierPrice" ("supplierId","catalogItemId","supplierSku",price,currency,moq,"leadTimeDays","qtyAvailable","validFrom","validTo",priority)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
