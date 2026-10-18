@@ -280,8 +280,8 @@ async function getPO(companyId, id) {
   const poResult = await query(
     `SELECT po.*, s.name AS "supplierName", p.name AS "projectName"
        FROM "PurchaseOrder" po
-       LEFT JOIN "Supplier" s ON s.id = po."supplierId"
-       LEFT JOIN "Project" p ON p.id = po."projectId"
+       LEFT JOIN "Supplier" s ON s.id = po."supplierId" AND s."companyId" = po."companyId"
+       LEFT JOIN "Project" p ON p.id = po."projectId" AND p."companyId" = po."companyId"
       WHERE po.id = $1 AND po."companyId" = $2`,
     [id, companyId]
   );
@@ -290,66 +290,79 @@ async function getPO(companyId, id) {
   const linesResult = await query(
     `SELECT l.*, ci.sku, ci.name, ci.unit
        FROM "PurchaseOrderLine" l
-       JOIN "CatalogItem" ci ON ci.id = l."catalogItemId"
+       JOIN "CatalogItem" ci ON ci.id = l."catalogItemId" AND ci."companyId" = $2
       WHERE l."poId" = $1 ORDER BY ci.name ASC`,
-    [id]
+    [id, companyId]
   );
   return { po, lines: linesResult.rows };
 }
 
 async function createPOFromQuote(companyId, user, rfqId, supplierId) {
-  const rfqResult = await query('SELECT * FROM "Rfq" WHERE id = $1 AND "companyId" = $2', [rfqId, companyId]);
-  const rfq = rfqResult.rows[0];
-  if (!rfq) throw new HttpError(404, 'RFQ nenalezena.');
-  if (rfq.status === 'CONVERTED') throw new HttpError(400, 'Z této poptávky už byla objednávka vytvořena.');
-  const supResult = await query('SELECT * FROM "Supplier" WHERE id = $1 AND "companyId" = $2', [supplierId, companyId]);
-  const supplier = supResult.rows[0];
-  if (!supplier) throw new HttpError(404, 'Dodavatel nenalezen.');
-  const linesResult = await query(
-    `SELECT rl.*, ci.sku, ci.name, ci.unit
+  return withTransaction(async (client) => {
+    const rfqResult = await client.query(
+      'SELECT * FROM "Rfq" WHERE id=$1 AND "companyId"=$2 FOR UPDATE',
+      [rfqId, companyId],
+    );
+    const rfq = rfqResult.rows[0];
+    if (!rfq) throw new HttpError(404, 'RFQ nenalezena.');
+    if (rfq.status === 'CONVERTED') throw new HttpError(400, 'Z této poptávky už byla objednávka vytvořena.');
+
+    const supResult = await client.query(
+      'SELECT * FROM "Supplier" WHERE id=$1 AND "companyId"=$2',
+      [supplierId, companyId],
+    );
+    const supplier = supResult.rows[0];
+    if (!supplier) throw new HttpError(404, 'Dodavatel nenalezen.');
+
+    const linesResult = await client.query(
+      `SELECT rl.*, ci.sku, ci.name, ci.unit
        FROM "RfqLine" rl
-       JOIN "CatalogItem" ci ON ci.id = rl."catalogItemId" AND ci."companyId" = $2
-      WHERE rl."rfqId" = $1`,
-    [rfqId, companyId]
-  );
-  const lines = linesResult.rows;
-  if (!lines.length) throw new HttpError(400, 'Poptávka nemá žádné položky.');
-
-  const poLines = [];
-  const missing = [];
-  let total = 0;
-  for (const l of lines) {
-    const priceResult = await query(
-      `SELECT sp.* FROM "SupplierPrice" sp
-       JOIN "Supplier" s ON s.id=sp."supplierId" AND s."companyId"=$3
-       JOIN "CatalogItem" ci ON ci.id=sp."catalogItemId" AND ci."companyId"=$3
-       WHERE sp."supplierId" = $1 AND sp."catalogItemId" = $2
-       ORDER BY priority ASC, price ASC LIMIT 1`,
-      [supplierId, l.catalogItemId, companyId]
+       JOIN "CatalogItem" ci ON ci.id=rl."catalogItemId" AND ci."companyId"=$2
+       WHERE rl."rfqId"=$1`,
+      [rfqId, companyId],
     );
-    const p = priceResult.rows[0];
-    if (!p) { missing.push(l.sku); continue; }
-    total += Number(p.price) * Number(l.quantity);
-    poLines.push({ catalogItemId: l.catalogItemId, supplierSku: p.supplierSku, qty: Number(l.quantity), unitPrice: Number(p.price) });
-  }
-  if (!poLines.length) throw new HttpError(400, `Dodavatel nemá ceny pro žádnou položku (${missing.join(', ')}).`);
+    const lines = linesResult.rows;
+    if (!lines.length) throw new HttpError(400, 'Poptávka nemá žádné položky.');
 
-  const poNumber = `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-  const poResult = await query(
-    `INSERT INTO "PurchaseOrder" ("companyId","projectId","supplierId","poNumber",status,"totalAmount",currency,"createdBy")
-     VALUES ($1,$2,$3,$4,'DRAFT',$5,$6,$7) RETURNING *`,
-    [companyId, rfq.projectId, supplierId, poNumber, total, supplier.currency || 'CZK', user.id]
-  );
-  const po = poResult.rows[0];
-  for (const l of poLines) {
-    await query(
-      `INSERT INTO "PurchaseOrderLine" ("poId","catalogItemId","supplierSku",qty,"unitPrice",currency)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
-      [po.id, l.catalogItemId, l.supplierSku, l.qty, l.unitPrice, supplier.currency || 'CZK']
+    const poLines = [];
+    const missing = [];
+    let total = 0;
+    for (const line of lines) {
+      const priceResult = await client.query(
+        `SELECT sp.* FROM "SupplierPrice" sp
+         JOIN "Supplier" s ON s.id=sp."supplierId" AND s."companyId"=$3
+         JOIN "CatalogItem" ci ON ci.id=sp."catalogItemId" AND ci."companyId"=$3
+         WHERE sp."supplierId"=$1 AND sp."catalogItemId"=$2
+         ORDER BY priority ASC, price ASC LIMIT 1`,
+        [supplierId, line.catalogItemId, companyId],
+      );
+      const price = priceResult.rows[0];
+      if (!price) { missing.push(line.sku); continue; }
+      total += Number(price.price) * Number(line.quantity);
+      poLines.push({ catalogItemId: line.catalogItemId, supplierSku: price.supplierSku, qty: Number(line.quantity), unitPrice: Number(price.price) });
+    }
+    if (!poLines.length) throw new HttpError(400, `Dodavatel nemá ceny pro žádnou položku (${missing.join(', ')}).`);
+
+    const poNumber = `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    const poResult = await client.query(
+      `INSERT INTO "PurchaseOrder" ("companyId","projectId","supplierId","poNumber",status,"totalAmount",currency,"createdBy")
+       VALUES ($1,$2,$3,$4,'DRAFT',$5,$6,$7) RETURNING *`,
+      [companyId, rfq.projectId, supplierId, poNumber, total, supplier.currency || 'CZK', user.id],
     );
-  }
-  await query(`UPDATE "Rfq" SET status = 'CONVERTED' WHERE id = $1 AND "companyId" = $2`, [rfqId, companyId]);
-  return { po, lineCount: poLines.length, missing };
+    const po = poResult.rows[0];
+    for (const line of poLines) {
+      await client.query(
+        `INSERT INTO "PurchaseOrderLine" ("poId","catalogItemId","supplierSku",qty,"unitPrice",currency)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [po.id, line.catalogItemId, line.supplierSku, line.qty, line.unitPrice, supplier.currency || 'CZK'],
+      );
+    }
+    await client.query(
+      `UPDATE "Rfq" SET status='CONVERTED' WHERE id=$1 AND "companyId"=$2`,
+      [rfqId, companyId],
+    );
+    return { po, lineCount: poLines.length, missing };
+  });
 }
 
 async function receivePO(companyId, user, id, lines) {
