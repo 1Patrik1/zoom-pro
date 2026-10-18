@@ -14,8 +14,8 @@ r.get('/suppliers',  auth, asyncHandler(async (req, res) => res.json({ ok: true,
 r.post('/suppliers', auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.upsertSupplier(req.user.companyId, req.body) })));
 
 // Ceníky
-r.get('/prices/:catalogItemId', auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listPrices(req.params.catalogItemId) })));
-r.post('/prices',    auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.upsertPrice(req.body) })));
+r.get('/prices/:catalogItemId', auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listPrices(req.user.companyId, req.params.catalogItemId) })));
+r.post('/prices',    auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.upsertPrice(req.user.companyId, req.body) })));
 
 // RFQ
 r.post('/rfq',       auth, asyncHandler(async (req, res) => res.json({ ok: true, rfq: await svc.createRfq(req.user.companyId, req.user, req.body) })));
