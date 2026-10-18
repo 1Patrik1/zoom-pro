@@ -18,6 +18,11 @@ export async function auth(req, _res, next) {
 
     if (!result.rows.length) throw new HttpError(403, 'Uživatel nenalezen');
     req.user = result.rows[0];
+    // Re-check company status on every authenticated request so existing JWTs
+    // cannot keep accessing tenant data after the company is deactivated.
+    if (req.user.role !== 'SUPERADMIN' && !req.user.compActive) {
+      throw new HttpError(403, 'Firma nemá licenci!');
+    }
     next();
   } catch (error) {
     next(error.status ? error : new HttpError(403, 'Neplatný token'));
