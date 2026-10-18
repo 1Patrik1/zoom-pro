@@ -46,6 +46,14 @@ export const inventoryRepo = {
         throw new HttpError(404, 'Materiál nebyl nalezen');
       }
 
+      if (projectId) {
+        const projectResult = await client.query(
+          'SELECT id FROM "Project" WHERE id = $1 AND "companyId" = $2 FOR SHARE',
+          [projectId, companyId]
+        );
+        if (!projectResult.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě');
+      }
+
       const rawQuantity = n(quantity);
       let delta = rawQuantity;
       if (DECREASE_TYPES.has(type)) delta = -Math.abs(rawQuantity);
