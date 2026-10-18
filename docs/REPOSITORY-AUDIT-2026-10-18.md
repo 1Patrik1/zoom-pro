@@ -29,7 +29,7 @@ Tento dokument shrnuje první cílený audit veřejné větve `main` repozitář
 
 GitHub Actions CI úspěšně prošlo na hlavní větvi po PR #62. CI nyní zahrnuje migrace proti izolované PostgreSQL, frontendové testy/build, mobilní produkční build, backendové testy a kontrolu syntaxe. Samostatný audit workflow publikuje JSON reporty pro root a mobile lockfile.
 
-PR #16, #18–#20, #22–#23, #27, #30–#34, #36–#38, #41, #51, #56–#62 a #64 jsou sloučeny do `main`. Úspěšný CI nenahrazuje dvoufiremní integrační testy ani produkční smoke test.
+PR #16, #18–#20, #22–#23, #27, #30–#34, #36–#38, #41, #51, #56–#62, #64 a #66 jsou sloučeny do `main`. Úspěšný CI nenahrazuje dvoufiremní integrační testy ani produkční smoke test.
 
 ## Provoz a funkční mezery
 
