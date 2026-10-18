@@ -13,7 +13,7 @@ Tento dokument shrnuje první cílený audit veřejné větve `main` repozitář
 | P0 | Správa rolí | Validátor přijímal `SUPERADMIN` a služba umožňovala řediteli firmy tuto roli přidělit. Serverová kontrola i regresní test jsou navrženy v PR #16. |
 | P0 | Individuální oprávnění | `BOOL_OR(granted)` slučovalo role a uživatelský override, takže explicitní zákaz mohl být přebit rolí. Priorita override je opravena v návrhu PR #22. |
 | P0 | Materiály | Seed endpoint důvěřoval klientskému `companyId`; oprava používá tenant přihlášeného uživatele v PR #20. |
-| P0 | Distribuce | Ceníky, RFQ/PO a některé související dotazy nekontrolovaly všechny vazby na tenant. Návrh izolace, transakcí a testů je v PR #27; další dvoufiremní integrační testy zůstávají nutné. |
+| P0 | Distribuce | Ceníky, RFQ/PO a některé související dotazy nekontrolovaly všechny vazby na tenant. Návrh izolace, transakcí a testů byl sloučen v PR #27; další dvoufiremní integrační testy zůstávají nutné. |
 | P0 | Projekty a tým | Projektový chat a přiřazení týmu nepřed ověřovaly tenant projektu/cílového uživatele. Oprava je v PR #23. |
 | P0 | Faktury | Ruční vytvoření faktury mohlo přijmout ID zaměstnance nebo projektu z jiné firmy. Oprava je v PR #30. |
 | P0 | Dokumenty a podpisy | Vytváření dokumentů/podpisových požadavků přijímalo cizí ID šablony, projektu, faktury, poskytovatele nebo podepisujícího. Opravy jsou v PR #33 a #31. |
@@ -24,9 +24,9 @@ Tento dokument shrnuje první cílený audit veřejné větve `main` repozitář
 
 ## Ověření CI
 
-Na větvích návrhů byly spuštěny GitHub Actions. Při sestavení tohoto reportu jsou úspěšné CI běhy pro PR #16, #18, #19, #20, #22, #23, #27, #30, #31, #32 a #33. PR #34 má běh CI stále v průběhu/čekání; jeho stav je třeba znovu ověřit.
+GitHub Actions CI proběhlo úspěšně pro všechny opravné PR #16, #18, #19, #20, #22, #23, #27, #30, #31, #32, #33 a #34 před jejich sloučením. Tyto opravy byly následně sloučeny do `main` jako samostatné squash commity. PR #35 je samostatná dokumentační změna.
 
-Úspěšný CI běh ověřuje kroky workflow (migrace v testovací PostgreSQL, frontendové testy/build, backendové testy a syntaxi), ale nenahrazuje testy izolace dvou tenantů ani produkční smoke test. Všechny uvedené PR jsou drafty a žádný nebyl tímto auditem sloučen do `main`.
+Úspěšný CI běh ověřuje kroky workflow (migrace v testovací PostgreSQL, frontendové testy/build, backendové testy a syntaxi), ale nenahrazuje testy izolace dvou tenantů ani produkční smoke test. Po sloučení je nutné ověřit také výsledný CI běh hlavní větve.
 
 ## Provoz a funkční mezery
 
