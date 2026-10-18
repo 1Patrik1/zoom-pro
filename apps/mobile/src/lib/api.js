@@ -1,4 +1,5 @@
 import { store, queue } from './storage.js';
+import { canSyncQueuedItem, queueOwnerId, queueOwnershipError, stripQueuedCredentials } from './offline-queue-policy.js';
 import { Network } from '@capacitor/network';
 
 async function request(path, { method = 'GET', body, token, apiUrl } = {}) {
@@ -30,16 +31,37 @@ async function requestOrQueue(path, opts = {}) {
   if (await online()) {
     return request(path, opts);
   }
-  await queue.push({ path, opts });
+  const ownerUserId = queueOwnerId(await store.getUser());
+  if (!ownerUserId) {
+    throw new Error('Nelze zařadit offline požadavek bez přihlášeného uživatele.');
+  }
+  const storedToken = await store.getToken();
+  if (opts.token && opts.token !== storedToken) {
+    throw new Error('Nelze bezpečně zařadit požadavek s jiným přihlašovacím tokenem.');
+  }
+  await queue.push({ path, opts: stripQueuedCredentials(opts), ownerUserId });
   return { queued: true };
 }
 
 async function syncQueue(onProgress) {
   const items = await queue.list();
+  const currentUserId = queueOwnerId(await store.getUser());
   let ok = 0, fail = 0;
   for (const { key, val } of items) {
+    if (!canSyncQueuedItem(val, currentUserId)) {
+      if (!val.blocked) {
+        await queue.update(key, {
+          blocked: true,
+          attempts: (val.attempts || 0) + 1,
+          lastError: queueOwnershipError(val, currentUserId)
+        });
+      }
+      fail += 1;
+      onProgress && onProgress({ ok, fail, total: items.length });
+      continue;
+    }
     try {
-      await request(val.path, val.opts);
+      await request(val.path, stripQueuedCredentials(val.opts));
       await queue.remove(key);
       ok += 1;
     } catch (e) {
