@@ -90,6 +90,10 @@ export const invoicesRepo = {
     );
   },
 
+  getProject(companyId, projectId) {
+    return query('SELECT id FROM "Project" WHERE id=$1 AND "companyId"=$2', [projectId, companyId]);
+  },
+
   getAttendanceForEmployee({ companyId, employeeId, periodFrom, periodTo, projectId = null }) {
     return query(
       `SELECT a.*, p.name as "projectName"

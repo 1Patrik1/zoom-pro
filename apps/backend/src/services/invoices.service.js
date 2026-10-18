@@ -72,6 +72,16 @@ export const invoicesService = {
     const amountVat = roundCurrency(amount * (vatRate / 100));
     const employeeId = user.role === 'MONTER' ? user.id : (payload.employeeId || null);
     const clientName = payload.clientName?.trim() || (user.role === 'MONTER' ? user.email : null);
+    const projectId = payload.projectId || null;
+
+    if (employeeId) {
+      const employee = await invoicesRepo.getEmployee(user.companyId, employeeId);
+      if (!employee.rows.length) throw new HttpError(404, 'Zaměstnanec nebyl nalezen ve vaší firmě.');
+    }
+    if (projectId) {
+      const project = await invoicesRepo.getProject(user.companyId, projectId);
+      if (!project.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě.');
+    }
 
     const result = await invoicesRepo.create({
       companyId: user.companyId,
@@ -84,7 +94,7 @@ export const invoicesService = {
       currency: payload.currency || 'CZK',
       vatRate,
       dueDate: payload.dueDate || null,
-      projectId: payload.projectId || null,
+      projectId,
       variableSymbol: payload.variableSymbol || null,
       constantSymbol: payload.constantSymbol || null,
       note: payload.note || null,
