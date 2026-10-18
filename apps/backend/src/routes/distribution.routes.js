@@ -14,14 +14,14 @@ r.get('/suppliers',  auth, asyncHandler(async (req, res) => res.json({ ok: true,
 r.post('/suppliers', auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.upsertSupplier(req.user.companyId, req.body) })));
 
 // Ceníky
-r.get('/prices/:catalogItemId', auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listPrices(req.params.catalogItemId) })));
-r.post('/prices',    auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.upsertPrice(req.body) })));
+r.get('/prices/:catalogItemId', auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listPrices(req.user.companyId, req.params.catalogItemId) })));
+r.post('/prices',    auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.upsertPrice(req.user.companyId, req.body) })));
 
 // RFQ
 r.post('/rfq',       auth, asyncHandler(async (req, res) => res.json({ ok: true, rfq: await svc.createRfq(req.user.companyId, req.user, req.body) })));
 r.get('/rfq',        auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listRfq(req.user.companyId) })));
 r.post('/rfq/:id/convert', auth, asyncHandler(async (req, res) => res.json({ ok: true, ...(await svc.createPOFromQuote(req.user.companyId, req.user, req.params.id, req.body.supplierId)) })));
-r.get('/rfq/:id/compare', auth, asyncHandler(async (req, res) => res.json({ ok: true, ...(await svc.compareOffers(req.params.id)) })));
+r.get('/rfq/:id/compare', auth, asyncHandler(async (req, res) => res.json({ ok: true, ...(await svc.compareOffers(req.user.companyId, req.params.id)) })));
 
 // PO
 r.get('/po',         auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listPO(req.user.companyId) })));

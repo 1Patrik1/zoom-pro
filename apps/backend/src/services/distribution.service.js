@@ -32,14 +32,14 @@ async function upsertCatalog(companyId, item) {
 }
 
 async function listSuppliers(companyId) {
-  const result = await query(`SELECT * FROM "Supplier" WHERE "companyId"=$1 ORDER BY name`, [companyId]);
+  const result = await query(`SELECT id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt" FROM "Supplier" WHERE "companyId"=$1 ORDER BY name`, [companyId]);
   return result.rows;
 }
 async function upsertSupplier(companyId, s) {
   if (s.id) {
     const result = await query(
-      `UPDATE "Supplier" SET name=$1,ico=$2,dic=$3,email=$4,phone=$5,"apiType"=$6,"apiUrl"=$7,"apiKeyEnc"=$8,currency=$9,"paymentTermDays"=$10,"discountPct"=$11,active=$12,metadata=$13
-       WHERE id=$14 AND "companyId"=$15 RETURNING *`,
+      `UPDATE "Supplier" SET name=$1,ico=$2,dic=$3,email=$4,phone=$5,"apiType"=$6,"apiUrl"=$7,"apiKeyEnc"=COALESCE(NULLIF($8, ''), "apiKeyEnc"),currency=$9,"paymentTermDays"=$10,"discountPct"=$11,active=$12,metadata=$13
+       WHERE id=$14 AND "companyId"=$15 RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
       [s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc, s.currency || 'CZK',
        s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}, s.id, companyId],
     );
@@ -47,36 +47,66 @@ async function upsertSupplier(companyId, s) {
   }
   const result = await query(
     `INSERT INTO "Supplier" ("companyId",name,ico,dic,email,phone,"apiType","apiUrl","apiKeyEnc",currency,"paymentTermDays","discountPct",active,metadata)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
     [companyId, s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc,
      s.currency || 'CZK', s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}],
   );
   return result.rows;
 }
 
-async function listPrices(catalogItemId) {
+async function listPrices(companyId, catalogItemId) {
   const result = await query(
     `SELECT sp.*, s.name as "supplierName", s.currency as "supplierCurrency"
-     FROM "SupplierPrice" sp JOIN "Supplier" s ON s.id = sp."supplierId"
-     WHERE sp."catalogItemId" = $1 ORDER BY sp.price ASC`,
-    [catalogItemId],
+     FROM "SupplierPrice" sp
+     JOIN "Supplier" s ON s.id = sp."supplierId" AND s."companyId" = $2
+     JOIN "CatalogItem" ci ON ci.id = sp."catalogItemId" AND ci."companyId" = $2
+     WHERE sp."catalogItemId" = $1
+     ORDER BY sp.price ASC`,
+    [catalogItemId, companyId],
   );
   return result.rows;
 }
-async function upsertPrice(p) {
-  const curResult = await query(`SELECT price FROM "SupplierPrice" WHERE id=$1`, [p.id || '00000000-0000-0000-0000-000000000000']);
-  const current = curResult.rows[0];
+
+async function upsertPrice(companyId, p) {
+  if (!Number.isFinite(Number(p.price)) || Number(p.price) < 0) throw new HttpError(400, 'Cena musí být nezáporné číslo.');
   if (p.id) {
-    if (current && Number(current.price) !== Number(p.price)) {
+    const curResult = await query(
+      `SELECT sp.price
+       FROM "SupplierPrice" sp
+       JOIN "Supplier" s ON s.id = sp."supplierId" AND s."companyId" = $2
+       JOIN "CatalogItem" ci ON ci.id = sp."catalogItemId" AND ci."companyId" = $2
+       WHERE sp.id = $1`,
+      [p.id, companyId],
+    );
+    const current = curResult.rows[0];
+    if (!current) throw new HttpError(404, 'Ceníková položka nenalezena.');
+    if (Number(current.price) !== Number(p.price)) {
       await query(`INSERT INTO "PriceHistory" ("supplierPriceId", price) VALUES ($1,$2)`, [p.id, current.price]);
     }
     const result = await query(
-      `UPDATE "SupplierPrice" SET "supplierSku"=$1, price=$2, currency=$3, moq=$4,"leadTimeDays"=$5,"qtyAvailable"=$6,"validFrom"=$7,"validTo"=$8, priority=$9, "updatedAt"=NOW()
-       WHERE id=$10 RETURNING *`,
-      [p.supplierSku, p.price, p.currency || 'CZK', p.moq ?? 1, p.leadTimeDays ?? 3, p.qtyAvailable, p.validFrom, p.validTo, p.priority ?? 100, p.id],
+      `UPDATE "SupplierPrice" sp
+       SET "supplierSku"=$1, price=$2, currency=$3, moq=$4, "leadTimeDays"=$5,
+           "qtyAvailable"=$6, "validFrom"=$7, "validTo"=$8, priority=$9, "updatedAt"=NOW()
+       FROM "Supplier" s, "CatalogItem" ci
+       WHERE sp.id=$10
+         AND s.id=sp."supplierId" AND s."companyId"=$11
+         AND ci.id=sp."catalogItemId" AND ci."companyId"=$11
+       RETURNING sp.*`,
+      [p.supplierSku, p.price, p.currency || 'CZK', p.moq ?? 1, p.leadTimeDays ?? 3, p.qtyAvailable, p.validFrom, p.validTo, p.priority ?? 100, p.id, companyId],
     );
+    if (!result.rows.length) throw new HttpError(404, 'Ceníková položka nenalezena.');
     return result.rows;
   }
+
+  const ownership = await query(
+    `SELECT s.id AS "supplierId", ci.id AS "catalogItemId"
+     FROM "Supplier" s
+     JOIN "CatalogItem" ci ON ci.id = $2 AND ci."companyId" = $3
+     WHERE s.id = $1 AND s."companyId" = $3`,
+    [p.supplierId, p.catalogItemId, companyId],
+  );
+  if (!ownership.rows.length) throw new HttpError(404, 'Dodavatel nebo katalogová položka nebyli nalezeni ve vaší firmě.');
+
   const result = await query(
     `INSERT INTO "SupplierPrice" ("supplierId","catalogItemId","supplierSku",price,currency,moq,"leadTimeDays","qtyAvailable","validFrom","validTo",priority)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
@@ -87,59 +117,162 @@ async function upsertPrice(p) {
 
 // ---- RFQ + PO
 async function createRfq(companyId, user, { projectId, lines, deadline, note }) {
-  const result = await query(
-    `INSERT INTO "Rfq" ("companyId","projectId","createdBy",status,deadline,note) VALUES ($1,$2,$3,'DRAFT',$4,$5) RETURNING *`,
-    [companyId, projectId, user.id, deadline, note],
-  );
-  const rfq = result.rows[0];
-  for (const l of lines || []) {
-    await query(`INSERT INTO "RfqLine" ("rfqId","catalogItemId",quantity,note) VALUES ($1,$2,$3,$4)`,
-      [rfq.id, l.catalogItemId, l.quantity, l.note]);
+  const safeLines = Array.isArray(lines) ? lines : [];
+  if (projectId) {
+    const project = await query('SELECT id FROM "Project" WHERE id=$1 AND "companyId"=$2', [projectId, companyId]);
+    if (!project.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě.');
   }
-  return rfq;
+
+  const itemIds = [...new Set(safeLines.map((line) => line.catalogItemId).filter(Boolean))];
+  if (safeLines.some((line) => !line.catalogItemId || !Number.isFinite(Number(line.quantity)) || Number(line.quantity) <= 0)) {
+    throw new HttpError(400, 'Každá položka poptávky musí mít katalogovou položku a kladné množství.');
+  }
+  if (itemIds.length) {
+    const items = await query(
+      'SELECT id FROM "CatalogItem" WHERE id = ANY($1::uuid[]) AND "companyId"=$2',
+      [itemIds, companyId],
+    );
+    if (items.rows.length !== itemIds.length) throw new HttpError(404, 'Jedna nebo více katalogových položek nebyly nalezeny ve vaší firmě.');
+  }
+
+  return withTransaction(async (client) => {
+    const result = await client.query(
+      `INSERT INTO "Rfq" ("companyId","projectId","createdBy",status,deadline,note)
+       VALUES ($1,$2,$3,'DRAFT',$4,$5) RETURNING *`,
+      [companyId, projectId || null, user.id, deadline || null, note || null],
+    );
+    const rfq = result.rows[0];
+    for (const line of safeLines) {
+      await client.query(
+        `INSERT INTO "RfqLine" ("rfqId","catalogItemId",quantity,note) VALUES ($1,$2,$3,$4)`,
+        [rfq.id, line.catalogItemId, Number(line.quantity), line.note || null],
+      );
+    }
+    return rfq;
+  });
 }
 async function listRfq(companyId) {
   const result = await query(`SELECT * FROM "Rfq" WHERE "companyId"=$1 ORDER BY "createdAt" DESC LIMIT 200`, [companyId]);
   return result.rows;
 }
 
-async function compareOffers(rfqId) {
-  const linesResult = await query(`SELECT rl.*, ci.name, ci.sku FROM "RfqLine" rl JOIN "CatalogItem" ci ON ci.id = rl."catalogItemId" WHERE rl."rfqId"=$1`, [rfqId]);
-  const suppliersResult = await query(`SELECT DISTINCT s.* FROM "SupplierPrice" sp JOIN "Supplier" s ON s.id=sp."supplierId"
-     WHERE sp."catalogItemId" IN (SELECT "catalogItemId" FROM "RfqLine" WHERE "rfqId"=$1)`, [rfqId]);
+async function compareOffers(companyId, rfqId) {
+  const rfqResult = await query('SELECT id FROM "Rfq" WHERE id=$1 AND "companyId"=$2', [rfqId, companyId]);
+  if (!rfqResult.rows.length) throw new HttpError(404, 'Poptávka nebyla nalezena ve vaší firmě.');
+
+  const linesResult = await query(
+    `SELECT rl.*, ci.name, ci.sku
+     FROM "RfqLine" rl
+     JOIN "CatalogItem" ci ON ci.id = rl."catalogItemId" AND ci."companyId" = $2
+     WHERE rl."rfqId" = $1`,
+    [rfqId, companyId],
+  );
+  const suppliersResult = await query(
+    `SELECT DISTINCT s.id, s.name, s.currency, s."paymentTermDays", s."discountPct", s.active
+     FROM "SupplierPrice" sp
+     JOIN "Supplier" s ON s.id=sp."supplierId" AND s."companyId"=$2
+     JOIN "CatalogItem" ci ON ci.id=sp."catalogItemId" AND ci."companyId"=$2
+     WHERE sp."catalogItemId" IN (
+       SELECT rl."catalogItemId"
+       FROM "RfqLine" rl
+       JOIN "Rfq" r ON r.id=rl."rfqId" AND r."companyId"=$2
+       WHERE rl."rfqId"=$1
+     )`,
+    [rfqId, companyId],
+  );
+
   const lines = linesResult.rows;
   const suppliers = suppliersResult.rows;
-
   const table = [];
-  for (const s of suppliers) {
-    const row = { supplierId: s.id, supplierName: s.name, currency: s.currency, total: 0, leadTimeDays: 0, lines: [], missing: 0 };
-    for (const l of lines) {
-      const priceResult = await query(`SELECT * FROM "SupplierPrice" WHERE "supplierId"=$1 AND "catalogItemId"=$2 ORDER BY priority ASC LIMIT 1`, [s.id, l.catalogItemId]);
-      const p = priceResult.rows[0];
-      if (!p) { row.missing += 1; row.lines.push({ sku: l.sku, name: l.name, qty: l.quantity, price: null, subtotal: null }); continue; }
-      const sub = Number(p.price) * Number(l.quantity);
-      row.lines.push({ sku: l.sku, name: l.name, qty: l.quantity, price: p.price, subtotal: sub, leadTimeDays: p.leadTimeDays });
-      row.total += sub;
-      row.leadTimeDays = Math.max(row.leadTimeDays, p.leadTimeDays || 0);
+  for (const supplier of suppliers) {
+    const row = { supplierId: supplier.id, supplierName: supplier.name, currency: supplier.currency, total: 0, leadTimeDays: 0, lines: [], missing: 0 };
+    for (const line of lines) {
+      const priceResult = await query(
+        `SELECT * FROM "SupplierPrice"
+         WHERE "supplierId"=$1 AND "catalogItemId"=$2
+         ORDER BY priority ASC LIMIT 1`,
+        [supplier.id, line.catalogItemId],
+      );
+      const price = priceResult.rows[0];
+      if (!price) {
+        row.missing += 1;
+        row.lines.push({ sku: line.sku, name: line.name, qty: line.quantity, price: null, subtotal: null });
+        continue;
+      }
+      const subtotal = Number(price.price) * Number(line.quantity);
+      row.lines.push({ sku: line.sku, name: line.name, qty: line.quantity, price: price.price, subtotal, leadTimeDays: price.leadTimeDays });
+      row.total += subtotal;
+      row.leadTimeDays = Math.max(row.leadTimeDays, price.leadTimeDays || 0);
     }
     table.push(row);
   }
-  table.sort((a, b) => a.total - b.total);
+  table.sort((left, right) => left.total - right.total);
   return { lines, table };
 }
 
 async function createPO(companyId, user, payload) {
-  const result = await query(
-    `INSERT INTO "PurchaseOrder" ("companyId","projectId","supplierId","rfqQuoteId","poNumber",status,"totalAmount",currency,"createdBy","expectedAt")
-     VALUES ($1,$2,$3,$4,$5,'DRAFT',$6,$7,$8,$9) RETURNING *`,
-    [companyId, payload.projectId, payload.supplierId, payload.rfqQuoteId, payload.poNumber, payload.totalAmount, payload.currency || 'CZK', user.id, payload.expectedAt],
-  );
-  const po = result.rows[0];
-  for (const l of payload.lines || []) {
-    await query(`INSERT INTO "PurchaseOrderLine" ("poId","catalogItemId","supplierSku",qty,"unitPrice",currency) VALUES ($1,$2,$3,$4,$5,$6)`,
-      [po.id, l.catalogItemId, l.supplierSku, l.qty, l.unitPrice, l.currency || 'CZK']);
+  const safeLines = Array.isArray(payload.lines) ? payload.lines : [];
+  if (!payload.supplierId) throw new HttpError(400, 'Dodavatel je povinný.');
+  if (safeLines.some((line) => !line.catalogItemId || !Number.isFinite(Number(line.qty)) || Number(line.qty) <= 0
+    || !Number.isFinite(Number(line.unitPrice)) || Number(line.unitPrice) < 0)) {
+    throw new HttpError(400, 'Řádky objednávky musí mít platnou katalogovou položku, kladné množství a nezápornou cenu.');
   }
-  return po;
+
+  return withTransaction(async (client) => {
+    const supplierResult = await client.query(
+      'SELECT id, currency FROM "Supplier" WHERE id=$1 AND "companyId"=$2 FOR SHARE',
+      [payload.supplierId, companyId],
+    );
+    const supplier = supplierResult.rows[0];
+    if (!supplier) throw new HttpError(404, 'Dodavatel nebyl nalezen ve vaší firmě.');
+
+    if (payload.projectId) {
+      const projectResult = await client.query(
+        'SELECT id FROM "Project" WHERE id=$1 AND "companyId"=$2 FOR SHARE',
+        [payload.projectId, companyId],
+      );
+      if (!projectResult.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě.');
+    }
+
+    if (payload.rfqQuoteId) {
+      const quoteResult = await client.query(
+        `SELECT rq.id
+         FROM "RfqQuote" rq
+         JOIN "Rfq" r ON r.id=rq."rfqId" AND r."companyId"=$2
+         JOIN "Supplier" s ON s.id=rq."supplierId" AND s."companyId"=$2
+         WHERE rq.id=$1 AND rq."supplierId"=$3
+         FOR SHARE OF rq`,
+        [payload.rfqQuoteId, companyId, payload.supplierId],
+      );
+      if (!quoteResult.rows.length) throw new HttpError(404, 'Nabídka nebyla nalezena ve vaší firmě nebo nepatří vybranému dodavateli.');
+    }
+
+    const itemIds = [...new Set(safeLines.map((line) => line.catalogItemId))];
+    if (itemIds.length) {
+      const itemResult = await client.query(
+        'SELECT id FROM "CatalogItem" WHERE id=ANY($1::uuid[]) AND "companyId"=$2 FOR SHARE',
+        [itemIds, companyId],
+      );
+      if (itemResult.rows.length !== itemIds.length) throw new HttpError(404, 'Jedna nebo více katalogových položek nebyly nalezeny ve vaší firmě.');
+    }
+
+    const currency = payload.currency || supplier.currency || 'CZK';
+    const totalAmount = safeLines.reduce((sum, line) => sum + Number(line.qty) * Number(line.unitPrice), 0);
+    const result = await client.query(
+      `INSERT INTO "PurchaseOrder" ("companyId","projectId","supplierId","rfqQuoteId","poNumber",status,"totalAmount",currency,"createdBy","expectedAt")
+       VALUES ($1,$2,$3,$4,$5,'DRAFT',$6,$7,$8,$9) RETURNING *`,
+      [companyId, payload.projectId || null, payload.supplierId, payload.rfqQuoteId || null, payload.poNumber || null, totalAmount, currency, user.id, payload.expectedAt || null],
+    );
+    const po = result.rows[0];
+    for (const line of safeLines) {
+      await client.query(
+        `INSERT INTO "PurchaseOrderLine" ("poId","catalogItemId","supplierSku",qty,"unitPrice",currency)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [po.id, line.catalogItemId, line.supplierSku || null, Number(line.qty), Number(line.unitPrice), line.currency || currency],
+      );
+    }
+    return po;
+  });
 }
 async function approvePO(companyId, user, id) {
   const result = await query(`UPDATE "PurchaseOrder" SET status='APPROVED', "approvedBy"=$1 WHERE id=$2 AND "companyId"=$3 RETURNING *`, [user.id, id, companyId]);
@@ -149,8 +282,8 @@ async function getPO(companyId, id) {
   const poResult = await query(
     `SELECT po.*, s.name AS "supplierName", p.name AS "projectName"
        FROM "PurchaseOrder" po
-       LEFT JOIN "Supplier" s ON s.id = po."supplierId"
-       LEFT JOIN "Project" p ON p.id = po."projectId"
+       LEFT JOIN "Supplier" s ON s.id = po."supplierId" AND s."companyId" = po."companyId"
+       LEFT JOIN "Project" p ON p.id = po."projectId" AND p."companyId" = po."companyId"
       WHERE po.id = $1 AND po."companyId" = $2`,
     [id, companyId]
   );
@@ -159,61 +292,79 @@ async function getPO(companyId, id) {
   const linesResult = await query(
     `SELECT l.*, ci.sku, ci.name, ci.unit
        FROM "PurchaseOrderLine" l
-       JOIN "CatalogItem" ci ON ci.id = l."catalogItemId"
+       JOIN "CatalogItem" ci ON ci.id = l."catalogItemId" AND ci."companyId" = $2
       WHERE l."poId" = $1 ORDER BY ci.name ASC`,
-    [id]
+    [id, companyId]
   );
   return { po, lines: linesResult.rows };
 }
 
 async function createPOFromQuote(companyId, user, rfqId, supplierId) {
-  const rfqResult = await query('SELECT * FROM "Rfq" WHERE id = $1 AND "companyId" = $2', [rfqId, companyId]);
-  const rfq = rfqResult.rows[0];
-  if (!rfq) throw new HttpError(404, 'RFQ nenalezena.');
-  if (rfq.status === 'CONVERTED') throw new HttpError(400, 'Z této poptávky už byla objednávka vytvořena.');
-  const supResult = await query('SELECT * FROM "Supplier" WHERE id = $1 AND "companyId" = $2', [supplierId, companyId]);
-  const supplier = supResult.rows[0];
-  if (!supplier) throw new HttpError(404, 'Dodavatel nenalezen.');
-  const linesResult = await query(
-    `SELECT rl.*, ci.sku, ci.name, ci.unit
-       FROM "RfqLine" rl JOIN "CatalogItem" ci ON ci.id = rl."catalogItemId"
-      WHERE rl."rfqId" = $1`,
-    [rfqId]
-  );
-  const lines = linesResult.rows;
-  if (!lines.length) throw new HttpError(400, 'Poptávka nemá žádné položky.');
-
-  const poLines = [];
-  const missing = [];
-  let total = 0;
-  for (const l of lines) {
-    const priceResult = await query(
-      `SELECT * FROM "SupplierPrice" WHERE "supplierId" = $1 AND "catalogItemId" = $2 ORDER BY priority ASC, price ASC LIMIT 1`,
-      [supplierId, l.catalogItemId]
+  return withTransaction(async (client) => {
+    const rfqResult = await client.query(
+      'SELECT * FROM "Rfq" WHERE id=$1 AND "companyId"=$2 FOR UPDATE',
+      [rfqId, companyId],
     );
-    const p = priceResult.rows[0];
-    if (!p) { missing.push(l.sku); continue; }
-    total += Number(p.price) * Number(l.quantity);
-    poLines.push({ catalogItemId: l.catalogItemId, supplierSku: p.supplierSku, qty: Number(l.quantity), unitPrice: Number(p.price) });
-  }
-  if (!poLines.length) throw new HttpError(400, `Dodavatel nemá ceny pro žádnou položku (${missing.join(', ')}).`);
+    const rfq = rfqResult.rows[0];
+    if (!rfq) throw new HttpError(404, 'RFQ nenalezena.');
+    if (rfq.status === 'CONVERTED') throw new HttpError(400, 'Z této poptávky už byla objednávka vytvořena.');
 
-  const poNumber = `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-  const poResult = await query(
-    `INSERT INTO "PurchaseOrder" ("companyId","projectId","supplierId","poNumber",status,"totalAmount",currency,"createdBy")
-     VALUES ($1,$2,$3,$4,'DRAFT',$5,$6,$7) RETURNING *`,
-    [companyId, rfq.projectId, supplierId, poNumber, total, supplier.currency || 'CZK', user.id]
-  );
-  const po = poResult.rows[0];
-  for (const l of poLines) {
-    await query(
-      `INSERT INTO "PurchaseOrderLine" ("poId","catalogItemId","supplierSku",qty,"unitPrice",currency)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
-      [po.id, l.catalogItemId, l.supplierSku, l.qty, l.unitPrice, supplier.currency || 'CZK']
+    const supResult = await client.query(
+      'SELECT * FROM "Supplier" WHERE id=$1 AND "companyId"=$2',
+      [supplierId, companyId],
     );
-  }
-  await query(`UPDATE "Rfq" SET status = 'CONVERTED' WHERE id = $1`, [rfqId]);
-  return { po, lineCount: poLines.length, missing };
+    const supplier = supResult.rows[0];
+    if (!supplier) throw new HttpError(404, 'Dodavatel nenalezen.');
+
+    const linesResult = await client.query(
+      `SELECT rl.*, ci.sku, ci.name, ci.unit
+       FROM "RfqLine" rl
+       JOIN "CatalogItem" ci ON ci.id=rl."catalogItemId" AND ci."companyId"=$2
+       WHERE rl."rfqId"=$1`,
+      [rfqId, companyId],
+    );
+    const lines = linesResult.rows;
+    if (!lines.length) throw new HttpError(400, 'Poptávka nemá žádné položky.');
+
+    const poLines = [];
+    const missing = [];
+    let total = 0;
+    for (const line of lines) {
+      const priceResult = await client.query(
+        `SELECT sp.* FROM "SupplierPrice" sp
+         JOIN "Supplier" s ON s.id=sp."supplierId" AND s."companyId"=$3
+         JOIN "CatalogItem" ci ON ci.id=sp."catalogItemId" AND ci."companyId"=$3
+         WHERE sp."supplierId"=$1 AND sp."catalogItemId"=$2
+         ORDER BY priority ASC, price ASC LIMIT 1`,
+        [supplierId, line.catalogItemId, companyId],
+      );
+      const price = priceResult.rows[0];
+      if (!price) { missing.push(line.sku); continue; }
+      total += Number(price.price) * Number(line.quantity);
+      poLines.push({ catalogItemId: line.catalogItemId, supplierSku: price.supplierSku, qty: Number(line.quantity), unitPrice: Number(price.price) });
+    }
+    if (!poLines.length) throw new HttpError(400, `Dodavatel nemá ceny pro žádnou položku (${missing.join(', ')}).`);
+
+    const poNumber = `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    const poResult = await client.query(
+      `INSERT INTO "PurchaseOrder" ("companyId","projectId","supplierId","poNumber",status,"totalAmount",currency,"createdBy")
+       VALUES ($1,$2,$3,$4,'DRAFT',$5,$6,$7) RETURNING *`,
+      [companyId, rfq.projectId, supplierId, poNumber, total, supplier.currency || 'CZK', user.id],
+    );
+    const po = poResult.rows[0];
+    for (const line of poLines) {
+      await client.query(
+        `INSERT INTO "PurchaseOrderLine" ("poId","catalogItemId","supplierSku",qty,"unitPrice",currency)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [po.id, line.catalogItemId, line.supplierSku, line.qty, line.unitPrice, supplier.currency || 'CZK'],
+      );
+    }
+    await client.query(
+      `UPDATE "Rfq" SET status='CONVERTED' WHERE id=$1 AND "companyId"=$2`,
+      [rfqId, companyId],
+    );
+    return { po, lineCount: poLines.length, missing };
+  });
 }
 
 async function receivePO(companyId, user, id, lines) {
@@ -226,13 +377,33 @@ async function receivePO(companyId, user, id, lines) {
     const lineResult = await client.query(
       `SELECT l.*, ci.sku, ci.name, ci.unit
          FROM "PurchaseOrderLine" l
-         JOIN "CatalogItem" ci ON ci.id = l."catalogItemId"
+         JOIN "CatalogItem" ci ON ci.id = l."catalogItemId" AND ci."companyId" = $2
         WHERE l."poId" = $1`,
-      [id]
+      [id, companyId]
     );
     const poLines = lineResult.rows;
+    if (!poLines.length) throw new HttpError(400, 'Objednávka nemá platné položky.');
 
-    const byItem = new Map((lines || []).map((l) => [String(l.catalogItemId), Number(l.qty)]));
+    const requestedLines = Array.isArray(lines) ? lines : [];
+    const seenIds = new Set();
+    for (const line of requestedLines) {
+      const itemId = String(line?.catalogItemId || '');
+      const qty = Number(line?.qty);
+      if (!itemId || seenIds.has(itemId) || !Number.isFinite(qty) || qty <= 0) {
+        throw new HttpError(400, 'Příjem obsahuje neplatnou nebo duplicitní položku či množství.');
+      }
+      seenIds.add(itemId);
+    }
+    const orderedIds = new Set(poLines.map((line) => String(line.catalogItemId)));
+    if (requestedLines.some((line) => !orderedIds.has(String(line.catalogItemId)))) {
+      throw new HttpError(400, 'Příjem obsahuje položku, která není součástí této objednávky.');
+    }
+    const byItem = new Map(requestedLines.map((l) => [String(l.catalogItemId), Number(l.qty)]));
+    for (const line of poLines) {
+      if (byItem.has(String(line.catalogItemId)) && byItem.get(String(line.catalogItemId)) !== Number(line.qty)) {
+        throw new HttpError(400, 'Částečný příjem není podporován. Množství musí odpovídat celé objednané položce.');
+      }
+    }
     let received = 0;
     let skipped = 0;
     const errors = [];
@@ -281,8 +452,8 @@ async function listPO(companyId) {
     `SELECT po.*, s.name AS "supplierName", p.name AS "projectName",
             (SELECT COUNT(*)::int FROM "PurchaseOrderLine" l WHERE l."poId" = po.id) AS "lineCount"
        FROM "PurchaseOrder" po
-       LEFT JOIN "Supplier" s ON s.id = po."supplierId"
-       LEFT JOIN "Project" p ON p.id = po."projectId"
+       LEFT JOIN "Supplier" s ON s.id = po."supplierId" AND s."companyId" = po."companyId"
+       LEFT JOIN "Project" p ON p.id = po."projectId" AND p."companyId" = po."companyId"
       WHERE po."companyId" = $1
       ORDER BY po."createdAt" DESC
       LIMIT 200`,
