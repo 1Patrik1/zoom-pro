@@ -116,44 +116,96 @@ async function upsertPrice(companyId, p) {
 
 // ---- RFQ + PO
 async function createRfq(companyId, user, { projectId, lines, deadline, note }) {
-  const result = await query(
-    `INSERT INTO "Rfq" ("companyId","projectId","createdBy",status,deadline,note) VALUES ($1,$2,$3,'DRAFT',$4,$5) RETURNING *`,
-    [companyId, projectId, user.id, deadline, note],
-  );
-  const rfq = result.rows[0];
-  for (const l of lines || []) {
-    await query(`INSERT INTO "RfqLine" ("rfqId","catalogItemId",quantity,note) VALUES ($1,$2,$3,$4)`,
-      [rfq.id, l.catalogItemId, l.quantity, l.note]);
+  const safeLines = Array.isArray(lines) ? lines : [];
+  if (projectId) {
+    const project = await query('SELECT id FROM "Project" WHERE id=$1 AND "companyId"=$2', [projectId, companyId]);
+    if (!project.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě.');
   }
-  return rfq;
+
+  const itemIds = [...new Set(safeLines.map((line) => line.catalogItemId).filter(Boolean))];
+  if (safeLines.some((line) => !line.catalogItemId || !Number.isFinite(Number(line.quantity)) || Number(line.quantity) <= 0)) {
+    throw new HttpError(400, 'Každá položka poptávky musí mít katalogovou položku a kladné množství.');
+  }
+  if (itemIds.length) {
+    const items = await query(
+      'SELECT id FROM "CatalogItem" WHERE id = ANY($1::uuid[]) AND "companyId"=$2',
+      [itemIds, companyId],
+    );
+    if (items.rows.length !== itemIds.length) throw new HttpError(404, 'Jedna nebo více katalogových položek nebyly nalezeny ve vaší firmě.');
+  }
+
+  return withTransaction(async (client) => {
+    const result = await client.query(
+      `INSERT INTO "Rfq" ("companyId","projectId","createdBy",status,deadline,note)
+       VALUES ($1,$2,$3,'DRAFT',$4,$5) RETURNING *`,
+      [companyId, projectId || null, user.id, deadline || null, note || null],
+    );
+    const rfq = result.rows[0];
+    for (const line of safeLines) {
+      await client.query(
+        `INSERT INTO "RfqLine" ("rfqId","catalogItemId",quantity,note) VALUES ($1,$2,$3,$4)`,
+        [rfq.id, line.catalogItemId, Number(line.quantity), line.note || null],
+      );
+    }
+    return rfq;
+  });
 }
 async function listRfq(companyId) {
   const result = await query(`SELECT * FROM "Rfq" WHERE "companyId"=$1 ORDER BY "createdAt" DESC LIMIT 200`, [companyId]);
   return result.rows;
 }
 
-async function compareOffers(rfqId) {
-  const linesResult = await query(`SELECT rl.*, ci.name, ci.sku FROM "RfqLine" rl JOIN "CatalogItem" ci ON ci.id = rl."catalogItemId" WHERE rl."rfqId"=$1`, [rfqId]);
-  const suppliersResult = await query(`SELECT DISTINCT s.* FROM "SupplierPrice" sp JOIN "Supplier" s ON s.id=sp."supplierId"
-     WHERE sp."catalogItemId" IN (SELECT "catalogItemId" FROM "RfqLine" WHERE "rfqId"=$1)`, [rfqId]);
+async function compareOffers(companyId, rfqId) {
+  const rfqResult = await query('SELECT id FROM "Rfq" WHERE id=$1 AND "companyId"=$2', [rfqId, companyId]);
+  if (!rfqResult.rows.length) throw new HttpError(404, 'Poptávka nebyla nalezena ve vaší firmě.');
+
+  const linesResult = await query(
+    `SELECT rl.*, ci.name, ci.sku
+     FROM "RfqLine" rl
+     JOIN "CatalogItem" ci ON ci.id = rl."catalogItemId" AND ci."companyId" = $2
+     WHERE rl."rfqId" = $1`,
+    [rfqId, companyId],
+  );
+  const suppliersResult = await query(
+    `SELECT DISTINCT s.*
+     FROM "SupplierPrice" sp
+     JOIN "Supplier" s ON s.id=sp."supplierId" AND s."companyId"=$2
+     JOIN "CatalogItem" ci ON ci.id=sp."catalogItemId" AND ci."companyId"=$2
+     WHERE sp."catalogItemId" IN (
+       SELECT rl."catalogItemId"
+       FROM "RfqLine" rl
+       JOIN "Rfq" r ON r.id=rl."rfqId" AND r."companyId"=$2
+       WHERE rl."rfqId"=$1
+     )`,
+    [rfqId, companyId],
+  );
+
   const lines = linesResult.rows;
   const suppliers = suppliersResult.rows;
-
   const table = [];
-  for (const s of suppliers) {
-    const row = { supplierId: s.id, supplierName: s.name, currency: s.currency, total: 0, leadTimeDays: 0, lines: [], missing: 0 };
-    for (const l of lines) {
-      const priceResult = await query(`SELECT * FROM "SupplierPrice" WHERE "supplierId"=$1 AND "catalogItemId"=$2 ORDER BY priority ASC LIMIT 1`, [s.id, l.catalogItemId]);
-      const p = priceResult.rows[0];
-      if (!p) { row.missing += 1; row.lines.push({ sku: l.sku, name: l.name, qty: l.quantity, price: null, subtotal: null }); continue; }
-      const sub = Number(p.price) * Number(l.quantity);
-      row.lines.push({ sku: l.sku, name: l.name, qty: l.quantity, price: p.price, subtotal: sub, leadTimeDays: p.leadTimeDays });
-      row.total += sub;
-      row.leadTimeDays = Math.max(row.leadTimeDays, p.leadTimeDays || 0);
+  for (const supplier of suppliers) {
+    const row = { supplierId: supplier.id, supplierName: supplier.name, currency: supplier.currency, total: 0, leadTimeDays: 0, lines: [], missing: 0 };
+    for (const line of lines) {
+      const priceResult = await query(
+        `SELECT * FROM "SupplierPrice"
+         WHERE "supplierId"=$1 AND "catalogItemId"=$2
+         ORDER BY priority ASC LIMIT 1`,
+        [supplier.id, line.catalogItemId],
+      );
+      const price = priceResult.rows[0];
+      if (!price) {
+        row.missing += 1;
+        row.lines.push({ sku: line.sku, name: line.name, qty: line.quantity, price: null, subtotal: null });
+        continue;
+      }
+      const subtotal = Number(price.price) * Number(line.quantity);
+      row.lines.push({ sku: line.sku, name: line.name, qty: line.quantity, price: price.price, subtotal, leadTimeDays: price.leadTimeDays });
+      row.total += subtotal;
+      row.leadTimeDays = Math.max(row.leadTimeDays, price.leadTimeDays || 0);
     }
     table.push(row);
   }
-  table.sort((a, b) => a.total - b.total);
+  table.sort((left, right) => left.total - right.total);
   return { lines, table };
 }
 
