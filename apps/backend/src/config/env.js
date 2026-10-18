@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { validateProductionConfig } from './env-validation.js';
 
 const required = ['DATABASE_URL', 'JWT_SECRET'];
 for (const key of required) {
@@ -7,28 +8,20 @@ for (const key of required) {
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const jwtSecret = process.env.JWT_SECRET;
-const insecureJwtSecrets = new Set([
-  'change-me-in-production',
-  'changeme',
-  'change-me',
-  'secret',
-  'jwt-secret',
-  'your-secret-key',
-  'your_jwt_secret'
-]);
+const corsOriginRaw = process.env.CORS_ORIGIN || '*';
 
-if (nodeEnv === 'production') {
-  if (jwtSecret.length < 32 || insecureJwtSecrets.has(jwtSecret.trim().toLowerCase())) {
-    throw new Error('JWT_SECRET is insecure for production: provide a unique random secret with at least 32 characters.');
-  }
-}
+validateProductionConfig({
+  nodeEnv,
+  jwtSecret,
+  corsOrigin: corsOriginRaw.split(',').map((s) => s.trim()).filter(Boolean)
+});
 
 export const env = {
   nodeEnv,
   port: Number(process.env.PORT || 5000),
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret,
-  corsOrigin: (process.env.CORS_ORIGIN || '*')
+  corsOrigin: corsOriginRaw
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
