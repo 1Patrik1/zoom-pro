@@ -35,11 +35,18 @@ jobs:
           node --input-type=commonjs <<'NODE'
           const fs = require('fs');
           try {
-            const raw = fs.readFileSync('npm-audit-root.json', 'utf8');
-            const start = raw.indexOf('{');
-            const end = raw.lastIndexOf('}');
-            if (start < 0 || end < start) throw new Error('No JSON object in npm audit output');
-            const report = JSON.parse(raw.slice(start, end + 1));
+            const outputs = [
+              fs.readFileSync('npm-audit-root.json', 'utf8'),
+              fs.readFileSync('npm-audit-root.stderr', 'utf8')
+            ];
+            let report;
+            for (const raw of outputs) {
+              const start = raw.indexOf('{');
+              const end = raw.lastIndexOf('}');
+              if (start < 0 || end < start) continue;
+              try { report = JSON.parse(raw.slice(start, end + 1)); break; } catch {}
+            }
+            if (!report) throw new Error('No valid JSON object in npm audit stdout/stderr');
             const v = report.metadata?.vulnerabilities || {};
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               '## Root workspace dependency audit\n\n' +
@@ -47,7 +54,9 @@ jobs:
               `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n`);
           } catch {
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-              'Root audit did not return valid JSON. Inspect the uploaded artifact and job logs.\n');
+              'Root audit did not return valid JSON. Inspect the uploaded stdout/stderr artifacts and job logs.\n');
+            console.log('npm audit stdout preview:', fs.readFileSync('npm-audit-root.json', 'utf8').slice(0, 1000));
+            console.log('npm audit stderr preview:', fs.readFileSync('npm-audit-root.stderr', 'utf8').slice(0, 1000));
           }
           NODE
       - uses: actions/upload-artifact@v4
@@ -80,11 +89,18 @@ jobs:
           node --input-type=commonjs <<'NODE'
           const fs = require('fs');
           try {
-            const raw = fs.readFileSync('npm-audit-mobile.json', 'utf8');
-            const start = raw.indexOf('{');
-            const end = raw.lastIndexOf('}');
-            if (start < 0 || end < start) throw new Error('No JSON object in npm audit output');
-            const report = JSON.parse(raw.slice(start, end + 1));
+            const outputs = [
+              fs.readFileSync('npm-audit-mobile.json', 'utf8'),
+              fs.readFileSync('npm-audit-mobile.stderr', 'utf8')
+            ];
+            let report;
+            for (const raw of outputs) {
+              const start = raw.indexOf('{');
+              const end = raw.lastIndexOf('}');
+              if (start < 0 || end < start) continue;
+              try { report = JSON.parse(raw.slice(start, end + 1)); break; } catch {}
+            }
+            if (!report) throw new Error('No valid JSON object in npm audit stdout/stderr');
             const v = report.metadata?.vulnerabilities || {};
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               '## Mobile dependency audit\n\n' +
@@ -92,7 +108,9 @@ jobs:
               `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n`);
           } catch {
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-              'Mobile audit did not return valid JSON. Inspect the uploaded artifact and job logs.\n');
+              'Mobile audit did not return valid JSON. Inspect the uploaded stdout/stderr artifacts and job logs.\n');
+            console.log('npm audit stdout preview:', fs.readFileSync('npm-audit-mobile.json', 'utf8').slice(0, 1000));
+            console.log('npm audit stderr preview:', fs.readFileSync('npm-audit-mobile.stderr', 'utf8').slice(0, 1000));
           }
           NODE
       - uses: actions/upload-artifact@v4
