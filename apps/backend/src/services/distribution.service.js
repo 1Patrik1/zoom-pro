@@ -18,21 +18,21 @@ async function upsertCatalog(companyId, item) {
   if (id) {
     const result = await query(
       `UPDATE "CatalogItem" SET sku=$1,name=$2,category=$3,shape=$4,"diameterMm"=$5,"widthMm"=$6,"heightMm"=$7,"lengthMm"=$8,"angleDeg"=$9,"materialCode"=$10,unit=$11,"weightKg"=$12,attributes=$13
-       WHERE id=$14 AND "companyId"=$15 RETURNING *`,
+       WHERE id=$14 AND "companyId"=$15 RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
       [sku, name, category, shape, diameterMm, widthMm, heightMm, lengthMm, angleDeg, materialCode, unit || 'ks', weightKg, attributes || {}, id, companyId],
     );
     return result.rows;
   }
   const result = await query(
     `INSERT INTO "CatalogItem" ("companyId",sku,name,category,shape,"diameterMm","widthMm","heightMm","lengthMm","angleDeg","materialCode",unit,"weightKg",attributes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
     [companyId, sku, name, category, shape, diameterMm, widthMm, heightMm, lengthMm, angleDeg, materialCode, unit || 'ks', weightKg, attributes || {}],
   );
   return result.rows;
 }
 
 async function listSuppliers(companyId) {
-  const result = await query(`SELECT * FROM "Supplier" WHERE "companyId"=$1 ORDER BY name`, [companyId]);
+  const result = await query(`SELECT id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt" FROM "Supplier" WHERE "companyId"=$1 ORDER BY name`, [companyId]);
   return result.rows;
 }
 async function upsertSupplier(companyId, s) {
@@ -167,7 +167,7 @@ async function compareOffers(companyId, rfqId) {
     [rfqId, companyId],
   );
   const suppliersResult = await query(
-    `SELECT DISTINCT s.*
+    `SELECT DISTINCT s.id, s.name, s.currency, s."paymentTermDays", s."discountPct", s.active
      FROM "SupplierPrice" sp
      JOIN "Supplier" s ON s.id=sp."supplierId" AND s."companyId"=$2
      JOIN "CatalogItem" ci ON ci.id=sp."catalogItemId" AND ci."companyId"=$2
