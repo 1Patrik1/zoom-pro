@@ -377,13 +377,32 @@ async function receivePO(companyId, user, id, lines) {
     const lineResult = await client.query(
       `SELECT l.*, ci.sku, ci.name, ci.unit
          FROM "PurchaseOrderLine" l
-         JOIN "CatalogItem" ci ON ci.id = l."catalogItemId"
+         JOIN "CatalogItem" ci ON ci.id = l."catalogItemId" AND ci."companyId" = $2
         WHERE l."poId" = $1`,
-      [id]
+      [id, companyId]
     );
     const poLines = lineResult.rows;
 
-    const byItem = new Map((lines || []).map((l) => [String(l.catalogItemId), Number(l.qty)]));
+    const requestedLines = Array.isArray(lines) ? lines : [];
+    const seenIds = new Set();
+    for (const line of requestedLines) {
+      const itemId = String(line?.catalogItemId || '');
+      const qty = Number(line?.qty);
+      if (!itemId || seenIds.has(itemId) || !Number.isFinite(qty) || qty <= 0) {
+        throw new HttpError(400, 'Příjem obsahuje neplatnou nebo duplicitní položku či množství.');
+      }
+      seenIds.add(itemId);
+    }
+    const orderedIds = new Set(poLines.map((line) => String(line.catalogItemId)));
+    if (requestedLines.some((line) => !orderedIds.has(String(line.catalogItemId)))) {
+      throw new HttpError(400, 'Příjem obsahuje položku, která není součástí této objednávky.');
+    }
+    const byItem = new Map(requestedLines.map((l) => [String(l.catalogItemId), Number(l.qty)]));
+    for (const line of poLines) {
+      if (byItem.has(String(line.catalogItemId)) && byItem.get(String(line.catalogItemId)) !== Number(line.qty)) {
+        throw new HttpError(400, 'Částečný příjem není podporován. Množství musí odpovídat celé objednané položce.');
+      }
+    }
     let received = 0;
     let skipped = 0;
     const errors = [];
