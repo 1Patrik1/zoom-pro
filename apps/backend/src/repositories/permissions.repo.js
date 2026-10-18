@@ -16,11 +16,16 @@ export const permissionsRepo = {
          WHERE uo."userId" = $1
        ),
        resolved AS (
-         SELECT key, granted FROM role_permissions
+         SELECT key, granted, 1 AS priority FROM role_permissions
          UNION ALL
-         SELECT key, granted FROM user_overrides
+         SELECT key, granted, 2 AS priority FROM user_overrides
        )
-       SELECT key, BOOL_OR(granted) AS granted
+       SELECT key,
+              CASE
+                WHEN BOOL_OR(priority = 2)
+                  THEN BOOL_AND(granted) FILTER (WHERE priority = 2)
+                ELSE BOOL_OR(granted) FILTER (WHERE priority = 1)
+              END AS granted
        FROM resolved
        GROUP BY key`,
       [userId, role]
