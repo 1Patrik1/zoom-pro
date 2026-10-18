@@ -39,7 +39,7 @@ async function upsertSupplier(companyId, s) {
   if (s.id) {
     const result = await query(
       `UPDATE "Supplier" SET name=$1,ico=$2,dic=$3,email=$4,phone=$5,"apiType"=$6,"apiUrl"=$7,"apiKeyEnc"=COALESCE(NULLIF($8, ''), "apiKeyEnc"),currency=$9,"paymentTermDays"=$10,"discountPct"=$11,active=$12,metadata=$13
-       WHERE id=$14 AND "companyId"=$15 RETURNING *`,
+       WHERE id=$14 AND "companyId"=$15 RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
       [s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc, s.currency || 'CZK',
        s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}, s.id, companyId],
     );
@@ -47,7 +47,7 @@ async function upsertSupplier(companyId, s) {
   }
   const result = await query(
     `INSERT INTO "Supplier" ("companyId",name,ico,dic,email,phone,"apiType","apiUrl","apiKeyEnc",currency,"paymentTermDays","discountPct",active,metadata)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
     [companyId, s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc,
      s.currency || 'CZK', s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}],
   );
