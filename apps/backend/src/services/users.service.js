@@ -5,6 +5,8 @@ import { HttpError } from '../utils/http-error.js';
 export const usersService = {
   async updateRole(user, payload) {
     if (!['SUPERADMIN', 'REDITEL'].includes(user.role)) throw new HttpError(403, 'Nemáte oprávnění měnit role');
+    // SUPERADMIN is a platform-wide privilege and must never be assignable through company team management.
+    if (payload.role === 'SUPERADMIN') throw new HttpError(403, 'Roli SUPERADMIN nelze přidělit přes správu členů firmy.');
     const result = await usersRepo.updateRole(user.companyId, payload.userId, payload.role);
     return result.rows[0] || { ok: true };
   },
