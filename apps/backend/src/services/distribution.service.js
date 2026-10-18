@@ -47,7 +47,7 @@ async function upsertSupplier(companyId, s) {
   }
   const result = await query(
     `INSERT INTO "Supplier" ("companyId",name,ico,dic,email,phone,"apiType","apiUrl","apiKeyEnc",currency,"paymentTermDays","discountPct",active,metadata)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
     [companyId, s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc,
      s.currency || 'CZK', s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}],
   );
