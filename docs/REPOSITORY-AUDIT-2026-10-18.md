@@ -20,7 +20,10 @@ Tento dokument shrnuje první cílený audit veřejné větve `main` repozitář
 | P0 | Sklad a sync | Skladový pohyb mohl odkazovat na projekt jiné firmy; několik synchronizačních JOINů spojovalo metadata pouze podle ID. Oprava je v PR #32. |
 | P1 | Chybové odpovědi | Error handler vracel interní `err.message` a `err.details` i u 5xx. Návrh bezpečných odpovědí a testy jsou v PR #18. |
 | P1 | Neaktivní firma | Existující JWT mohl dál používat API po deaktivaci firmy. Middleware kontrolující aktuální stav firmy je v PR #19. |
-| P1 | Produkční konfigurace | Dlouhý, ale předvídatelný ukázkový JWT secret mohl projít kontrolou délky; CORS mohl v produkci spadnout na `*`. Přísnější validace je v PR #34. |
+| P1 | Produkční konfigurace | Dlouhý, ale předvídatelný ukázkový JWT secret mohl projít kontrolou délky; CORS mohl v produkci spadnout na `*`. Oprava PR #34 byla sloučena. |
+| P1 | Readiness | `/health` nekontroloval databázi. PR #36 přidal `/ready`, který vrací 503 bez detailů při nedostupné DB. |
+| P1 | AI/AutoDetect | PR #37 přidal validaci promptů/obrázků, limit 3 MB, whitelist MIME/modelů, timeout, rate limiting a přestal ukládat surová data URL obrázků. Zbývá sdílený limit napříč instancemi (Issue #39). |
+| P2 | Závislosti | PR #38 zapnul týdenní Dependabot aktualizace pro root npm workspace a mobilní aplikaci; zranitelnosti v lockfile je stále nutné vyhodnotit a postupně opravit. |
 
 ## Ověření CI
 
@@ -47,12 +50,16 @@ Před tímto auditem bylo ve vzdáleném stromu nalezeno jen několik automatick
 - úplný životní cyklus RFQ/PO/příjemky a rollback při chybě,
 - import/export joby a mobilní opakování synchronizace.
 
+## Stav po první vlně oprav
+
+PR #16, #18, #19, #20, #22, #23, #27, #30, #31, #32, #33, #34, #36, #37 a #38 byly sloučeny do `main`; jejich CI běhy na jednotlivých větvích prošly. CI hlavní větve se po posledních sloučeních musí ověřit na nejnovějším commitu. Úspěch jednotlivých CI běhů nenahrazuje produkční smoke test ani dvoufiremní integrační testy.
+
 ## Doporučené pořadí další práce
 
-1. Nechat doběhnout a zkontrolovat CI všech draft PR.
-2. Projít diff každého PR; sloučit až po review a po ověření, že lokální necommitnuté změny zůstaly nedotčené.
-3. Doplnit integrační testy izolace tenantů pro distribuci, faktury, dokumenty, podpisy a synchronizaci.
-4. Vyřešit GitHub secrets/variables pro deploy a monitor a ověřit skutečně nasazenou aplikaci.
-5. Auditovat aktuální lockfile závislostí a zmenšit frontendový bundle.
+1. Potvrdit CI hlavní větve na nejnovějším commitu po PR #38.
+2. Doplnit integrační testy izolace tenantů pro distribuci, faktury, dokumenty, podpisy a synchronizaci.
+3. Vyřešit GitHub secrets/variables pro deploy a monitor a ověřit skutečně nasazenou aplikaci.
+4. Auditovat aktuální lockfile závislostí a postupně opravit ověřené produkční zranitelnosti.
+5. Dokončit sdílené limity AI požadavků podle Issue #39.
 6. Auditovat lokální `apps/control` samostatně po zpřístupnění jeho aktuálního zdrojového stavu.
 
