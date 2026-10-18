@@ -5,6 +5,7 @@ import { HttpError } from '../utils/http-error.js';
 export const usersService = {
   async updateRole(user, payload) {
     if (!['SUPERADMIN', 'REDITEL'].includes(user.role)) throw new HttpError(403, 'Nemáte oprávnění měnit role');
+    if (user.role !== 'SUPERADMIN' && payload.role === 'SUPERADMIN') throw new HttpError(403, 'Nemáte oprávnění přidělit roli SUPERADMIN');
     const result = await usersRepo.updateRole(user.companyId, payload.userId, payload.role);
     return result.rows[0] || { ok: true };
   },
