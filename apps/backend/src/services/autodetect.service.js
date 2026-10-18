@@ -27,13 +27,13 @@ async function detect(user, payload) {
   const {
     projectId = null,
     imageDataUrl,           // 'data:image/jpeg;base64,....'
-    mimeType = 'image/jpeg',
+    mimeType,
     referenceObject = 'A4_short',
     referenceSizeMm = null,
     hint = '',
   } = payload || {};
 
-  const image = parseImageDataUrl(imageDataUrl, mimeType);
+  const image = parseImageDataUrl(imageDataUrl, mimeType || undefined);
   if (projectId) {
     const project = await query('SELECT id FROM "Project" WHERE id=$1 AND "companyId"=$2', [projectId, user.companyId]);
     if (!project.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě.');
