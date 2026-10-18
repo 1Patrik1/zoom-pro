@@ -18,14 +18,14 @@ async function upsertCatalog(companyId, item) {
   if (id) {
     const result = await query(
       `UPDATE "CatalogItem" SET sku=$1,name=$2,category=$3,shape=$4,"diameterMm"=$5,"widthMm"=$6,"heightMm"=$7,"lengthMm"=$8,"angleDeg"=$9,"materialCode"=$10,unit=$11,"weightKg"=$12,attributes=$13
-       WHERE id=$14 AND "companyId"=$15 RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
+       WHERE id=$14 AND "companyId"=$15 RETURNING *`,
       [sku, name, category, shape, diameterMm, widthMm, heightMm, lengthMm, angleDeg, materialCode, unit || 'ks', weightKg, attributes || {}, id, companyId],
     );
     return result.rows;
   }
   const result = await query(
     `INSERT INTO "CatalogItem" ("companyId",sku,name,category,shape,"diameterMm","widthMm","heightMm","lengthMm","angleDeg","materialCode",unit,"weightKg",attributes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
     [companyId, sku, name, category, shape, diameterMm, widthMm, heightMm, lengthMm, angleDeg, materialCode, unit || 'ks', weightKg, attributes || {}],
   );
   return result.rows;
@@ -39,7 +39,7 @@ async function upsertSupplier(companyId, s) {
   if (s.id) {
     const result = await query(
       `UPDATE "Supplier" SET name=$1,ico=$2,dic=$3,email=$4,phone=$5,"apiType"=$6,"apiUrl"=$7,"apiKeyEnc"=COALESCE(NULLIF($8, ''), "apiKeyEnc"),currency=$9,"paymentTermDays"=$10,"discountPct"=$11,active=$12,metadata=$13
-       WHERE id=$14 AND "companyId"=$15 RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
+       WHERE id=$14 AND "companyId"=$15 RETURNING *`,
       [s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc, s.currency || 'CZK',
        s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}, s.id, companyId],
     );
@@ -47,7 +47,7 @@ async function upsertSupplier(companyId, s) {
   }
   const result = await query(
     `INSERT INTO "Supplier" ("companyId",name,ico,dic,email,phone,"apiType","apiUrl","apiKeyEnc",currency,"paymentTermDays","discountPct",active,metadata)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id, "companyId", name, ico, dic, email, phone, "apiType", "apiUrl", currency, "paymentTermDays", "discountPct", active, metadata, "createdAt"`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
     [companyId, s.name, s.ico, s.dic, s.email, s.phone, s.apiType || 'EMAIL', s.apiUrl, s.apiKeyEnc,
      s.currency || 'CZK', s.paymentTermDays ?? 14, s.discountPct ?? 0, s.active ?? true, s.metadata || {}],
   );
