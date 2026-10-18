@@ -1,4 +1,8 @@
 import { query } from '../config/db.js';
+import { validateAiImages, validateAiPrompt } from '../utils/ai-input.js';
+import { HttpError } from '../utils/http-error.js';
+
+const ALLOWED_MODELS = new Set(['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.5-flash']);
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -10,6 +14,9 @@ async function getApiKey() {
 }
 
 async function callGemini(prompt, { model = 'gemini-1.5-flash', images = [] } = {}) {
+  const safePrompt = validateAiPrompt(prompt, { maxLength: 12000 });
+  if (!ALLOWED_MODELS.has(model)) throw new HttpError(400, 'Vybraný AI model není povolen.');
+  const safeImages = validateAiImages(images);
   const apiKey = await getApiKey();
   if (!apiKey) {
     return {
@@ -19,8 +26,8 @@ async function callGemini(prompt, { model = 'gemini-1.5-flash', images = [] } = 
     };
   }
 
-  const parts = [{ text: prompt }];
-  for (const img of images) {
+  const parts = [{ text: safePrompt }];
+  for (const img of safeImages) {
     if (img?.dataBase64 && img?.mimeType) {
       parts.push({ inline_data: { mime_type: img.mimeType, data: img.dataBase64 } });
     }
@@ -31,6 +38,7 @@ async function callGemini(prompt, { model = 'gemini-1.5-flash', images = [] } = 
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(30_000),
       body: JSON.stringify({
         contents: [{ role: 'user', parts }],
         generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
@@ -38,12 +46,12 @@ async function callGemini(prompt, { model = 'gemini-1.5-flash', images = [] } = 
     });
     const data = await response.json();
     if (!response.ok) {
-      return { ok: false, text: data?.error?.message || 'Gemini vrátil chybu.' };
+      return { ok: false, text: 'AI poskytovatel požadavek nedokázal zpracovat.' };
     }
     const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('\n') || '';
     return { ok: true, text, raw: data };
   } catch (error) {
-    return { ok: false, text: error.message };
+    return { ok: false, text: 'AI poskytovatel je dočasně nedostupný nebo vypršel časový limit.' };
   }
 }
 
