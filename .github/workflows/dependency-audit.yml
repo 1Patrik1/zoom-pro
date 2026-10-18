@@ -59,10 +59,22 @@ jobs:
             }
             if (!report) throw new Error('No valid JSON object in npm audit stdout/stderr');
             const v = report.metadata?.vulnerabilities || {};
+            const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3, info: 4 };
+            const findings = Object.entries(report.vulnerabilities || {})
+              .sort((a, b) => (severityOrder[a[1].severity] ?? 9) - (severityOrder[b[1].severity] ?? 9))
+              .slice(0, 30)
+              .map(([name, item]) => ({
+                name, severity: item.severity, direct: item.isDirect ? 'direct' : 'transitive',
+                fix: item.fixAvailable === undefined ? 'unknown' : JSON.stringify(item.fixAvailable),
+                via: (item.via || []).map((entry) => typeof entry === 'string' ? entry : entry.name).join(', ').slice(0, 100)
+              }));
+            const details = findings.map((item) => `| ${item.name} | ${item.severity} | ${item.direct} | ${item.fix} | ${item.via} |`).join('\n');
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               '## Root workspace dependency audit\n\n' +
               '| Info | Low | Moderate | High | Critical | Total |\n|---:|---:|---:|---:|---:|---:|\n' +
-              `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n`);
+              `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n\n` +
+              '| Package | Severity | Scope | Fix available | Via |\n|---|---|---|---|---|\n' + details + '\n');
+            console.log('Root audit vulnerability paths:', JSON.stringify(findings));
           } catch {
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               'Root audit did not return valid JSON. Inspect the uploaded stdout/stderr artifacts and job logs.\n');
@@ -113,10 +125,22 @@ jobs:
             }
             if (!report) throw new Error('No valid JSON object in npm audit stdout/stderr');
             const v = report.metadata?.vulnerabilities || {};
+            const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3, info: 4 };
+            const findings = Object.entries(report.vulnerabilities || {})
+              .sort((a, b) => (severityOrder[a[1].severity] ?? 9) - (severityOrder[b[1].severity] ?? 9))
+              .slice(0, 30)
+              .map(([name, item]) => ({
+                name, severity: item.severity, direct: item.isDirect ? 'direct' : 'transitive',
+                fix: item.fixAvailable === undefined ? 'unknown' : JSON.stringify(item.fixAvailable),
+                via: (item.via || []).map((entry) => typeof entry === 'string' ? entry : entry.name).join(', ').slice(0, 100)
+              }));
+            const details = findings.map((item) => `| ${item.name} | ${item.severity} | ${item.direct} | ${item.fix} | ${item.via} |`).join('\n');
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               '## Mobile dependency audit\n\n' +
               '| Info | Low | Moderate | High | Critical | Total |\n|---:|---:|---:|---:|---:|---:|\n' +
-              `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n`);
+              `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n\n` +
+              '| Package | Severity | Scope | Fix available | Via |\n|---|---|---|---|---|\n' + details + '\n');
+            console.log('Mobile audit vulnerability paths:', JSON.stringify(findings));
           } catch {
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               'Mobile audit did not return valid JSON. Inspect the uploaded stdout/stderr artifacts and job logs.\n');
