@@ -13,6 +13,15 @@ export const documentsService = {
     return result.rows[0];
   },
   async create(companyId, authorId, payload) {
+    const references = await documentsRepo.validateCreateReferences(companyId, {
+      templateId: payload.templateId || null,
+      projectId: payload.projectId || null,
+      invoiceId: payload.invoiceId || null
+    });
+    const valid = references.rows[0];
+    if (!valid?.templateExists || !valid?.projectExists || !valid?.invoiceExists) {
+      throw new HttpError(404, 'Šablona, projekt nebo faktura nebyly nalezeny ve vaší firmě.');
+    }
     const result = await documentsRepo.create({ ...payload, companyId, authorId });
     const doc = result.rows[0];
     return {
