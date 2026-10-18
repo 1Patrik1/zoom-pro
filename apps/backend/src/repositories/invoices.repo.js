@@ -98,7 +98,7 @@ export const invoicesRepo = {
     return query(
       `SELECT a.*, p.name as "projectName"
        FROM "Attendance" a
-       LEFT JOIN "Project" p ON a."projectId" = p.id
+       LEFT JOIN "Project" p ON a."projectId" = p.id AND p."companyId" = a."companyId"
        WHERE a."companyId" = $1
          AND a."userId" = $2
          AND a."createdAt" >= $3
@@ -113,7 +113,7 @@ export const invoicesRepo = {
     return query(
       `SELECT d.*, p.name as "projectName"
        FROM "DailyLog" d
-       LEFT JOIN "Project" p ON d."projectId" = p.id
+       LEFT JOIN "Project" p ON d."projectId" = p.id AND p."companyId" = d."companyId"
        WHERE d."companyId" = $1
          AND d."authorId" = $2
          AND d."logDate" >= $3
