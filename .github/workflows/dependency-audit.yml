@@ -31,11 +31,15 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Generate audit report
         run: |
-          npm audit --json > npm-audit-root.json || true
+          npm audit --json > npm-audit-root.json 2> npm-audit-root.stderr || true
           node --input-type=commonjs <<'NODE'
           const fs = require('fs');
           try {
-            const report = JSON.parse(fs.readFileSync('npm-audit-root.json', 'utf8'));
+            const raw = fs.readFileSync('npm-audit-root.json', 'utf8');
+            const start = raw.indexOf('{');
+            const end = raw.lastIndexOf('}');
+            if (start < 0 || end < start) throw new Error('No JSON object in npm audit output');
+            const report = JSON.parse(raw.slice(start, end + 1));
             const v = report.metadata?.vulnerabilities || {};
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               '## Root workspace dependency audit\n\n' +
@@ -50,7 +54,9 @@ jobs:
         if: always()
         with:
           name: npm-audit-root-workspace
-          path: npm-audit-root.json
+          path: |
+            npm-audit-root.json
+            npm-audit-root.stderr
           if-no-files-found: warn
           retention-days: 30
 
@@ -70,11 +76,15 @@ jobs:
       - name: Generate audit report
         working-directory: apps/mobile
         run: |
-          npm audit --json > npm-audit-mobile.json || true
+          npm audit --json > npm-audit-mobile.json 2> npm-audit-mobile.stderr || true
           node --input-type=commonjs <<'NODE'
           const fs = require('fs');
           try {
-            const report = JSON.parse(fs.readFileSync('npm-audit-mobile.json', 'utf8'));
+            const raw = fs.readFileSync('npm-audit-mobile.json', 'utf8');
+            const start = raw.indexOf('{');
+            const end = raw.lastIndexOf('}');
+            if (start < 0 || end < start) throw new Error('No JSON object in npm audit output');
+            const report = JSON.parse(raw.slice(start, end + 1));
             const v = report.metadata?.vulnerabilities || {};
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               '## Mobile dependency audit\n\n' +
@@ -89,6 +99,8 @@ jobs:
         if: always()
         with:
           name: npm-audit-mobile
-          path: apps/mobile/npm-audit-mobile.json
+          path: |
+            apps/mobile/npm-audit-mobile.json
+            apps/mobile/npm-audit-mobile.stderr
           if-no-files-found: warn
           retention-days: 30
