@@ -21,7 +21,7 @@ r.post('/prices',    auth, asyncHandler(async (req, res) => res.json({ ok: true,
 r.post('/rfq',       auth, asyncHandler(async (req, res) => res.json({ ok: true, rfq: await svc.createRfq(req.user.companyId, req.user, req.body) })));
 r.get('/rfq',        auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listRfq(req.user.companyId) })));
 r.post('/rfq/:id/convert', auth, asyncHandler(async (req, res) => res.json({ ok: true, ...(await svc.createPOFromQuote(req.user.companyId, req.user, req.params.id, req.body.supplierId)) })));
-r.get('/rfq/:id/compare', auth, asyncHandler(async (req, res) => res.json({ ok: true, ...(await svc.compareOffers(req.params.id)) })));
+r.get('/rfq/:id/compare', auth, asyncHandler(async (req, res) => res.json({ ok: true, ...(await svc.compareOffers(req.user.companyId, req.params.id)) })));
 
 // PO
 r.get('/po',         auth, asyncHandler(async (req, res) => res.json({ ok: true, rows: await svc.listPO(req.user.companyId) })));
