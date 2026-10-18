@@ -20,8 +20,8 @@ export const materialsService = {
   async seed(user, items) {
     // basic permission check: only superadmin or company admin
     if (!user || (user.role !== 'SUPERADMIN' && !user.isAdmin && user.role !== 'ADMINISTRACE')) {
-      throw new HttpError(403, 'Pøístup odepøen');
+      throw new HttpError(403, 'PÅ™Ã­stup odepÅ™en');
     }
-    return materialsRepo.seed(items || []);
+    return materialsRepo.seed(user.companyId, items || []);
   }
 };
