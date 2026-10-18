@@ -73,6 +73,14 @@ export const projectsService = {
   async assign(user, payload) {
     ensureProjectManager(user, 'Nemáte oprávnění přiřazovat tým');
     if (payload.assign) {
+      const membership = await query(
+        `SELECT p.id
+           FROM "Project" p
+           JOIN "User" u ON u.id = $2 AND u."companyId" = $3
+          WHERE p.id = $1 AND p."companyId" = $3`,
+        [payload.projectId, payload.userId, user.companyId]
+      );
+      if (!membership.rows.length) throw new HttpError(404, 'Projekt nebo člen týmu nebyl nalezen ve vaší firmě.');
       const result = await projectsRepo.assign(payload.projectId, payload.userId, user.companyId);
       return result.rows[0] || { ok: true };
     }
@@ -87,6 +95,12 @@ export const projectsService = {
     if (!text && !attachments.length) {
       throw new HttpError(400, 'Zpráva musí obsahovat text nebo alespoň jednu fotku');
     }
+
+    const project = await query(
+      'SELECT id FROM "Project" WHERE id = $1 AND "companyId" = $2',
+      [payload.projectId, user.companyId]
+    );
+    if (!project.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě.');
 
     const chatResult = await projectsRepo.createChat(
       payload.projectId,
