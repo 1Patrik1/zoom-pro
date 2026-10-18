@@ -1,19 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { checkDatabaseReadiness } from '../utils/readiness.js';
 
-vi.mock('../config/db.js', () => ({ query: vi.fn() }));
-
-import { query } from '../config/db.js';
-
-describe('database readiness query', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('can execute a minimal database probe', async () => {
-    query.mockResolvedValue({ rows: [{ '?column?': 1 }] });
-    await expect(query('SELECT 1')).resolves.toMatchObject({ rows: [{ '?column?': 1 }] });
+describe('checkDatabaseReadiness', () => {
+  it('returns true when the database probe succeeds', async () => {
+    const runQuery = vi.fn().mockResolvedValue({ rows: [{ '?column?': 1 }] });
+    await expect(checkDatabaseReadiness(runQuery)).resolves.toBe(true);
+    expect(runQuery).toHaveBeenCalledWith('SELECT 1');
   });
 
-  it('propagates database failures for the readiness handler to report unavailable', async () => {
-    query.mockRejectedValue(new Error('connection refused'));
-    await expect(query('SELECT 1')).rejects.toThrow('connection refused');
+  it('returns false without exposing database details when the probe fails', async () => {
+    const runQuery = vi.fn().mockRejectedValue(new Error('connection refused: secret host'));
+    await expect(checkDatabaseReadiness(runQuery)).resolves.toBe(false);
   });
 });
