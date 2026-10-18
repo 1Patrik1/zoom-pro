@@ -8,12 +8,21 @@ export const signaturesRepo = {
     return query(
       `SELECT sr.*, sp.name AS "providerName", d.title AS "documentTitle", u.email AS "signerUserEmail"
        FROM "SignatureRequest" sr
-       JOIN "SignatureProvider" sp ON sp.id = sr."providerId"
-       LEFT JOIN "Document" d ON d.id = sr."documentId"
-       LEFT JOIN "User" u ON u.id = sr."signerId"
+       JOIN "SignatureProvider" sp ON sp.id = sr."providerId" AND sp."companyId" = sr."companyId"
+       LEFT JOIN "Document" d ON d.id = sr."documentId" AND d."companyId" = sr."companyId"
+       LEFT JOIN "User" u ON u.id = sr."signerId" AND u."companyId" = sr."companyId"
        WHERE sr."companyId" = $1
        ORDER BY sr."createdAt" DESC`,
       [companyId]
+    );
+  },
+  validateRequestReferences(companyId, { providerId, documentId, signerId }) {
+    return query(
+      `SELECT
+         EXISTS(SELECT 1 FROM "SignatureProvider" WHERE id=$2 AND "companyId"=$1) AS "providerExists",
+         ($3::uuid IS NULL OR EXISTS(SELECT 1 FROM "Document" WHERE id=$3 AND "companyId"=$1)) AS "documentExists",
+         ($4::uuid IS NULL OR EXISTS(SELECT 1 FROM "User" WHERE id=$4 AND "companyId"=$1)) AS "signerExists"`,
+      [companyId, providerId, documentId || null, signerId || null]
     );
   },
   createRequest(payload) {
