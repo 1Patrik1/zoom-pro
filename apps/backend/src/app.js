@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env.js';
+import { query } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
@@ -43,6 +44,14 @@ export function createApp() {
   const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
 
   app.get('/health', (_req, res) => res.json({ ok: true, service: env.appName }));
+  app.get('/ready', async (_req, res) => {
+    try {
+      await query('SELECT 1');
+      return res.status(200).json({ ok: true, service: env.appName, dependencies: { database: 'ok' } });
+    } catch {
+      return res.status(503).json({ ok: false, service: env.appName, dependencies: { database: 'unavailable' } });
+    }
+  });
 
   app.use('/api/auth', authLimiter, authRoutes);
   app.use('/api/sync', syncRoutes);
