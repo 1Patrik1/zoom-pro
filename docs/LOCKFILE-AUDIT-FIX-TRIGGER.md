@@ -1,0 +1,1 @@
+One-time trigger for the lockfile remediation workflow. This marker is not included in the generated dependency PR and should not be merged to main.
