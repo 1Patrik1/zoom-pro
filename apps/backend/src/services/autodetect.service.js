@@ -1,5 +1,7 @@
 import { query } from '../config/db.js';
 import { geminiService } from './gemini.service.js';
+import { HttpError } from '../utils/http-error.js';
+import { parseImageDataUrl } from '../utils/ai-input.js';
 
 const REFERENCE_SIZES_MM = {
   A4_short: 210,
@@ -31,11 +33,24 @@ async function detect(user, payload) {
     hint = '',
   } = payload || {};
 
-  if (!imageDataUrl) return { ok: false, error: 'Chybí obrázek.' };
-
-  // Odseknout base64
-  const base64 = imageDataUrl.includes('base64,') ? imageDataUrl.split('base64,')[1] : imageDataUrl;
-  const refSize = referenceSizeMm || REFERENCE_SIZES_MM[referenceObject] || 210;
+  const image = parseImageDataUrl(imageDataUrl, mimeType);
+  if (projectId) {
+    const project = await query('SELECT id FROM "Project" WHERE id=$1 AND "companyId"=$2', [projectId, user.companyId]);
+    if (!project.rows.length) throw new HttpError(404, 'Projekt nebyl nalezen ve vaší firmě.');
+  }
+  if (typeof hint !== 'string' || hint.length > 500) {
+    throw new HttpError(400, 'Kontext musí být text o délce maximálně 500 znaků.');
+  }
+  if (typeof referenceObject !== 'string' || !Object.prototype.hasOwnProperty.call(REFERENCE_SIZES_MM, referenceObject)) {
+    throw new HttpError(400, 'Neplatný referenční předmět.');
+  }
+  const refSize = referenceSizeMm === null || referenceSizeMm === undefined
+    ? REFERENCE_SIZES_MM[referenceObject]
+    : Number(referenceSizeMm);
+  if (!Number.isFinite(Number(refSize)) || Number(refSize) <= 0 || Number(refSize) > 10000) {
+    throw new HttpError(400, 'Referenční rozměr musí být v rozsahu 0 až 10 000 mm.');
+  }
+  const base64 = image.dataBase64;
 
   const prompt = [
     'Jsi expert na VZT / vzduchotechniku. Na fotce je chybějící kus potrubí mezi dvěma stávajícími úseky.',
@@ -67,7 +82,7 @@ async function detect(user, payload) {
   ].filter(Boolean).join('\n');
 
   const gem = await geminiService.callGemini(prompt, {
-    images: [{ dataBase64: base64, mimeType }],
+    images: [{ dataBase64: base64, mimeType: image.mimeType }],
     model: 'gemini-1.5-flash',
   });
 
