@@ -1,11 +1,13 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { auth } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { autoDetectService } from '../services/autodetect.service.js';
 
 const r = Router();
+const aiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
 
-r.post('/detect', auth, asyncHandler(async (req, res) => {
+r.post('/detect', auth, aiLimiter, asyncHandler(async (req, res) => {
   const result = await autoDetectService.detect(req.user, req.body || {});
   res.json(result);
 }));
