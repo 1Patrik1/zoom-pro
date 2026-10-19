@@ -47,6 +47,15 @@ jobs:
             psql -v ON_ERROR_STOP=1 -h localhost -U zoom_user -d zoom_pro -f "$f"
           done
 
+      - name: Install mobile dependencies
+        run: npm ci --prefix apps/mobile --no-audit --no-fund
+
+      - name: Run mobile unit tests
+        run: npm run test --prefix apps/mobile
+
+      - name: Build mobile app
+        run: npm run build --prefix apps/mobile
+
       - name: Run frontend unit tests
         run: npm run test -w apps/frontend
 

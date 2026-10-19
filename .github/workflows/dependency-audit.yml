@@ -1,0 +1,159 @@
+name: Dependency audit reports
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 7 * * 1"
+  push:
+    branches:
+      - main
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "apps/backend/package.json"
+      - "apps/frontend/package.json"
+      - "apps/mobile/package.json"
+      - "apps/mobile/package-lock.json"
+      - ".github/workflows/dependency-audit.yml"
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "apps/backend/package.json"
+      - "apps/frontend/package.json"
+      - "apps/mobile/package.json"
+      - "apps/mobile/package-lock.json"
+      - ".github/workflows/dependency-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  root-workspace:
+    name: Audit root npm workspace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Generate audit report
+        run: |
+          npm audit --json > npm-audit-root.json 2> npm-audit-root.stderr || true
+          node --input-type=commonjs <<'NODE'
+          const fs = require('fs');
+          try {
+            const outputs = [
+              fs.readFileSync('npm-audit-root.json', 'utf8'),
+              fs.readFileSync('npm-audit-root.stderr', 'utf8')
+            ];
+            let report;
+            for (const raw of outputs) {
+              const start = raw.indexOf('{');
+              const end = raw.lastIndexOf('}');
+              if (start < 0 || end < start) continue;
+              try { report = JSON.parse(raw.slice(start, end + 1)); break; } catch {}
+            }
+            if (!report) throw new Error('No valid JSON object in npm audit stdout/stderr');
+            const v = report.metadata?.vulnerabilities || {};
+            const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3, info: 4 };
+            const findings = Object.entries(report.vulnerabilities || {})
+              .sort((a, b) => (severityOrder[a[1].severity] ?? 9) - (severityOrder[b[1].severity] ?? 9))
+              .slice(0, 30)
+              .map(([name, item]) => ({
+                name, severity: item.severity, direct: item.isDirect ? 'direct' : 'transitive',
+                fix: item.fixAvailable === undefined ? 'unknown' : JSON.stringify(item.fixAvailable),
+                via: (item.via || []).map((entry) => typeof entry === 'string' ? entry : entry.name).join(', ').slice(0, 100)
+              }));
+            const details = findings.map((item) => `| ${item.name} | ${item.severity} | ${item.direct} | ${item.fix} | ${item.via} |`).join('\n');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              '## Root workspace dependency audit\n\n' +
+              '| Info | Low | Moderate | High | Critical | Total |\n|---:|---:|---:|---:|---:|---:|\n' +
+              `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n\n` +
+              '| Package | Severity | Scope | Fix available | Via |\n|---|---|---|---|---|\n' + details + '\n');
+            console.log('Root audit vulnerability paths:', JSON.stringify(findings));
+          } catch {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              'Root audit did not return valid JSON. Inspect the uploaded stdout/stderr artifacts and job logs.\n');
+            console.log('npm audit stdout preview:', fs.readFileSync('npm-audit-root.json', 'utf8').slice(0, 1000));
+            console.log('npm audit stderr preview:', fs.readFileSync('npm-audit-root.stderr', 'utf8').slice(0, 1000));
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-root-workspace
+          path: |
+            npm-audit-root.json
+            npm-audit-root.stderr
+          if-no-files-found: warn
+          retention-days: 30
+
+  mobile:
+    name: Audit mobile npm dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: Install locked dependencies
+        working-directory: apps/mobile
+        run: npm ci --ignore-scripts
+      - name: Generate audit report
+        working-directory: apps/mobile
+        run: |
+          npm audit --json > npm-audit-mobile.json 2> npm-audit-mobile.stderr || true
+          node --input-type=commonjs <<'NODE'
+          const fs = require('fs');
+          try {
+            const outputs = [
+              fs.readFileSync('npm-audit-mobile.json', 'utf8'),
+              fs.readFileSync('npm-audit-mobile.stderr', 'utf8')
+            ];
+            let report;
+            for (const raw of outputs) {
+              const start = raw.indexOf('{');
+              const end = raw.lastIndexOf('}');
+              if (start < 0 || end < start) continue;
+              try { report = JSON.parse(raw.slice(start, end + 1)); break; } catch {}
+            }
+            if (!report) throw new Error('No valid JSON object in npm audit stdout/stderr');
+            const v = report.metadata?.vulnerabilities || {};
+            const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3, info: 4 };
+            const findings = Object.entries(report.vulnerabilities || {})
+              .sort((a, b) => (severityOrder[a[1].severity] ?? 9) - (severityOrder[b[1].severity] ?? 9))
+              .slice(0, 30)
+              .map(([name, item]) => ({
+                name, severity: item.severity, direct: item.isDirect ? 'direct' : 'transitive',
+                fix: item.fixAvailable === undefined ? 'unknown' : JSON.stringify(item.fixAvailable),
+                via: (item.via || []).map((entry) => typeof entry === 'string' ? entry : entry.name).join(', ').slice(0, 100)
+              }));
+            const details = findings.map((item) => `| ${item.name} | ${item.severity} | ${item.direct} | ${item.fix} | ${item.via} |`).join('\n');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              '## Mobile dependency audit\n\n' +
+              '| Info | Low | Moderate | High | Critical | Total |\n|---:|---:|---:|---:|---:|---:|\n' +
+              `| ${v.info || 0} | ${v.low || 0} | ${v.moderate || 0} | ${v.high || 0} | ${v.critical || 0} | ${v.total || 0} |\n\n` +
+              '| Package | Severity | Scope | Fix available | Via |\n|---|---|---|---|---|\n' + details + '\n');
+            console.log('Mobile audit vulnerability paths:', JSON.stringify(findings));
+          } catch {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              'Mobile audit did not return valid JSON. Inspect the uploaded stdout/stderr artifacts and job logs.\n');
+            console.log('npm audit stdout preview:', fs.readFileSync('npm-audit-mobile.json', 'utf8').slice(0, 1000));
+            console.log('npm audit stderr preview:', fs.readFileSync('npm-audit-mobile.stderr', 'utf8').slice(0, 1000));
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-mobile
+          path: |
+            apps/mobile/npm-audit-mobile.json
+            apps/mobile/npm-audit-mobile.stderr
+          if-no-files-found: warn
+          retention-days: 30

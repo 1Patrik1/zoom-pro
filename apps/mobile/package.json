@@ -12,7 +12,8 @@
     "cap:run:android": "npm run build && cap sync android && cap run android",
     "cap:ios": "npm run build && cap sync ios && cap open ios",
     "android:apk": "npm run build && cap sync android && cd android && ./gradlew assembleDebug",
-    "android:aab": "npm run build && cap sync android && cd android && ./gradlew bundleRelease"
+    "android:aab": "npm run build && cap sync android && cd android && ./gradlew bundleRelease",
+    "test": "node --test src/lib/offline-queue-policy.test.js"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^8.0.2",
@@ -35,7 +36,7 @@
     "@capacitor/splash-screen": "^6.0.2",
     "@capacitor/status-bar": "^6.0.1",
     "@capacitor/toast": "^6.0.2",
-    "@transistorsoft/capacitor-background-geolocation": "^6.1.5",
+    "@transistorsoft/capacitor-background-geolocation": "^9.7.0",
     "idb-keyval": "^6.2.1",
     "lucide-react": "^0.400.0",
     "piexifjs": "^1.0.6",
@@ -47,9 +48,12 @@
     "@capacitor/cli": "^6.1.2",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
+    "postcss": "^8.5.30",
     "tailwindcss": "^3.4.4",
     "vite": "^5.4.21",
     "vite-plugin-pwa": "^0.20.0"
+  },
+  "overrides": {
+    "tar": "^7.5.22"
   }
 }
