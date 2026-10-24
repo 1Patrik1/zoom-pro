@@ -1,6 +1,6 @@
 # Zoom Pro — Kompletní audit projektu
 
-> **Historický snímek z 2026-08-22.** Čísla migrací, počty modulů, testovací výsledky a další časově citlivé údaje níže nejsou aktuálním stavem. Aktuální přehled implementovaných změn, migrací a omezení je v [docs/AKTUALIZACE-2026-10-11.md](docs/AKTUALIZACE-2026-10-11.md).
+> **Historický snímek z 2026-08-22.** Čísla migrací, počty modulů, testovací výsledky a další časově citlivé údaje níže nejsou aktuálním stavem. Aktuální ověřený stav repozitáře k 2026-10-24 je v [docs/REPOSITORY-AUDIT-2026-10-24.md](docs/REPOSITORY-AUDIT-2026-10-24.md); přehled funkcí a migrací k 2026-10-11 je v [docs/AKTUALIZACE-2026-10-11.md](docs/AKTUALIZACE-2026-10-11.md).
 
 Revize: **2026-08-22** · verze **1.2.0**
 
