@@ -34,6 +34,9 @@ function sanitizeProjectPayload(payload) {
     status: payload.status?.trim() || 'ACTIVE',
     plannedStart: sanitizeDate(payload.plannedStart),
     plannedEnd: sanitizeDate(payload.plannedEnd),
+    shiftStart: payload.shiftStart || "07:00",
+    shiftEnd: payload.shiftEnd || "18:00",
+    breakMinutes: payload.breakMinutes === undefined ? null : Number(payload.breakMinutes),
     gpsMode: payload.gpsMode?.trim() || 'MANUAL',
     locationNote: payload.locationNote?.trim() || null,
     locationUpdatedAt: payload.lat !== undefined || payload.lng !== undefined || payload.address !== undefined ? new Date().toISOString() : null
