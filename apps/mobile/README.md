@@ -69,6 +69,14 @@ Backend musí povolit CORS z `capacitor://localhost` a `https://localhost`:
 CORS_ORIGIN=http://localhost:5173,capacitor://localhost,https://localhost
 ```
 
+## Automatická GPS docházka na pozadí
+
+V mobilní aplikaci otevři **Integrace → Auto docházka (geofence) → Zapnout** a povol přístup k poloze **Vždy / na pozadí**. Funkce funguje pro účty montérů a jen pro aktivní, přiřazené projekty s režimem GPS **Automaticky** nebo **Kombinace** a nastavenými souřadnicemi. Příchod se zaznamená při vstupu do poloměru projektu během směny; odchod při opuštění projektu nebo konci směny. Při ztrátě sítě se docházka uloží do synchronizační fronty a odešle pod stejným účtem.
+
+Geofence se spravuje nativním pluginem, takže sledování funguje při zamknuté obrazovce a při běžném přepnutí aplikace na pozadí. Pro spolehlivé používání musí být aplikace nainstalovaná jako nativní Android/iOS aplikace; web/PWA nemůže zajistit GPS na pozadí. U Androidu zkontroluj systémové oprávnění „Povolit vždy“ a případné omezení baterie výrobce telefonu. Vynucené ukončení aplikace nebo odebrání oprávnění může sledování přerušit.
+
+Při přípravě nativních platforem spusť `npx cap sync`. Androidový manifest obsahuje oprávnění pro polohu na pozadí; ověř je také vygenerovaném `android/app/src/main/AndroidManifest.xml`. Pro iOS po `npx cap add ios` zapni v Xcode **Background Modes → Location updates** a **Background fetch** a přidej do `ios/App/App/Info.plist` popisy pro „When In Use“, „Always“ a Motion. Release build pluginu vyžaduje platný Transistorsoft licenční klíč v nativní konfiguraci; debug build lze vyzkoušet bez něj.
+
 ## Push oznámení
 
 Oznámení zapni v aplikaci **Nastavení → Notifikace** a povol systémové oznámení i zvuk. Registrace uloží token zařízení na backend; Android používá kanál `zoom-pro-alerts` se systémovým zvukem. Backend musí mít nastavené `FCM_PROJECT_ID` a `FCM_SERVICE_ACCOUNT_JSON` (v produkci přes chráněné proměnné serveru). Pro Android přidej Firebase konfiguraci do nativního projektu; pro iOS nakonfiguruj APNs/Firebase ve Xcode. Bez nativní konfigurace, oprávnění a FCM údajů se oznámení na pozadí nedoručí. Režim Nerušit, vypnutý zvuk kanálu nebo systémové „Vynutit ukončení“ mohou doručení či zvuk potlačit.
