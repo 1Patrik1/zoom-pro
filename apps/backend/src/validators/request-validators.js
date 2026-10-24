@@ -331,6 +331,29 @@ export const validators = {
   companyIdBody(body) {
     return collect([requiredUuidish(body.companyId, 'companyId')]);
   },
+  companyProfileUpdate(body) {
+    return collect([
+      requiredString(body.name, 'name'),
+      typeof body.name === 'string' && body.name.trim().length > 160 ? 'name je moc dlouhé' : null,
+      body.ico !== undefined && typeof body.ico !== 'string' ? 'ico musí být text' : null,
+      typeof body.ico === 'string' && body.ico.trim().length > 20 ? 'ico je moc dlouhé' : null,
+      body.dic !== undefined && typeof body.dic !== 'string' ? 'dic musí být text' : null,
+      typeof body.dic === 'string' && body.dic.trim().length > 30 ? 'dic je moc dlouhé' : null,
+      body.street !== undefined && typeof body.street !== 'string' ? 'street musí být text' : null,
+      typeof body.street === 'string' && body.street.trim().length > 200 ? 'street je moc dlouhá' : null,
+      body.city !== undefined && typeof body.city !== 'string' ? 'city musí být text' : null,
+      typeof body.city === 'string' && body.city.trim().length > 100 ? 'city je moc dlouhé' : null,
+      body.zip !== undefined && typeof body.zip !== 'string' ? 'zip musí být text' : null,
+      typeof body.zip === 'string' && body.zip.trim().length > 20 ? 'zip je moc dlouhé' : null,
+      body.country !== undefined && typeof body.country !== 'string' ? 'country musí být text' : null,
+      typeof body.country === 'string' && body.country.trim().length > 3 ? 'country je moc dlouhá' : null,
+      body.email !== undefined ? optionalEmail(body.email, 'email') : null,
+      body.email !== undefined && typeof body.email !== 'string' ? 'email musí být text' : null,
+      typeof body.email === 'string' && body.email.trim().length > 254 ? 'email je moc dlouhý' : null,
+      body.phone !== undefined && typeof body.phone !== 'string' ? 'phone musí být text' : null,
+      typeof body.phone === 'string' && body.phone.trim().length > 40 ? 'phone je moc dlouhý' : null
+    ]);
+  },
   companyContactUpdate(body) {
     return collect([
       body.email !== undefined && body.email !== '' ? optionalEmail(body.email, 'email') : null,
