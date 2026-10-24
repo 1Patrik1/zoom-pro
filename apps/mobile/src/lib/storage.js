@@ -15,6 +15,8 @@ export const store = {
   async getGpsAttendanceEnabled() { const { value } = await Preferences.get({ key: 'gpsAttendanceEnabled' }); return value === 'true'; },
   async setGeofenceSession(session) { await Preferences.set({ key: 'geofenceSession', value: JSON.stringify(session || null) }); },
   async getGeofenceSession() { const { value } = await Preferences.get({ key: 'geofenceSession' }); try { return JSON.parse(value); } catch { return null; } },
+  async setGeofenceConfig(config) { await Preferences.set({ key: 'geofenceConfig', value: JSON.stringify(config || null) }); },
+  async getGeofenceConfig() { const { value } = await Preferences.get({ key: 'geofenceConfig' }); try { return JSON.parse(value); } catch { return null; } },
   async clear() { await Preferences.clear(); }
 };
 
