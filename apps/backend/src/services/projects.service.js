@@ -21,6 +21,15 @@ function sanitizeDate(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function requiredBreakMinutes(start, end) {
+  const minutes = (value) => {
+    const [hours, mins] = String(value || '').split(':').map(Number);
+    return hours * 60 + mins;
+  };
+  const duration = (minutes(end) - minutes(start) + 1440) % 1440;
+  return duration >= 8 * 60 ? 60 : 30;
+}
+
 function sanitizeProjectPayload(payload) {
   return {
     name: payload.name?.trim(),
@@ -34,6 +43,9 @@ function sanitizeProjectPayload(payload) {
     status: payload.status?.trim() || 'ACTIVE',
     plannedStart: sanitizeDate(payload.plannedStart),
     plannedEnd: sanitizeDate(payload.plannedEnd),
+    shiftStart: payload.shiftStart || "07:00",
+    shiftEnd: payload.shiftEnd || "18:00",
+    breakMinutes: requiredBreakMinutes(payload.shiftStart || "07:00", payload.shiftEnd || "18:00"),
     gpsMode: payload.gpsMode?.trim() || 'MANUAL',
     locationNote: payload.locationNote?.trim() || null,
     locationUpdatedAt: payload.lat !== undefined || payload.lng !== undefined || payload.address !== undefined ? new Date().toISOString() : null

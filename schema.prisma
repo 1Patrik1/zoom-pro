@@ -337,6 +337,9 @@ model Project {
   status      String    @default("ACTIVE")      /// ACTIVE | COMPLETED | ARCHIVED
   plannedStart DateTime?
   plannedEnd   DateTime?
+  shiftStart   String    @default("07:00")
+  shiftEnd     String    @default("18:00")
+  breakMinutes Int       @default(60)
   budget       Float?
 
   // Vztahy

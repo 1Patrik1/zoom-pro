@@ -5,10 +5,10 @@ export const projectsRepo = {
     return query(
       `INSERT INTO "Project" (
         id, name, "companyId", "createdAt", "updatedAt", lat, lng, radius, address, code,
-        "clientName", status, "plannedStart", "plannedEnd", budget, "gpsMode", "locationNote", "locationUpdatedAt"
+        "clientName", status, "plannedStart", "plannedEnd", "shiftStart", "shiftEnd", "breakMinutes", budget, "gpsMode", "locationNote", "locationUpdatedAt"
       ) VALUES (
         gen_random_uuid(), $1, $2, NOW(), NOW(), $3, $4, $5, $6, $7,
-        $8, $9, $10, $11, $12, $13, $14, $15
+        $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
       ) RETURNING *`,
       [
         payload.name,
@@ -22,6 +22,9 @@ export const projectsRepo = {
         payload.status,
         payload.plannedStart,
         payload.plannedEnd,
+        payload.shiftStart,
+        payload.shiftEnd,
+        payload.breakMinutes,
         payload.budget,
         payload.gpsMode,
         payload.locationNote,
@@ -43,10 +46,13 @@ export const projectsRepo = {
            status = $10,
            "plannedStart" = $11,
            "plannedEnd" = $12,
-           budget = $13,
-           "gpsMode" = $14,
-           "locationNote" = $15,
-           "locationUpdatedAt" = COALESCE($16, "locationUpdatedAt"),
+           "shiftStart" = $13,
+           "shiftEnd" = $14,
+           "breakMinutes" = $15,
+           budget = $16,
+           "gpsMode" = $17,
+           "locationNote" = $18,
+           "locationUpdatedAt" = COALESCE($19, "locationUpdatedAt"),
            "updatedAt" = NOW()
        WHERE id = $1 AND "companyId" = $2
        RETURNING *`,
@@ -63,6 +69,9 @@ export const projectsRepo = {
         payload.status,
         payload.plannedStart,
         payload.plannedEnd,
+        payload.shiftStart,
+        payload.shiftEnd,
+        payload.breakMinutes,
         payload.budget,
         payload.gpsMode,
         payload.locationNote,

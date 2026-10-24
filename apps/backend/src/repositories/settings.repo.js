@@ -7,6 +7,16 @@ export const settingsRepo = {
       [email, phone, companyId]
     );
   },
+  updateCompanyProfile({ companyId, name, ico, dic, street, city, zip, country, email, phone }) {
+    return query(
+      `UPDATE "Company"
+       SET name = $1, ico = $2, dic = $3, street = $4, city = $5, zip = $6,
+           country = $7, email = $8, phone = $9, "updatedAt" = NOW()
+       WHERE id = $10
+       RETURNING id, name, ico, dic, street, city, zip, country, email, phone, "updatedAt"`,
+      [name, ico, dic, street, city, zip, country, email, phone, companyId]
+    );
+  },
   updatePricing({ companyId, cost, sell }) {
     return query(
       `UPDATE "Company"

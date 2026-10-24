@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BellRing, KeyRound, User as UserIcon, SlidersHorizontal } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { playCriticalAlarm } from '../../utils/alerts.js';
+import { EmployeePermissionsPanel } from './EmployeePermissionsPanel.jsx';
 
 export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, onCompanySaved }) {
   const canEdit = ['SUPERADMIN', 'REDITEL'].includes(user.role);
@@ -12,7 +13,11 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, o
     employmentType: user.employmentType || 'INTERNAL',
     ico: user.ico || '', dic: user.dic || '', street: user.street || '', city: user.city || '', zip: user.zip || ''
   });
-  const [companyContact, setCompanyContact] = useState({ email: db.company?.email || '', phone: db.company?.phone || '' });
+  const [companyProfile, setCompanyProfile] = useState(() => ({
+    name: db.company?.name || '', ico: db.company?.ico || '', dic: db.company?.dic || '',
+    street: db.company?.street || '', city: db.company?.city || '', zip: db.company?.zip || '',
+    country: db.company?.country || 'CZ', email: db.company?.email || '', phone: db.company?.phone || ''
+  }));
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
@@ -20,8 +25,12 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, o
   const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => {
-    setCompanyContact({ email: db.company?.email || '', phone: db.company?.phone || '' });
-  }, [db.company?.email, db.company?.phone]);
+    setCompanyProfile({
+      name: db.company?.name || '', ico: db.company?.ico || '', dic: db.company?.dic || '',
+      street: db.company?.street || '', city: db.company?.city || '', zip: db.company?.zip || '',
+      country: db.company?.country || 'CZ', email: db.company?.email || '', phone: db.company?.phone || ''
+    });
+  }, [db.company?.name, db.company?.ico, db.company?.dic, db.company?.street, db.company?.city, db.company?.zip, db.company?.country, db.company?.email, db.company?.phone]);
 
   async function saveProfile(e) {
     e.preventDefault();
@@ -37,15 +46,15 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, o
     }
   }
 
-  async function saveCompanyContact(event) {
+  async function saveCompanyProfile(event) {
     event.preventDefault();
     setMsg(''); setErr('');
     try {
-      const response = await api.put('settings/company/contact', token, companyContact);
-      setCompanyContact({ email: response.company?.email || '', phone: response.company?.phone || '' });
+      const response = await api.put('settings/company/profile', token, companyProfile);
+      setCompanyProfile((current) => ({ ...current, ...(response.company || {}) }));
       await onCompanySaved?.(response.company);
-      setMsg('Kontaktní údaje firmy byly uloženy.');
-    } catch (error) { setErr(error.message || 'Uložení firemních kontaktů selhalo.'); }
+      setMsg('Údaje firmy byly uloženy.');
+    } catch (error) { setErr(error.message || 'Uložení údajů firmy selhalo.'); }
   }
 
   async function changePassword(e) {
@@ -137,15 +146,30 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, o
         <button type="button" onClick={() => playCriticalAlarm({ times: 1, seconds: 2 })} className="rounded-2xl border border-slate-700 px-4 py-3 text-sm font-bold text-slate-200">Přehrát ukázku zvuku</button>
       </section>
 
-      {canEditCompanyContacts && <form onSubmit={saveCompanyContact} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
-        <h2 className="text-lg font-black text-emerald-400">Kontaktní údaje firmy</h2>
-        <p className="text-xs text-slate-400">Firemní kontakt je oddělený od osobního přihlašovacího e-mailu a telefonu.</p>
+      {canEditCompanyContacts && <form onSubmit={saveCompanyProfile} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <h2 className="text-lg font-black text-emerald-400">Údaje firmy</h2>
+        <p className="text-xs text-slate-400">Firemní kontakty jsou oddělené od osobního profilu. Údaje se vztahují pouze k vaší firmě.</p>
         <div className="grid gap-4 md:grid-cols-2">
-          <input type="email" value={companyContact.email} onChange={(e) => setCompanyContact({ ...companyContact, email: e.target.value })} placeholder="Kontaktní e-mail firmy" className={input} />
-          <input type="tel" value={companyContact.phone} onChange={(e) => setCompanyContact({ ...companyContact, phone: e.target.value })} placeholder="Telefon firmy" className={input} />
+          <input required maxLength={160} value={companyProfile.name} onChange={(e) => setCompanyProfile({ ...companyProfile, name: e.target.value })} placeholder="Název firmy" aria-label="Název firmy" className={input} />
+          <input maxLength={20} value={companyProfile.ico} onChange={(e) => setCompanyProfile({ ...companyProfile, ico: e.target.value })} placeholder="IČO" aria-label="IČO" className={input} />
+          <input maxLength={30} value={companyProfile.dic} onChange={(e) => setCompanyProfile({ ...companyProfile, dic: e.target.value })} placeholder="DIČ" aria-label="DIČ" className={input} />
+          <input maxLength={200} value={companyProfile.street} onChange={(e) => setCompanyProfile({ ...companyProfile, street: e.target.value })} placeholder="Ulice a číslo" aria-label="Ulice a číslo" className={input} />
+          <input maxLength={100} value={companyProfile.city} onChange={(e) => setCompanyProfile({ ...companyProfile, city: e.target.value })} placeholder="Město" aria-label="Město" className={input} />
+          <input maxLength={20} value={companyProfile.zip} onChange={(e) => setCompanyProfile({ ...companyProfile, zip: e.target.value })} placeholder="PSČ" aria-label="PSČ" className={input} />
+          <input maxLength={3} value={companyProfile.country} onChange={(e) => setCompanyProfile({ ...companyProfile, country: e.target.value })} placeholder="Stát (ISO kód)" aria-label="Stát (ISO kód)" className={input} />
+          <input type="email" maxLength={254} value={companyProfile.email} onChange={(e) => setCompanyProfile({ ...companyProfile, email: e.target.value })} placeholder="Kontaktní e-mail firmy" aria-label="Kontaktní e-mail firmy" className={input} />
+          <input type="tel" maxLength={40} value={companyProfile.phone} onChange={(e) => setCompanyProfile({ ...companyProfile, phone: e.target.value })} placeholder="Telefon firmy" aria-label="Telefon firmy" className={input} />
         </div>
-        <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black uppercase text-white">Uložit kontakty firmy</button>
+        <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black uppercase text-white">Uložit údaje firmy</button>
       </form>}
+      {user.role === 'REDITEL' && <>
+        <section className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+          <h2 className="text-lg font-black text-amber-300">Majitelé firmy</h2>
+          <p className="text-sm text-slate-400">Majitelem je účet s rolí Ředitel. Dalšího majitele přidej v modulu Tým změnou role zaměstnance na Ředitel.</p>
+          <ul className="space-y-2">{(db.users || []).filter((member) => member.role === 'REDITEL').map((member) => <li key={member.id} className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white">{[member.firstName, member.lastName].filter(Boolean).join(' ') || member.email}</li>)}</ul>
+        </section>
+        <EmployeePermissionsPanel token={token} />
+      </>}
 
       <form onSubmit={changePassword} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-lg font-black text-rose-400 flex items-center gap-2"><KeyRound size={18} /> Změna hesla</h2>
