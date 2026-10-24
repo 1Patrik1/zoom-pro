@@ -71,6 +71,6 @@ export function getGeolocationSchedule(projects = []) {
   return [...new Set(projects.map((project) => {
     const start = project.shiftStart || '07:00';
     const end = project.shiftEnd || '18:00';
-    return '1-7 ' + start + '-' + end;
+    return start === end ? '1-7 00:00-23:59' : '1-7 ' + start + '-' + end;
   }))];
 }
