@@ -16,6 +16,10 @@ Primary project:
 
 Do not use `zoom-pro.app` or `zoom-pro.app-` as the project source unless explicitly instructed.
 
+## Current status
+
+Before proposing work, read [`docs/REPOSITORY-AUDIT-2026-10-24.md`](docs/REPOSITORY-AUDIT-2026-10-24.md) and verify findings against the current branch.
+
 ## Safety
 
 AI agents must inspect first, explain risky changes, and avoid destructive database/Git operations without explicit human confirmation.
