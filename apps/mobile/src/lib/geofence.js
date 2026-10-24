@@ -66,6 +66,7 @@ async function submitAttendance(project, type, point) {
   } catch (error) {
     // Preserve a failed background transition for the authenticated user only.
     const user = await store.getUser();
+    if (Number(error?.status) >= 400 && Number(error?.status) < 500) throw error;
     if (!user?.id || String(user.id) !== String(currentUserId)) throw error;
     await queue.push({
       path: '/api/attendance',
@@ -189,7 +190,11 @@ export async function startGeofence(projects, { assignments = [], attendance = [
         const project = projectsById.get(id);
         const action = String(event?.action || '').toUpperCase();
         if (!project || !['ENTER', 'EXIT'].includes(action)) return;
-        enqueuePosition(toPoint(event.location), action, id);
+        const point = toPoint(event.location);
+        if (point) enqueuePosition(point, action, id);
+        else BackgroundGeolocation.getCurrentPosition({ timeout: 30, maximumAge: 30000, persist: false })
+          .then((location) => enqueuePosition(toPoint(location), action, id))
+          .catch(() => {});
       }),
       BackgroundGeolocation.onLocation((location) => {
         const point = toPoint(location);
