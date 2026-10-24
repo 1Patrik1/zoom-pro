@@ -231,11 +231,15 @@ export async function startGeofence(projects, { assignments = [], attendance = [
     await BackgroundGeolocation.stopSchedule().catch(() => {});
     await BackgroundGeolocation.stop().catch(() => {});
     running = false;
+    await store.setGpsAttendanceEnabled(false);
     return { ok: false, reason: error?.message || 'gps-start-failed' };
   }
 }
 
 export async function stopGeofence({ disable = true } = {}) {
+  if (disable && activeSession && currentUserId) {
+    await closeSession(lastPosition).catch((error) => console.warn('[geofence] Could not close attendance on stop:', error?.message || error));
+  }
   removeListeners();
   await BackgroundGeolocation.stopSchedule().catch(() => {});
   await BackgroundGeolocation.stop().catch(() => {});
