@@ -10,6 +10,9 @@ export const employeePermissionsRepo = {
   listPermissionCatalog() {
     return query('SELECT key, "moduleKey", label, description FROM "Permission" ORDER BY "moduleKey", label');
   },
+  listRoleDefaults() {
+    return query('SELECT rp.role, p.key, rp.granted FROM \"RolePermission\" rp JOIN \"Permission\" p ON p.id = rp.\"permissionId\"');
+  },
   listOverrides(companyId) {
     return query(
       'SELECT uo."userId", p.key, uo.granted FROM "UserPermissionOverride" uo JOIN "Permission" p ON p.id = uo."permissionId" JOIN "User" u ON u.id = uo."userId" WHERE u."companyId" = $1',
