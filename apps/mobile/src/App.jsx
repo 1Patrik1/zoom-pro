@@ -45,14 +45,21 @@ export function App() {
     let cancelled = false;
     (async () => {
       if (!await store.getGpsAttendanceEnabled()) return;
-      const sync = await api.request('/api/sync', { token });
+      let config;
+      try {
+        const sync = await api.request('/api/sync', { token });
+        config = {
+          projects: sync?.projects || [],
+          assignments: (sync?.assignments || []).filter((item) => String(item.userId) === String(user.id)),
+          attendance: sync?.attendance || []
+        };
+      } catch (error) {
+        const saved = await store.getGeofenceConfig();
+        if (!saved || String(saved.userId) !== String(user.id)) throw error;
+        config = { projects: saved.projects || [], assignments: saved.assignments || [], attendance: [] };
+      }
       if (cancelled) return;
-      await geofence.start(sync?.projects || [], {
-        assignments: (sync?.assignments || []).filter((item) => String(item.userId) === String(user.id)),
-        attendance: sync?.attendance || [],
-        user,
-        token
-      });
+      await geofence.start(config.projects, { ...config, user, token });
     })().catch((error) => console.warn('[geofence] Could not restore background attendance:', error.message));
     return () => { cancelled = true; };
   }, [token, user?.id]);
