@@ -225,6 +225,7 @@ export async function startGeofence(projects, { assignments = [], attendance = [
 
     await store.setGpsAttendanceEnabled(true);
     await store.setGeofenceSession(activeSession);
+    await store.setGeofenceConfig({ userId: currentUserId, projects: eligible, assignments });
     running = true;
 
     BackgroundGeolocation.getCurrentPosition({ timeout: 30, maximumAge: 30000, persist: false })
@@ -257,6 +258,7 @@ export async function stopGeofence({ disable = true } = {}) {
     activeSession = null;
     await store.setGpsAttendanceEnabled(false);
     await store.setGeofenceSession(null);
+    await store.setGeofenceConfig(null);
   }
 }
 
