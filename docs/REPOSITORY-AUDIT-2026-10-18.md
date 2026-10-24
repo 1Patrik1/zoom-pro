@@ -1,5 +1,7 @@
 # Zoom Pro — audit repozitáře (2026-10-18)
 
+> Navazující kontrola stavu hlavní větve, CI a dokumentace k 2026-10-24 je v [novějším auditu](REPOSITORY-AUDIT-2026-10-24.md). Tato zpráva zachovává tehdejší zjištění a jejich časový kontext.
+
 ## Rozsah a omezení
 
 Tento dokument shrnuje první cílený audit veřejné větve `main` repozitáře `1Patrik1/zoom-pro`. Byly zkontrolovány routy backendu, middleware, služby a repozitáře pro autentizaci, oprávnění, SaaS/licence, projekty, docházku, sklad, faktury, dokumenty/podpisy, distribuci, synchronizaci, AI/AutoDetect, import/export, notifikace, CI a nasazení.
