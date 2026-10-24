@@ -6,19 +6,45 @@ import { registerPush } from '../lib/push.js';
 import { geofence } from '../lib/geofence.js';
 import { api } from '../lib/api.js';
 
-export function DiagnosticsScreen({ token }) {
+export function DiagnosticsScreen({ token, user }) {
   const [bioOk, setBioOk] = useState(false);
   const [gfRunning, setGfRunning] = useState(false);
   const [msg, setMsg] = useState('');
 
-  useEffect(() => { bio.isAvailable().then(setBioOk); }, []);
+  useEffect(() => { bio.isAvailable().then(setBioOk); geofence.isRunning().then(setGfRunning); }, []);
 
   const toggleGf = async () => {
-    if (gfRunning) { await geofence.stop(); setGfRunning(false); return; }
-    const s = await api.request('/api/sync', { token }).catch(() => null);
-    await geofence.start(s?.projects || [], { autoAttendance: true });
-    setGfRunning(true);
-    setMsg('Geofence běží na pozadí.');
+    setMsg('');
+    if (gfRunning) {
+      await geofence.stop();
+      setGfRunning(false);
+      setMsg('Automatická docházka vypnuta.');
+      return;
+    }
+    if (user?.role !== 'MONTER') {
+      setMsg('Automatickou GPS docházku může zapnout pouze účet montéra.');
+      return;
+    }
+    try {
+      const sync = await api.request('/api/sync', { token });
+      const assignments = (sync?.assignments || []).filter((item) => String(item.userId) === String(user.id));
+      const result = await geofence.start(sync?.projects || [], {
+        assignments,
+        attendance: sync?.attendance || [],
+        user,
+        token
+      });
+      if (!result.ok) {
+        setGfRunning(false);
+        setMsg(result.reason || 'Automatickou GPS docházku se nepodařilo zapnout.');
+        return;
+      }
+      setGfRunning(true);
+      setMsg('Automatická docházka poběží v nastavených směnách i při zamčeném telefonu.');
+    } catch (error) {
+      setGfRunning(false);
+      setMsg(error.message || 'Automatickou GPS docházku se nepodařilo zapnout.');
+    }
   };
 
   const activatePush = async () => {
@@ -50,7 +76,7 @@ export function DiagnosticsScreen({ token }) {
         action={<button onClick={activatePush} className="btn-ghost text-xs">Aktivovat</button>} />
       <Row icon={Fingerprint} title="Biometrie" desc={bioOk ? 'Dostupné (Face ID / Fingerprint)' : 'Není dostupné'}
         action={<span className={`chip ${bioOk ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>{bioOk ? 'OK' : '—'}</span>} />
-      <Row icon={Map} title="Auto docházka (geofence)" desc="Auto pípnutí při vstupu na projekt"
+      <Row icon={Map} title="Auto docházka (geofence)" desc="Automatická docházka na přiřazeném projektu v režimu GPS, pouze během směny"
         action={<button onClick={toggleGf} className={`btn ${gfRunning ? 'bg-rose-600' : 'bg-emerald-600'} text-white text-xs`}>{gfRunning ? 'Vypnout' : 'Zapnout'}</button>} />
       <Row icon={ScanLine} title="QR/EAN skener" desc="Kamera + ML Kit" action={<span className="chip">Screen: Skener</span>} />
       <Row icon={Compass} title="Kompas + úhloměr" desc="Gyroskop + accelerometer" action={<span className="chip">Screen: Úhloměr</span>} />
