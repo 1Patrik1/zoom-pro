@@ -1,7 +1,7 @@
 const EARTH_RADIUS_M = 6371000;
 
 export function parseShiftTime(value) {
-  if (typeof value !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value)) return null;
+  if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
   const [hours, minutes] = value.split(':').map(Number);
   return hours * 60 + minutes;
 }
