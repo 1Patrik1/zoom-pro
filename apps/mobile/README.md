@@ -1,5 +1,7 @@
 # Zoom Pro Montér — mobilní aplikace
 
+> Bezpečnostní poznámka k offline frontě (ověřeno ve vzdáleném `main` k 2026-10-24): odhlášené a cizímu uživateli patřící položky se při přehrání nesmějí odeslat pod aktuálním účtem; token se nesmí ukládat do IndexedDB. Podrobnosti a omezení jsou v [aktuálním auditu](../../docs/REPOSITORY-AUDIT-2026-10-24.md).
+
 Nativní Android/iOS + PWA aplikace pro montéry postavená na **Capacitor 6 + React 18 + Vite + Tailwind**.
 
 ## Funkce
