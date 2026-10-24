@@ -112,6 +112,7 @@ export const validators = {
       optionalNumber(body.lng, 'lng'),
       optionalNumber(body.radius, 'radius') || (body.radius !== undefined && Number(body.radius) < 0 ? 'radius nesmí být záporné' : null),
       optionalNumber(body.budget, 'budget'),
+      ...['shiftStart', 'shiftEnd'].map((field) => body[field] !== undefined && !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(body[field]) ? `${field} musí být čas ve formátu HH:MM` : null),
       optionalEnum(body.gpsMode, 'gpsMode', PROJECT_GPS_MODES)
     ]);
   },
