@@ -202,8 +202,11 @@ export async function startGeofence(projects, { assignments = [], attendance = [
       }),
       BackgroundGeolocation.onSchedule((event) => {
         if (event?.state?.enabled === false) {
-          const point = lastPosition;
-          enqueuePosition(point);
+          // The native schedule stops location updates at shift end; close the
+          // active attendance directly because there may be no final location.
+          transitionQueue = transitionQueue
+            .then(() => closeSession(lastPosition))
+            .catch((error) => console.warn('[geofence] Could not close attendance at shift end:', error?.message || error));
         } else if (event?.state?.enabled === true) {
           BackgroundGeolocation.getCurrentPosition({ timeout: 30, maximumAge: 30000, persist: false })
             .then((location) => enqueuePosition(toPoint(location)))
