@@ -13,6 +13,8 @@ const EMPTY_FORM = {
   status: 'ACTIVE',
   plannedStart: '',
   plannedEnd: '',
+  shiftStart: '07:00',
+  shiftEnd: '18:00',
   gpsMode: 'MANUAL',
   locationNote: ''
 };
@@ -46,6 +48,8 @@ function projectToForm(project) {
     status: project.status || 'ACTIVE',
     plannedStart: formatDateTimeLocal(project.plannedStart),
     plannedEnd: formatDateTimeLocal(project.plannedEnd),
+    shiftStart: project.shiftStart || '07:00',
+    shiftEnd: project.shiftEnd || '18:00',
     gpsMode: project.gpsMode || 'MANUAL',
     locationNote: project.locationNote || ''
   };
@@ -70,6 +74,8 @@ function toPayload(form) {
     status: form.status.trim() || 'ACTIVE',
     plannedStart: form.plannedStart || null,
     plannedEnd: form.plannedEnd || null,
+    shiftStart: form.shiftStart,
+    shiftEnd: form.shiftEnd,
     gpsMode: form.gpsMode,
     locationNote: form.locationNote.trim() || null
   };
@@ -386,6 +392,18 @@ export function ProjectsPage({ user, db, onCreateProject, onUpdateProject, onDel
                 <input value={form.locationNote} onChange={(event) => updateFormField('locationNote', event.target.value)} placeholder="GPS bod u hlavního vstupu" className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white outline-none" />
               </label>
             </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+              <label className="space-y-1 text-sm text-slate-300">
+                <span>Začátek směny</span>
+                <input type="time" value={form.shiftStart} onChange={(event) => updateFormField('shiftStart', event.target.value)} className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white outline-none" />
+              </label>
+              <label className="space-y-1 text-sm text-slate-300">
+                <span>Konec směny</span>
+                <input type="time" value={form.shiftEnd} onChange={(event) => updateFormField('shiftEnd', event.target.value)} className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white outline-none" />
+              </label>
+            </div>
+            <p className="text-xs text-slate-400">Povinná pauza se určí automaticky: 30 minut při směně kratší než 8 hodin, 60 minut při směně 8 hodin a delší. GPS kontrola je plánována pouze mezi 7:00 a 18:00.</p>
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
               <label className="space-y-1 text-sm text-slate-300">
