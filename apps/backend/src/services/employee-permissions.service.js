@@ -43,17 +43,19 @@ function licenseAllows(permission, modules) {
 export const employeePermissionsService = {
   async getManagementData(user) {
     isDirector(user);
-    const [employeeRows, catalogRows, overrideRows, licenseRows] = await Promise.all([
+    const [employeeRows, catalogRows, overrideRows, licenseRows, roleDefaultRows] = await Promise.all([
       employeePermissionsRepo.listEmployees(user.companyId),
       employeePermissionsRepo.listPermissionCatalog(),
       employeePermissionsRepo.listOverrides(user.companyId),
-      employeePermissionsRepo.getLicense(user.companyId)
+      employeePermissionsRepo.getLicense(user.companyId),
+      employeePermissionsRepo.listRoleDefaults()
     ]);
     const modules = enabledModules(licenseRows.rows[0]);
     return {
       employees: employeeRows.rows.filter((employee) => employee.role !== 'REDITEL'),
       permissions: catalogRows.rows.filter((permission) => licenseAllows(permission, modules)),
       overrides: overrideRows.rows,
+      roleDefaults: roleDefaultRows.rows,
       enabledModules: [...modules]
     };
   },
