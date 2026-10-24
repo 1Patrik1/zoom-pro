@@ -4,7 +4,8 @@ import {
   findProjectAtPosition,
   getAutoAttendanceProjects,
   hasProjectCoordinates,
-  isWithinProjectShift
+  isWithinProjectShift,
+  getGeolocationSchedule
 } from './geofence-policy.js';
 
 test('automatic attendance only includes active projects assigned to this user in AUTO or COMBINED mode', () => {
@@ -43,6 +44,10 @@ test('shift window is inclusive at start, exclusive at end, and supports overnig
   assert.equal(isWithinProjectShift(night, day(23)), true);
   assert.equal(isWithinProjectShift(night, day(5, 59)), true);
   assert.equal(isWithinProjectShift(night, day(12)), false);
+});
+
+test('equal start and end produces an all-day native tracking schedule', () => {
+  assert.deepEqual(getGeolocationSchedule([{ shiftStart: '07:00', shiftEnd: '07:00' }]), ['1-7 00:00-23:59']);
 });
 
 test('nearest project within its configured radius wins and coordinates at zero work', () => {
