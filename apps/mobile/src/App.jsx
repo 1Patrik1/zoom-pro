@@ -18,6 +18,8 @@ import { WatchScreen } from './screens/WatchScreen.jsx';
 import { DiagnosticsScreen } from './screens/DiagnosticsScreen.jsx';
 import { TabBar } from './components/TabBar.jsx';
 import { store } from './lib/storage.js';
+import { api } from './lib/api.js';
+import { geofence } from './lib/geofence.js';
 
 export function App() {
   const [tab, setTab] = useState('home');
@@ -37,6 +39,30 @@ export function App() {
     Network.addListener('networkStatusChange', (s) => setOnline(s.connected));
     Network.getStatus().then((s) => setOnline(s.connected)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!token || user?.role !== 'MONTER') return undefined;
+    let cancelled = false;
+    (async () => {
+      if (!await store.getGpsAttendanceEnabled()) return;
+      let config;
+      try {
+        const sync = await api.request('/api/sync', { token });
+        config = {
+          projects: sync?.projects || [],
+          assignments: (sync?.assignments || []).filter((item) => String(item.userId) === String(user.id)),
+          attendance: sync?.attendance || []
+        };
+      } catch (error) {
+        const saved = await store.getGeofenceConfig();
+        if (!saved || String(saved.userId) !== String(user.id)) throw error;
+        config = { projects: saved.projects || [], assignments: saved.assignments || [], attendance: [] };
+      }
+      if (cancelled) return;
+      await geofence.start(config.projects, { ...config, user, token });
+    })().catch((error) => console.warn('[geofence] Could not restore background attendance:', error.message));
+    return () => { cancelled = true; };
+  }, [token, user?.id]);
 
   if (restoringSession) return <main className="grid min-h-screen place-items-center bg-[#030712]"><img src="/brand/zoom-pro-wordmark.png" alt="Zoom Pro" className="h-20 w-72 object-contain" /></main>;
   if (!token || !user) return <LoginScreen onLogin={(t, u) => { setToken(t); setUser(u); }} />;
@@ -60,7 +86,7 @@ export function App() {
         {tab === 'watch' && <WatchScreen {...props} />}
         {tab === 'diag' && <DiagnosticsScreen {...props} />}
         {tab === 'sync' && <SyncScreen {...props} />}
-        {tab === 'settings' && <SettingsScreen {...props} onLogout={async () => { await store.clear(); setToken(null); setUser(null); }} />}
+        {tab === 'settings' && <SettingsScreen {...props} onLogout={async () => { await geofence.stop(); await store.clear(); setToken(null); setUser(null); }} />}
       </main>
       <TabBar active={tab} onChange={setTab} />
     </div>
