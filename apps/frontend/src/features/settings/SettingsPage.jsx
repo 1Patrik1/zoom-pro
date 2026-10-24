@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BellRing, KeyRound, User as UserIcon, SlidersHorizontal } from 'lucide-react';
 import { api } from '../../api/client.js';
 import { playCriticalAlarm } from '../../utils/alerts.js';
+import { EmployeePermissionsPanel } from './EmployeePermissionsPanel.jsx';
 
 export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, onCompanySaved }) {
   const canEdit = ['SUPERADMIN', 'REDITEL'].includes(user.role);
@@ -161,6 +162,14 @@ export function SettingsPage({ user, db, token, onSavePricing, onProfileSaved, o
         </div>
         <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black uppercase text-white">Uložit údaje firmy</button>
       </form>}
+      {user.role === 'REDITEL' && <>
+        <section className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+          <h2 className="text-lg font-black text-amber-300">Majitelé firmy</h2>
+          <p className="text-sm text-slate-400">Majitelem je účet s rolí Ředitel. Dalšího majitele přidej v modulu Tým změnou role zaměstnance na Ředitel.</p>
+          <ul className="space-y-2">{(db.users || []).filter((member) => member.role === 'REDITEL').map((member) => <li key={member.id} className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white">{[member.firstName, member.lastName].filter(Boolean).join(' ') || member.email}</li>)}</ul>
+        </section>
+        <EmployeePermissionsPanel token={token} />
+      </>}
 
       <form onSubmit={changePassword} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-lg font-black text-rose-400 flex items-center gap-2"><KeyRound size={18} /> Změna hesla</h2>
