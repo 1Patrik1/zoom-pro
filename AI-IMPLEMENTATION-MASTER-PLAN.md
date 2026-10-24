@@ -49,7 +49,11 @@ Pokud remote neodpovídá očekávanému projektu, nepokračuj v automatických 
 
 ---
 
-# 2. Aktuální známé problémy
+# 2. Historické oblasti kontroly (stav ověřit před prací)
+
+> Stav 2026-10-24: část níže uvedených problémů již byla opravena. Před jejich řešením ověř [aktuální audit](docs/REPOSITORY-AUDIT-2026-10-24.md) a hlavní větev; seznam níže je kontrolní seznam, nikoli tvrzení o současné chybě.
+
+# 2.1 Oblasti, které audit ověřuje
 
 AI musí při auditu ověřit zejména:
 

@@ -8,7 +8,7 @@ cd zoom-pro
 bash scripts/termux/install.sh
 ```
 
-Instalátor používá `scripts/db-migrate-all.mjs` a aplikuje všechny očíslované root SQL migrace (`001_*.sql` až aktuální `020_*.sql`). Přidání nové migrace nevyžaduje ručně udržovaný seznam v Termux skriptu.
+Instalátor používá `scripts/db-migrate-all.mjs` a aplikuje všechny očíslované root SQL migrace (`001_*.sql` až aktuální `021_*.sql`). Přidání nové migrace nevyžaduje ručně udržovaný seznam v Termux skriptu.
 
 ## Spuštění
 ```bash

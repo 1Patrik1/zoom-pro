@@ -7,7 +7,7 @@ Multifiremní provozní aplikace pro projekty, docházku, stavební deník, skla
 - `apps/frontend` — React webová aplikace / PWA.
 - `apps/backend` — Node.js + Express API.
 - `apps/mobile` — Capacitor aplikace pro Android/iOS.
-- `schema.prisma` a kořenové SQL soubory `001_*.sql` až `020_*.sql` — schéma a migrace.
+- `schema.prisma` a kořenové SQL soubory `001_*.sql` až `021_*.sql` — schéma a migrace.
 - `docs/` — instalační, provozní a modulové návody.
 
 ## Rychlý lokální start
@@ -59,5 +59,6 @@ Panel v **Platforma → Platební brána** umí uložit předvolbu poskytovatele
 - [Architektura](docs/ARCHITEKTURA-PWA-APP.md)
 - [Nasazení na VPS](docs/FINIS-DEPLOY-VPS.md)
 - [Go-live checklist](docs/FINIS-GO-LIVE-CHECKLIST.md)
+- [Aktuální audit a doporučení](docs/REPOSITORY-AUDIT-2026-10-24.md)
 - [Přehled funkcí a migrací](docs/AKTUALIZACE-2026-10-11.md)
 - [Historický audit](AUDIT.md) — původní auditní čísla jsou časový snímek a nemusí odpovídat dnešnímu provozu.

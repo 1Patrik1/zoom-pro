@@ -1,5 +1,7 @@
 # Aktualizace projektu — 11. 10. 2026
 
+> Stav k 2026-10-24: ověřený souhrn změn po 11. 10. a bezpečných dalších kroků je v [aktuální audit k 2026-10-24](docs/REPOSITORY-AUDIT-2026-10-24.md). Tento dokument zůstává časovým snímkem.
+
 Tento přehled doplňuje starší instalační a auditní dokumenty. Popisuje aktuální změny v pracovním stromu a stav jejich připravenosti; sám o sobě nepotvrzuje nasazení na server ani průchod integračními testy.
 
 ## Funkce a související části
@@ -25,6 +27,10 @@ Tento přehled doplňuje starší instalační a auditní dokumenty. Popisuje ak
 | `020_payment_gateway_settings.sql` | Bezpečný výchozí záznam `paymentGateway` v `PlatformSetting`; bez tajných klíčů a bez aktivace plateb. |
 
 Migrace `020` nemění tabulkovou strukturu, pouze vloží výchozí JSON nastavení přes `ON CONFLICT DO NOTHING`. Předchozí verze schématu podporují také migrace `015` a `016`.
+
+## Migrace 021 — notifikace
+
+Kořenová migrace `021_notifications.sql` přidává databázovou podporu pro centrum notifikací. Před nasazením ověř zálohu, výsledek CI a stav migrace v cílové databázi; tento dokument nepotvrzuje její aplikaci na produkci.
 
 ## Aplikace změn databáze
 
@@ -56,5 +62,5 @@ V **Platforma → Platební brána** lze vybrat předvolbu poskytovatele, testov
 - Webová navigace a obrazovky: `apps/frontend/src/config/nav.config.js`, `apps/frontend/src/App.jsx`, `apps/frontend/src/features/`.
 - API a služby: `apps/backend/src/app.js`, `apps/backend/src/routes/`, `apps/backend/src/services/`.
 - Mobilní oznámení: `apps/mobile/src/lib/push.js`, `apps/mobile/src/screens/SettingsScreen.jsx`.
-- Schéma a migrace: `schema.prisma`, soubory `001_*.sql`–`020_*.sql`.
+- Schéma a migrace: `schema.prisma`, soubory `001_*.sql`–`021_*.sql`.
 

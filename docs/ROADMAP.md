@@ -1,5 +1,7 @@
 # zoom-pro — roadmap stabilizace a inovací
 
+> Aktualizace 2026-10-24: offline fronta mobilu byla bezpečnostně svázána s účtem (PR #64) a normalizace owner ID opravena (PR #66). Aktuální audit a doporučení k závislostem jsou v [REPOSITORY-AUDIT-2026-10-24.md](REPOSITORY-AUDIT-2026-10-24.md). Před změnou každého úkolu znovu ověř jeho stav v kódu a GitHubu.
+
 > Stav: návrh pro řízenou implementaci. Tento dokument není potvrzením, že jsou úkoly hotové nebo že aplikace prošla produkčním testováním.
 > Cílový repozitář: `1Patrik1/zoom-pro`. Repozitáře `zoom-pro.app` a `zoom-pro.app-` nejsou součástí tohoto plánu.
 

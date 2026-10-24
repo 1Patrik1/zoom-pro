@@ -1,8 +1,8 @@
 # Zoom Pro — kompletní instalace jako nová aplikace
 
-Datum revize: **2026-10-11** · web + backend + mobile + distribuce + podpora + licence
+Datum revize: **2026-10-24** · web + backend + mobile + distribuce + podpora + licence
 
-Aktuální provozní stav, nové funkce, migrace 017–020 a jejich omezení popisuje [souhrnný přehled](docs/AKTUALIZACE-2026-10-11.md). Tento návod obsahuje i starší historické poznámky; při rozporu použij aktuální přehled.
+Aktuální stav hlavní větve a bezpečnostní doporučení popisuje [audit k 2026-10-24](docs/REPOSITORY-AUDIT-2026-10-24.md). Funkce a migrace popisuje [souhrnný přehled](docs/AKTUALIZACE-2026-10-11.md); při rozporu použij novější audit. Tento návod obsahuje i starší historické poznámky; při rozporu použij novější audit.
 
 Tento návod tě provede instalací **od nuly** na čistý stroj (Linux / macOS / Windows / Termux) i kontejnerovým nasazením přes Docker. Nemusíš znát nic mimo `node` a `git`.
 
@@ -16,7 +16,7 @@ zoom-pro/
 │  ├─ backend/          # Node.js + Express + PostgreSQL
 │  ├─ frontend/         # React 18 + Vite + Tailwind (web PWA)
 │  └─ mobile/           # Capacitor 6 + React (Android/iOS/PWA)
-├─ 001…020_*.sql        # 20 očíslovaných DB migrací (schema, seedy, upgrades)
+├─ 001…021_*.sql        # 21 očíslovaných DB migrací (schema, seedy, upgrades)
 ├─ scripts/
 │  ├─ install.sh                    # ★ jednotný instalátor pro Linux/macOS
 │  ├─ install.ps1                   # ★ Windows PowerShell instalátor
