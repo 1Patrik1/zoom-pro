@@ -175,6 +175,17 @@ export const validators = {
   userApprove(body) {
     return collect([requiredUuidish(body.userId, 'userId')]);
   },
+  userPermissions(body) {
+    return collect([
+      requiredUuidish(body.userId, 'userId'),
+      !Array.isArray(body.overrides) ? 'overrides musí být pole' : null,
+      Array.isArray(body.overrides) && body.overrides.length > 500 ? 'Lze nastavit maximálně 500 oprávnění' : null,
+      ...(Array.isArray(body.overrides) ? body.overrides.flatMap((item, index) => [
+        requiredString(item.key, `overrides[${index}].key`, 2),
+        requiredBooleanLike(item.granted, `overrides[${index}].granted`)
+      ]) : [])
+    ]);
+  },
   userRole(body) {
     return collect([
       requiredUuidish(body.userId, 'userId'),
