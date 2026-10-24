@@ -1,5 +1,7 @@
 # FINIS — go-live checklist
 
+> Stav dokumentace k 2026-10-24: ověř aktuální omezení a monitor v [auditu repozitáře](REPOSITORY-AUDIT-2026-10-24.md).
+
 ## Bezpečnost
 - [ ] změněné `POSTGRES_PASSWORD`
 - [ ] změněné `JWT_SECRET`
@@ -10,7 +12,7 @@
 ## Aplikace
 - [ ] běží `postgres`
 - [ ] proběhl `migrate` kontejner bez chyby
-- [ ] tabulka `_migrations` obsahuje požadované SQL migrace (včetně 017–020)
+- [ ] tabulka `_migrations` obsahuje požadované SQL migrace (včetně 017–021)
 - [ ] běží `backend`
 - [ ] běží `frontend`
 - [ ] login SUPERADMIN funguje
