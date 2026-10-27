@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true
-  }, 
+  },
   plugins: [react()],
   server: {
     host: '0.0.0.0',
@@ -26,9 +26,12 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          lucide: ['lucide-react']
+        // A function is accepted by both Rollup (Vite 5) and Rolldown (Vite 8).
+        // Keep React and Lucide in stable chunks without the object form rejected by Rolldown.
+        manualChunks(id) {
+          if (/[\\/]node_modules[\\/]react(?:-dom)?(?:[\\/]|$)/.test(id)) return 'react';
+          if (/[\\/]node_modules[\\/]lucide-react(?:[\\/]|$)/.test(id)) return 'lucide';
+          return undefined;
         }
       }
     }
