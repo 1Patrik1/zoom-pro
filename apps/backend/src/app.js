@@ -37,7 +37,23 @@ import { errorHandler } from './middleware/error-handler.js';
 export function createApp() {
   const app = express();
   if (env.trustProxy) app.set('trust proxy', 1);
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  // API server: striktní CSP (frontend je servírován z vlastní domény/Vite),
+  // CORP cross-origin kvůli načítání souborů (obrázky, podpisy) z PWA.
+  app.use(helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        formAction: ["'none'"],
+        imgSrc: ["'self'", 'data:'],
+        styleSrc: ["'none'"],
+        scriptSrc: ["'none'"],
+        upgradeInsecureRequests: null
+      }
+    },
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  }));
   app.use(cors({ origin: env.corsOrigin }));
   app.use(express.json({ limit: '5mb' }));
 
