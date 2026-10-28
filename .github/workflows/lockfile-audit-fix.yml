@@ -90,6 +90,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: automation/mobile-tar-override-2026-10-18
+          base: main
           delete-branch: false
           add-paths: |
             package-lock.json
