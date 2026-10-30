@@ -2,7 +2,13 @@ import { query } from '../config/db.js';
 
 export const signaturesRepo = {
   listProviders(companyId) {
-    return query('SELECT * FROM "SignatureProvider" WHERE "companyId" = $1 ORDER BY "isDefault" DESC, name ASC', [companyId]);
+    return query(
+      `SELECT id, name, "supportedLevels", "isActive", "isDefault"
+       FROM "SignatureProvider"
+       WHERE "companyId" = $1
+       ORDER BY "isDefault" DESC, name ASC`,
+      [companyId]
+    );
   },
   listRequests(companyId) {
     return query(
