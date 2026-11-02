@@ -41,7 +41,7 @@
     "db:setup:user": "node scripts/db-setup-local.mjs"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "concurrently": "^10.0.6"
   },
   "type": "module"
 }
