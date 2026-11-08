@@ -25,6 +25,15 @@ jobs:
         with:
           script: |
             const required = ['build', 'Audit mobile npm dependencies', 'Audit root npm workspace'];
+            const comparison = await github.rest.repos.compareCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: 'main',
+              head: context.sha
+            });
+            if (!['identical', 'behind'].includes(comparison.data.status)) {
+              core.setFailed(`Release commit is not merged into main (comparison: ${comparison.data.status}).`);
+            }
             const { data } = await github.rest.checks.listForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
