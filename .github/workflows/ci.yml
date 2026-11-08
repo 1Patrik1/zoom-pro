@@ -29,7 +29,7 @@ jobs:
           cache: 'npm'
 
       - name: Install
-        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Run migrations
         env:
@@ -46,6 +46,15 @@ jobs:
             echo "== $f =="
             psql -v ON_ERROR_STOP=1 -h localhost -U zoom_user -d zoom_pro -f "$f"
           done
+
+      - name: Provision test SUPERADMIN
+        env:
+          DATABASE_URL: postgresql://zoom_user:zoom_pass@localhost:5432/zoom_pro
+          INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-${{ github.run_id }}-initial-admin-secret
+        run: npm run db:seed:platform
+
+      - name: Security audit
+        run: npm run audit:security
 
       - name: Install mobile dependencies
         run: npm ci --prefix apps/mobile --no-audit --no-fund
