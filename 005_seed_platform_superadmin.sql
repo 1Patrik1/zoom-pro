@@ -2,9 +2,7 @@ BEGIN;
 
 -- ============================================================================
 -- PLATFORM OWNER / SUPERADMIN
--- Plain login for first launch:
---   email: owner@platform.local
---   password: generated once by seed-platform-admin.mjs
+-- Initial SUPERADMIN account; the password is provisioned by seed-platform-admin.mjs.
 -- ============================================================================
 
 INSERT INTO "Company" (
