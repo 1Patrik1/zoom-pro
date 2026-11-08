@@ -21,11 +21,15 @@ services:
     volumes:
       - .:/app
     environment:
+      NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-vzt_system}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
     command: >
       sh -c "
         npm ci --no-audit --no-fund &&
+        node --input-type=module -e "import('./apps/backend/src/config/env.js')" &&
         node scripts/db-migrate-all.mjs &&
         node scripts/seed-platform-admin.mjs
       "
