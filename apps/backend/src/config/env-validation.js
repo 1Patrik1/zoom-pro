@@ -38,7 +38,7 @@ export function validateProductionConfig({ nodeEnv, jwtSecret, corsOrigin, datab
 
   const origins = Array.isArray(corsOrigin) ? corsOrigin : [];
   const hasPlaceholderOrigin = origins.some((origin) =>
-    /^(change-me|https?:\/\/your-|https?:\/\/example\.)/i.test(origin)
+    /^(change[-_ ]?me|https?:\/\/your-|https?:\/\/example\.)/i.test(origin)
     || origin === 'http://localhost'
     || origin === 'http://localhost:5173'
   );
