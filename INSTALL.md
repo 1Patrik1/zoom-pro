@@ -195,7 +195,8 @@ Zkontroluje:
 Účet SUPERADMIN `owner@platform.local` se vytvoří při `npm run db:seed:platform`.
 Při prvním vytvoření se vygeneruje náhodné jednorázové heslo a zobrazí se pouze jednou
 v lokálním terminálu. Ihned ho ulož do správce hesel. Při opakovaném seedování se
-existující heslo zachová; žádné veřejné výchozí heslo se nepoužívá.
+existující heslo zachová; žádné veřejné výchozí heslo se nepoužívá. Pro neinteraktivní instalaci
+nastav předem `INITIAL_ADMIN_PASSWORD` (minimálně 20 znaků) v chráněném prostředí.
 
 
 ## Řešení běžných problémů
