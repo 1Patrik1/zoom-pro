@@ -53,7 +53,7 @@ Pro mobilní build navíc: Android Studio (Android), Xcode (iOS – jen macOS).
 git clone <repo> zoom-pro && cd zoom-pro
 # nebo: unzip zoom-pro-installer.zip -d zoom-pro && cd zoom-pro
 
-# 2) spusť jednotný installer (spustí doctor + npm install + DB + seedy)
+# 2) spusť jednotný installer (spustí doctor + npm ci + DB + seedy)
 bash scripts/install.sh
 
 # 3) start dev serverů (dvě konzole nebo jedním příkazem)
@@ -102,14 +102,14 @@ npm run docker:prod:up
 ### 1. Instalace balíčků
 
 ```bash
-npm install
+npm ci
 ```
 
 Nainstaluje web frontend + backend (jsou v npm workspace). Mobilní app má vlastní adresář:
 
 ```bash
 cd apps/mobile
-npm install
+npm ci
 cd ../..
 ```
 
@@ -150,7 +150,7 @@ Jedním příkazem spustí hlavní migrátor; nové DB získají také platformn
 npm run db:setup:full
 ```
 
-Hlavní migrátor načítá všechny kořenové soubory `NNN_*.sql`, eviduje je v `_migrations` a umí zavést baseline pro známé starší databáze. Před produkční aktualizací vždy vytvoř zálohu. Migrace se nespouštějí automaticky pouhým `npm install`.
+Hlavní migrátor načítá všechny kořenové soubory `NNN_*.sql`, eviduje je v `_migrations` a umí zavést baseline pro známé starší databáze. Před produkční aktualizací vždy vytvoř zálohu. Migrace se nespouštějí automaticky pouhým `npm ci`.
 
 Nebo ručně po částech (viz `package.json` sekce `db:*`).
 
