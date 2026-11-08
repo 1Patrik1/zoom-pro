@@ -16,16 +16,18 @@ services:
       retries: 10
 
   migrate:
-    image: node:20-alpine
+    image: node:22-alpine
     working_dir: /app
     volumes:
       - .:/app
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-vzt_system}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
     command: >
       sh -c "
-        npm ci &&
-        node scripts/db-migrate-all.mjs
+        npm ci --no-audit --no-fund &&
+        node scripts/db-migrate-all.mjs &&
+        node scripts/seed-platform-admin.mjs
       "
     depends_on:
       postgres:
