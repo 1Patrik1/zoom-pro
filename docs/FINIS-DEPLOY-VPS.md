@@ -26,9 +26,9 @@ cp .env.production.example .env
 ```
 
 V `.env` nastav skutečné hodnoty:
-- `POSTGRES_PASSWORD`: unikátní silné heslo,
-- `JWT_SECRET`: unikátní náhodný řetězec alespoň 32 znaků,
-- `CORS_ORIGIN`: přesná doména Cloudflare Pages,
+- `POSTGRES_PASSWORD`: unikátní náhodné hex heslo, např. `openssl rand -hex 32` (bez URL rezervovaných znaků),
+- `JWT_SECRET`: unikátní náhodný řetězec alespoň 32 znaků, např. `openssl rand -hex 32`,
+- `CORS_ORIGIN`: přesná doména Cloudflare Pages; pro nativní Capacitor klienty případně přidej `capacitor://localhost,https://localhost`,
 - `BACKEND_PORT=5000`,
 - `INITIAL_ADMIN_PASSWORD`: jen pro první vytvoření nebo rotaci SUPERADMIN (min. 20 znaků).
 
