@@ -10,15 +10,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: SSH deploy to VPS
+
+      - name: Deploy exact tested commit to VPS
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+          INITIAL_ADMIN_PASSWORD: ${{ secrets.INITIAL_ADMIN_PASSWORD }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_SHA,INITIAL_ADMIN_PASSWORD
           script: |
+            set -Eeuo pipefail
             cd /opt/zoom-pro
-            git pull --ff-only
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.prod.yml exec -T backend node scripts/db-run-sql.mjs || true
+            git fetch origin --tags --prune
+            git checkout --detach "$DEPLOY_SHA"
+
+            if ! docker compose -f docker-compose.prod.yml up -d --build --remove-orphans; then
+              docker compose -f docker-compose.prod.yml logs --tail=120 migrate backend || true
+              docker compose -f docker-compose.prod.yml rm -f migrate || true
+              exit 1
+            fi
+
+            for attempt in $(seq 1 30); do
+              health="$(docker inspect --format='{{.State.Health.Status}}' zoom-pro-backend 2>/dev/null || true)"
+              if [ "$health" = "healthy" ]; then
+                docker compose -f docker-compose.prod.yml ps
+                docker compose -f docker-compose.prod.yml rm -f migrate
+                exit 0
+              fi
+              if [ "$health" = "unhealthy" ]; then
+                docker compose -f docker-compose.prod.yml logs --tail=120 backend migrate || true
+                docker compose -f docker-compose.prod.yml rm -f migrate || true
+                exit 1
+              fi
+              sleep 5
+            done
+
+            docker compose -f docker-compose.prod.yml logs --tail=120 backend migrate || true
+            docker compose -f docker-compose.prod.yml rm -f migrate || true
+            echo "Backend did not become healthy within 150 seconds." >&2
+            exit 1
