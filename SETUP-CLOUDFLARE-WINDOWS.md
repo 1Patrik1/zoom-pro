@@ -31,7 +31,7 @@ Nastav v GitHub → Settings → Secrets and variables → Actions:
 
 `VITE_API_URL` je volitelný; workflow má výchozí hodnotu `https://api.zoom-pro.app`. Pokud používáš jinou API doménu, nastav secret.
 
-Pages deploy se spouští po pushi do `main`, případně ručně přes `workflow_dispatch`.
+Pages deploy se spouští po pushi do `main`, případně ručně přes `workflow_dispatch`. Před publikací čeká na úspěšné hlavní CI a oba dependency-audit joby pro tentýž commit.
 
 ## 2. Backend a PostgreSQL na VPS
 
