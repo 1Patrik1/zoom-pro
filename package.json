@@ -38,7 +38,8 @@
     "test:login": "node scripts/test-login.mjs",
     "db:backup": "node scripts/backup-db.mjs",
     "db:restore": "node scripts/restore-db.mjs",
-    "db:setup:user": "node scripts/db-setup-local.mjs"
+    "db:setup:user": "node scripts/db-setup-local.mjs",
+    "db:rotate:public-admin": "node scripts/seed-platform-admin.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"
