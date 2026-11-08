@@ -21,7 +21,7 @@
     "db:migrate:all": "node scripts/db-migrate-all.mjs",
     "db:migrate:new": "node scripts/db-migrate-all.mjs",
     "db:migrate:legacy": "node scripts/db-migrate-all.mjs",
-    "db:seed:platform": "node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql",
+    "db:seed:platform": "node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql && node scripts/seed-platform-admin.mjs",
     "db:seed:demo": "node scripts/db-run-sql.mjs 006_seed_demo_profiles_and_records.sql",
     "db:seed:distribution": "node scripts/seed-distribution.mjs",
     "db:setup:new": "npm run db:migrate:new && npm run db:seed:platform && npm run db:seed:demo",
