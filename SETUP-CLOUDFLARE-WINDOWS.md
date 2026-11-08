@@ -1,441 +1,123 @@
-# 🔥 Zoom Pro + Cloudflare Tunnel Setup na Windows
+# Zoom Pro — Cloudflare Pages + samostatný backend
 
-Tento průvodce ti provede nastavením **Zoom Pro s Cloudflare Tunnel** na Windows bez Docker.
+Tento postup odpovídá aktuálnímu repozitáři `1Patrik1/zoom-pro`.
 
----
+## Cílová architektura
 
-## 📋 Předpoklady
+- **Frontend/PWA:** Cloudflare Pages, projekt `zoom-pro`.
+- **Backend:** Node.js / Express na samostatném VPS.
+- **Databáze:** PostgreSQL v privátní Docker síti na VPS.
+- **Veřejné API:** Cloudflare Tunnel → `http://127.0.0.1:5000`.
+- **D1 / Cloudflare Worker:** není součástí tohoto nasazení; migrace PostgreSQL na D1 se nesmí považovat za dokončenou.
 
-- ✅ Windows 10/11
-- ✅ Node.js 20+ (https://nodejs.org)
-- ✅ PostgreSQL 15+ (https://www.postgresql.org/download/windows/)
-- ✅ Git (https://git-scm.com)
-- ✅ Cloudflare účet (zdarma: https://dash.cloudflare.com)
-- ✅ Doména na Cloudflare (nebo subdoména)
+Frontend a backend se nasazují odděleně. PostgreSQL port 5432 se nikdy nevystavuje do internetu.
 
----
+## 1. Cloudflare Pages
 
-## 🔧 KROK 1: PostgreSQL nastavení na Windows
+V Cloudflare Dashboard vytvoř Pages projekt s názvem `zoom-pro` a připoj GitHub repository `1Patrik1/zoom-pro`.
 
-### Instalace PostgreSQL
+Workflow `.github/workflows/cloudflare-pages-frontend.yml` provádí:
+- instalaci přes `npm ci`,
+- build `npm run build -w apps/frontend`,
+- deploy složky `apps/frontend/dist`.
 
-1. **Stáhni**: https://www.postgresql.org/download/windows/
-2. **Spusť installer** → Next → Next
-3. **Password**: Nastav silné jedinečné heslo ve správci hesel; nepoužívej hodnoty z dokumentace.
-4. **Port**: Nech default `5432`
-5. **Finish** → PostgreSQL běží jako služba
+Nastav v GitHub → Settings → Secrets and variables → Actions:
 
-### Vytvoření DB
+| Secret | Význam |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | API token s oprávněním Cloudflare Pages: Edit |
+| `CLOUDFLARE_ACCOUNT_ID` | ID Cloudflare účtu |
+| `VITE_API_URL` | Veřejná základní URL backendu, např. `https://api.zoom-pro.app` |
 
-Otevři **pgAdmin** (je součástí PostgreSQL) nebo příkazový řádek:
+`VITE_API_URL` je volitelný; workflow má výchozí hodnotu `https://api.zoom-pro.app`. Pokud používáš jinou API doménu, nastav secret.
 
-```bash
-# PowerShell jako Admin
-cd "C:\Program Files\PostgreSQL\15\bin"
+Pages deploy se spouští po pushi do `main`, případně ručně přes `workflow_dispatch`.
 
-# Přihlášení
-psql -U postgres
+## 2. Backend a PostgreSQL na VPS
 
-# V psql konoli:
-CREATE USER vzt_user WITH PASSWORD 'tvoje_silna_hesla_123!';
-CREATE DATABASE vzt_system OWNER vzt_user;
-ALTER ROLE vzt_user WITH CREATEDB;
-\q
-```
+Na serveru musí být Docker Engine a Docker Compose v2. Repo umísti do `/opt/zoom-pro`.
 
----
-
-## 🔓 KROK 2: Naklonování projektu
+Vytvoř produkční konfiguraci:
 
 ```bash
-# Otevři PowerShell v ~/OneDrive nebo kde chceš
-cd "$env:USERPROFILE\OneDrive"
-
-# Klonuj repo
-git clone https://github.com/1Patrik1/zoom-pro.git
-cd zoom-pro
+cd /opt/zoom-pro
+cp .env.production.example .env
 ```
 
----
+Uprav `.env`:
+- `POSTGRES_PASSWORD`: unikátní náhodné heslo.
+- `JWT_SECRET`: náhodný tajný klíč alespoň 32 znaků.
+- `CORS_ORIGIN`: přesná veřejná URL Cloudflare Pages (bez API domény).
+- `BACKEND_PORT=5000`.
+- `INITIAL_ADMIN_PASSWORD`: jen pro první vytvoření/rotaci SUPERADMIN; nejméně 20 znaků.
 
-## ⚙️ KROK 3: Environment setup
+Backend se mapuje pouze na `127.0.0.1:5000`; databáze není veřejně dostupná.
 
-### 3.1 Backend (.env)
+Spuštění ručně:
 
 ```bash
-# Kopíruj template
-Copy-Item apps/backend/.env.example apps/backend/.env
-
-# Edituuj v editoru (Notepad++ nebo VS Code)
-notepad apps/backend/.env
+docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs --tail=100 migrate backend
 ```
 
-**Obsah `apps/backend/.env`:**
+Compose nejprve spustí PostgreSQL, potom migrace a bezpečné vytvoření/ověření účtu SUPERADMIN. Backend se spustí až po úspěšných migracích. Před dokončením prvního seedu musí být dostupné `INITIAL_ADMIN_PASSWORD`; v neinteraktivním Docker běhu se heslo nikdy nevypisuje do logů.
 
-```env
-NODE_ENV=production
-PORT=5000
-DATABASE_URL=postgresql://vzt_user:tvoje_silna_hesla_123!@127.0.0.1:5432/vzt_system
-JWT_SECRET=<náhodný tajný klíč vygenerovaný instalátorem>
-CORS_ORIGIN=https://app.tvoje-domena.cz,https://api.tvoje-domena.cz
-APP_NAME=zoom-pro
-TRUST_PROXY=true
-PG_POOL_MAX=20
-PG_IDLE_TIMEOUT_MS=30000
-```
+Po prvním úspěšném vytvoření účtu smaž `INITIAL_ADMIN_PASSWORD` z hostitelského `.env`. Již nastavené heslo se při dalších deployích nemění.
 
-### 3.2 Frontend (.env)
+## 3. Cloudflare Tunnel pro API
 
-```bash
-Copy-Item apps/frontend/.env.example apps/frontend/.env
-notepad apps/frontend/.env
-```
-
-**Obsah `apps/frontend/.env`:**
-
-```env
-VITE_API_URL=https://api.tvoje-domena.cz
-VITE_CHAT_URL=https://api.tvoje-domena.cz
-VITE_APP_NAME=Zoom Pro
-```
-
----
-
-## 📦 KROK 4: Instalace balíčků
-
-```bash
-# V kořeni projektu
-npm install
-
-# Můžeš koukat na progress
-# Trvá cca 3-5 minut
-```
-
----
-
-## 🗄️ KROK 5: Migrace databáze
-
-```bash
-# Spusť všechny migrace + seedy najednou
-npm run db:setup:full
-
-# Nebo v případě potíží postupně:
-# npm run db:migrate:all
-# npm run db:seed:platform
-# npm run db:seed:demo
-```
-
-**Output by měl být bez chyb.** Zkontroluj v pgAdmin, že `vzt_system` DB existuje.
-
----
-
-## 🚀 KROK 6: Spuštění lokálně (bez Tunnel zatím)
-
-Otevři **3 PowerShell terminály**:
-
-### Terminal 1: Backend
-
-```bash
-cd ~/OneDrive/zoom-pro
-npm run dev:backend
-# ✅ Měl by běžet na http://localhost:5000
-```
-
-### Terminal 2: Frontend
-
-```bash
-cd ~/OneDrive/zoom-pro
-npm run dev:frontend
-# ✅ Měl by běžet na http://localhost:5173
-```
-
-### Terminal 3: Zkouška
-
-```bash
-# Zkus se přihlásit
-curl -X POST http://localhost:5000/api/auth/login `
-  -H "Content-Type: application/json" `
-  -d '{"email":"owner@platform.local","password":"<PASSWORD_FROM_INITIAL_SETUP>"}'
-
-# Měl bys dostat JWT token
-```
-
-**V prohlížeči:** http://localhost:5173
-
----
-
-## 🌐 KROK 7: Cloudflare Tunnel setup
-
-### 7.1 Instalace Cloudflared
-
-**Možnost A: Přes Chocolatey (pokud máš)**
-
-```bash
-choco install cloudflare-warp
-```
-
-**Možnost B: Stažení přímo**
-
-```bash
-# Stáhni z: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/local/
-# Windows 64-bit: cloudflared-windows-amd64.exe
-
-# Přejmenuj a přesuň do: C:\Users\SF\cloudflared.exe
-# Nebo kdekoli, a přidej do PATH
-```
-
-### 7.2 Přihlášení Cloudflare
-
-```bash
-# Otevři PowerShell
-cloudflared.exe tunnel login
-
-# Prohlížeč se otevře → přihlaš se do Cloudflare
-# Povolíš účet → vygeneruje se certifikát
-```
-
-### 7.3 Vytvoření tunelu
-
-```bash
-cloudflared.exe tunnel create zoom-pro-tunnel
-
-# Output bude vypadat takto:
-# Tunnel credentials have been saved to C:\Users\SF\.cloudflared\<uuid>.json
-
-# Poznamenej si UUID!
-```
-
-### 7.4 Konfigurační soubor
-
-Vytvoř soubor: `C:\Users\SF\.cloudflared\config.yml`
+Vytvoř Tunnel a nastav veřejný hostname, například `api.zoom-pro.app`, na lokální službu:
 
 ```yaml
-tunnel: zoom-pro-tunnel
-credentials-file: C:\Users\SF\.cloudflared\<TVUJ_UUID>.json
-
-logfile: C:\Users\SF\.cloudflared\tunnel.log
-loglevel: info
-
 ingress:
-  # Frontend
-  - hostname: app.tvoje-domena.cz
-    service: http://localhost:5173
-    originRequest:
-      connectTimeout: 30s
-
-  # Backend API
-  - hostname: api.tvoje-domena.cz
-    service: http://localhost:5000
-    originRequest:
-      connectTimeout: 30s
-      headers:
-        X-Forwarded-Proto: https
-
-  # Health check
-  - hostname: health.tvoje-domena.cz
-    service: http://localhost:5000/health
-    originRequest:
-      connectTimeout: 10s
-
-  # Fallback
+  - hostname: api.zoom-pro.app
+    service: http://127.0.0.1:5000
   - service: http_status:404
 ```
 
-**Nahraď `tvoje-domena.cz` svou doménou!**
+Cloudflare DNS záznam vytvoř přes Tunnel route / Dashboard. Nezveřejňuj port 5432. Backend má:
+- `GET /health` — procesní health check,
+- `GET /ready` — kontrola dostupnosti PostgreSQL.
 
-### 7.5 DNS v Cloudflare Dashboard
+Ověř:
+- `https://api.zoom-pro.app/health`,
+- `https://api.zoom-pro.app/ready`.
 
-Jdi do **Cloudflare Dashboard** → DNS:
+## 4. GitHub Actions deploy backendu
 
-1. **Přidej CNAME record:**
-   - Type: `CNAME`
-   - Name: `app`
-   - Content: `zoom-pro-tunnel.cfargotunnel.com`
-   - Proxy: ☑️ Proxied (oranžový oblak)
+Workflow `.github/workflows/deploy.yml` se spouští tagem `v*` nebo ručně. Nasazuje přesný commit SHA, nikoliv neurčitý aktuální `main`.
 
-2. **Přidej CNAME record:**
-   - Type: `CNAME`
-   - Name: `api`
-   - Content: `zoom-pro-tunnel.cfargotunnel.com`
-   - Proxy: ☑️ Proxied
+Nastav GitHub Actions secrets:
 
-3. **Přidej CNAME record:**
-   - Type: `CNAME`
-   - Name: `health`
-   - Content: `zoom-pro-tunnel.cfargotunnel.com`
-   - Proxy: ☑️ Proxied
+| Secret | Význam |
+|---|---|
+| `DEPLOY_HOST` | SSH host VPS |
+| `DEPLOY_USER` | SSH uživatel |
+| `DEPLOY_SSH_KEY` | privátní SSH klíč |
+| `INITIAL_ADMIN_PASSWORD` | pouze při prvním seedu nebo rotaci známého původního hesla |
 
-Počkej cca **1-2 minut**, až se DNS propaguje.
+Při deployi workflow:
+1. checkoutne přesný commit na VPS,
+2. spustí Compose a databázové migrace,
+3. bezpečně ověří/provisionuje SUPERADMIN,
+4. čeká na stav backendu `healthy`,
+5. při chybě vypíše logy a ukončí deploy neúspěšně.
 
----
+Po prvním úspěšném provisioningu můžeš secret `INITIAL_ADMIN_PASSWORD` z GitHubu odstranit. Následující deploye již zachovají existující heslo.
 
-## 🔗 KROK 8: Spuštění Cloudflare Tunnel
+## 5. CORS a frontend
 
-```bash
-# Terminal 4 (nový)
-cloudflared.exe tunnel run zoom-pro-tunnel
+Nastav:
+- Cloudflare Pages build variable `VITE_API_URL=https://api.zoom-pro.app`,
+- backend `CORS_ORIGIN=https://<TVA_PAGES_DOMENA>`.
 
-# Měl bys vidět:
-# 2026-10-04T15:30:00Z INF Connected to LHR
-# 2026-10-04T15:30:01Z INF Registered tunnel connection
-```
+`CORS_ORIGIN` přijímá více povolených originů oddělených čárkami. Nepoužívej wildcard `*` v produkci.
 
-**Tunnel teď běží!** ✅
+## 6. Bezpečnostní pravidla
 
----
-
-## ✅ KROK 9: Testování
-
-### V prohlížeči
-
-```
-https://app.tvoje-domena.cz
-```
-
-Měl bys vidět Zoom Pro login.
-
-### Health Check
-
-```
-https://health.tvoje-domena.cz
-```
-
-Měl bys vidět: `{"ok":true}`
-
-### API test (PowerShell)
-
-```powershell
-curl -X POST https://api.tvoje-domena.cz/api/auth/login `
-  -H "Content-Type: application/json" `
-  -d '{"email":"owner@platform.local","password":"<PASSWORD_FROM_INITIAL_SETUP>"}'
-```
-
-Měl bys dostat JWT token.
-
-### Přihlášení do aplikace
-
-```
-Email: owner@platform.local
-Heslo: <PASSWORD_FROM_INITIAL_SETUP>
-```
-
----
-
-## 📊 KROK 10: Monitoring aHealth Checks
-
-### 10.1 Cloudflare Health Checks
-
-V **Cloudflare Dashboard** → HTTP Health Checks:
-
-1. Vytvoř health check na `https://health.tvoje-domena.cz`
-2. Check interval: 60 sekund
-3. Timeout: 10 sekund
-
-### 10.2 Logy Cloudflared
-
-```bash
-# V terminále kde běží tunnel:
-tail -f C:\Users\SF\.cloudflared\tunnel.log
-```
-
----
-
-## 🔄 KROK 11: Automatické spuštění (Systemd / Task Scheduler)
-
-### Na Windows (Task Scheduler)
-
-```powershell
-# PowerShell jako Admin
-
-# 1. Vytvoř Task Scheduler job
-$action = New-ScheduledTaskAction -Execute "C:\Users\SF\cloudflared.exe" `
-  -Argument "tunnel run zoom-pro-tunnel" `
-  -WorkingDirectory "C:\Users\SF"
-
-$trigger = New-ScheduledTaskTrigger -AtStartup
-
-$principal = New-ScheduledTaskPrincipal -UserID "SYSTEM" `
-  -RunLevel Highest
-
-Register-ScheduledTask -TaskName "CloudflareTunnel-ZoomPro" `
-  -Action $action -Trigger $trigger -Principal $principal
-
-# 2. Testuj
-Start-ScheduledTask -TaskName "CloudflareTunnel-ZoomPro"
-```
-
----
-
-## 🎯 Shrnutí
-
-| Krok | Příkaz | Port |
-|------|--------|------|
-| 1 | PostgreSQL installer | 5432 |
-| 2 | `git clone` | - |
-| 3 | `notepad .env` | - |
-| 4 | `npm install` | - |
-| 5 | `npm run db:setup:full` | 5432 |
-| 6 | `npm run dev:backend` | 5000 |
-| 6 | `npm run dev:frontend` | 5173 |
-| 7 | `cloudflared.exe tunnel login` | - |
-| 7 | `cloudflared.exe tunnel create` | - |
-| 8 | `cloudflared.exe tunnel run` | - |
-| ✅ | `https://app.tvoje-domena.cz` | 443 |
-
----
-
-## 🆘 Troubleshooting
-
-### "Cannot find module 'express'"
-
-```bash
-# Zkus znovu
-npm install
-npm install -w apps/backend
-```
-
-### "Database connection refused"
-
-```bash
-# Zkontroluj PostgreSQL
-# Windows Services → PostgreSQL
-# Nebo restartuj:
-net stop "postgresql-x64-15"
-net start "postgresql-x64-15"
-```
-
-### "Tunnel connection failed"
-
-```bash
-# Zkontroluj config.yml:
-notepad C:\Users\SF\.cloudflared\config.yml
-
-# Restartuj tunnel:
-# Ctrl+C v Powershellu, pak znovu:
-cloudflared.exe tunnel run zoom-pro-tunnel
-```
-
-### "CORS errors v aplikaci"
-
-Zkontroluj `apps/backend/.env`:
-```env
-CORS_ORIGIN=https://app.tvoje-domena.cz,https://api.tvoje-domena.cz
-```
-
----
-
-## 📞 Hotline Checklist
-
-- ✅ PostgreSQL běží na `5432`
-- ✅ Backend běží na `5000`
-- ✅ Frontend běží na `5173`
-- ✅ Cloudflared běží
-- ✅ DNS CNAME rekordy jsou nastaveny
-- ✅ `https://health.tvoje-domena.cz` vrátí `{"ok":true}`
-- ✅ Přihlášení `owner@platform.local` funguje
-
----
-
-**Hotovo! 🎉**
-
-Tvoje aplikace je teď online přes Cloudflare Tunnel!
+- Necommituj `.env`, Cloudflare tokeny, Tunnel credentials, SSH klíče ani FCM service account.
+- PostgreSQL port 5432 zůstává jen v interní Docker síti.
+- Backend port 5000 je mapován jen na loopback hosta.
+- Nepoužívej Cloudflare SSL režim Flexible. Pro Tunnel se TLS ukončuje na Cloudflare edge; pro klasický origin zvol Full (strict) s platným certifikátem.
+- Produkční PostgreSQL zůstává autoritativní, dokud nebude samostatně schválena a otestována migrace dat do D1.
