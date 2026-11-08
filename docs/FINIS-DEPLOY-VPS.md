@@ -56,7 +56,7 @@ Backend je publikován pouze na `127.0.0.1:5000`. PostgreSQL nemá veřejný por
 Cloudflare Pages workflow:
 - build command: `npm run build -w apps/frontend`,
 - output: `apps/frontend/dist`,
-- Pages project: `zoom-pro`.
+- Pages project: `zoom-pro`. Deploy workflow před publikací čeká na zelené hlavní CI a oba dependency-audit joby pro přesný commit.
 
 GitHub Actions secrets pro Pages:
 - `CLOUDFLARE_API_TOKEN`,
