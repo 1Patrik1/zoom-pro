@@ -57,16 +57,16 @@ if [ -n "${GKEY:-}" ]; then
   echo "✅ Uložen GEMINI_API_KEY"
 fi
 
-# 4) npm install (root workspace)
+# 4) deterministic install from package-lock (root workspace)
 echo ""
 echo "▶ Instaluji NPM balíky (root workspace)…"
-npm install --no-audit --no-fund
+npm ci --no-audit --no-fund
 
 # 5) Mobile — samostatný adresář
 if [ -f apps/mobile/package.json ]; then
   echo ""
   echo "▶ Instaluji NPM balíky pro mobile…"
-  (cd apps/mobile && npm install --no-audit --no-fund) || echo "⚠ Mobile install měl chyby — dokončí se ručně později."
+  (cd apps/mobile && npm ci --no-audit --no-fund) || echo "⚠ Mobile install měl chyby — dokončí se ručně později."
 fi
 
 # 6) Databáze — auto-detect Docker
