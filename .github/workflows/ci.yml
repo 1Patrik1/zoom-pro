@@ -14,7 +14,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: zoom_user
-          POSTGRES_PASSWORD: zoom_pass
+          POSTGRES_PASSWORD: ci-only-zoom-pro-postgres-password-123456
           POSTGRES_DB: zoom_pro
         ports: ['5432:5432']
         options: >-
@@ -99,4 +99,42 @@ jobs:
         run: docker compose -f docker-compose.prod.yml config --quiet
 
       - name: Build production backend image
-        run: docker build --target backend -t zoom-pro-backend:ci .
+        run: docker build --target backend -t zoom-pro-backend:latest .
+
+      - name: Run production Compose smoke test
+        env:
+          POSTGRES_DB: zoom_pro
+          POSTGRES_USER: zoom_user
+          POSTGRES_PASSWORD: ci-only-zoom-pro-postgres-password-123456
+          JWT_SECRET: ci-only-zoom-pro-jwt-secret-with-more-than-32-characters
+          CORS_ORIGIN: https://pwa.zoom-pro.test
+          INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-initial-admin-password
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker compose -f docker-compose.prod.yml down -v --remove-orphans || true
+          }
+          trap cleanup EXIT
+
+          if ! docker compose -f docker-compose.prod.yml up -d --no-build; then
+            docker compose -f docker-compose.prod.yml logs --tail=120 migrate backend || true
+            exit 1
+          fi
+
+          health=""
+          for attempt in $(seq 1 30); do
+            health="$(docker inspect --format='{{.State.Health.Status}}' zoom-pro-backend 2>/dev/null || true)"
+            if [ "$health" = "healthy" ]; then
+              docker compose -f docker-compose.prod.yml ps
+              exit 0
+            fi
+            if [ "$health" = "unhealthy" ]; then
+              docker compose -f docker-compose.prod.yml logs --tail=120 migrate backend || true
+              exit 1
+            fi
+            sleep 5
+          done
+
+          docker compose -f docker-compose.prod.yml logs --tail=120 migrate backend || true
+          echo "Production Compose backend did not become healthy within 150 seconds." >&2
+          exit 1
