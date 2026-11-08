@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Require monitor URL configuration
         env:
-          HEALTH_URL: ${{ vars.ZOOM_PRO_HEALTH_URL }}
+          HEALTH_URL: ${{ vars.ZOOM_PRO_HEALTH_URL || 'https://api.zoom-pro.app/health' }}
         run: |
           if [ -z "$HEALTH_URL" ]; then
             echo "::error::Set repository variable ZOOM_PRO_HEALTH_URL to the public HTTPS health endpoint (for example https://your-domain.example/health). Do not use localhost."
@@ -34,7 +34,7 @@ jobs:
 
       - name: Check endpoint
         env:
-          HEALTH_URL: ${{ vars.ZOOM_PRO_HEALTH_URL }}
+          HEALTH_URL: ${{ vars.ZOOM_PRO_HEALTH_URL || 'https://api.zoom-pro.app/health' }}
         run: |
           set -eu
           response_file="$(mktemp)"
