@@ -63,7 +63,7 @@ npm run dev
 #    http://localhost:5173
 
 # 5) přihlas se demo účtem:
-#    owner@platform.local  ·  PlatformOwner2026!
+#    owner@platform.local  ·  heslo se vygeneruje při prvním seedování
 ```
 
 Instalátor se zeptá na:
@@ -190,18 +190,13 @@ Zkontroluje:
 
 ---
 
-## Přihlašovací údaje (po `db:seed:platform`)
+## Přihlášení po instalaci
 
-| Role        | E-mail                   | Heslo               |
-|-------------|--------------------------|---------------------|
-| SUPERADMIN  | owner@platform.local     | PlatformOwner2026!  |
-| REDITEL     | reditel@demo.local       | Demo2026!           |
-| VEDOUCI     | vedouci@demo.local       | Demo2026!           |
-| MONTER      | monter@demo.local        | Demo2026!           |
+Účet SUPERADMIN `owner@platform.local` se vytvoří při `npm run db:seed:platform`.
+Při prvním vytvoření se vygeneruje náhodné jednorázové heslo a zobrazí se pouze jednou
+v lokálním terminálu. Ihned ho ulož do správce hesel. Při opakovaném seedování se
+existující heslo zachová; žádné veřejné výchozí heslo se nepoužívá.
 
-Změň hesla ihned po instalaci v **Team → uživatel → reset hesla**.
-
----
 
 ## Řešení běžných problémů
 
