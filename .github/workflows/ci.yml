@@ -87,3 +87,15 @@ jobs:
       - name: Lint backend syntax
         working-directory: apps/backend
         run: node --check src/server.js && node --check src/app.js
+
+      - name: Validate production Compose configuration
+        env:
+          POSTGRES_DB: zoom_pro
+          POSTGRES_USER: zoom_user
+          POSTGRES_PASSWORD: zoom_pass
+          JWT_SECRET: ci-only-zoom-pro-jwt-secret-with-more-than-32-characters
+          INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-initial-admin-password
+        run: docker compose -f docker-compose.prod.yml config --quiet
+
+      - name: Build production backend image
+        run: docker build --target backend -t zoom-pro-backend:ci .
