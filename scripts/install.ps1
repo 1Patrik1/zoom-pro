@@ -67,7 +67,8 @@ Write-Host ""
 Write-Host "▶ DB migrace…" -ForegroundColor Yellow
 $env:DATABASE_URL = $DbUrl
 node scripts\db-migrate-all.mjs
-node scripts\db-run-sql.mjs 005_seed_platform_superadmin.sql 006_seed_demo_profiles_and_records.sql
+npm run db:seed:platform
+npm run db:seed:demo
 
 # 6) Distribuce seed
 $seed = Read-Host "Chceš seed katalogu & dodavatelů? [y/N]"
@@ -80,5 +81,6 @@ Write-Host ""
 Write-Host "══════════════════════════════════════════════════════════" -ForegroundColor Green
 Write-Host "✅ HOTOVO! Spusť: npm run dev" -ForegroundColor Green
 Write-Host "Web:        http://localhost:5173" -ForegroundColor Green
-Write-Host "Login:      owner@platform.local · PlatformOwner2026!" -ForegroundColor Green
+Write-Host "SUPERADMIN: owner@platform.local" -ForegroundColor Green
+Write-Host "Počáteční heslo bylo zobrazeno jednou při seedování; ulož ho do správce hesel." -ForegroundColor Green
 Write-Host "══════════════════════════════════════════════════════════" -ForegroundColor Green
