@@ -62,7 +62,7 @@ npm run dev
 # 4) otevři v prohlížeči
 #    http://localhost:5173
 
-# 5) přihlas se demo účtem:
+# 5) přihlas se účtem SUPERADMIN:
 #    owner@platform.local  ·  heslo se vygeneruje při prvním seedování
 ```
 
