@@ -12,7 +12,7 @@ const pass = [];
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
-    if (['node_modules', '.git', 'dist', 'coverage'].includes(name)) continue;
+    if (['node_modules', '.git', 'dist', 'coverage', '.vs', '.local-secrets'].includes(name)) continue;
     const p = join(dir, name);
     const st = statSync(p);
     if (st.isDirectory()) walk(p, out);
@@ -34,11 +34,27 @@ for (const f of files) {
 }
 if (!secretHits) pass.push('Žádné hardcoded API klíče / privátní klíče v kódu');
 
+// 1b) Known public demo/admin credentials must never return to tracked files.
+const knownPublicCredentials = [
+  ['PlatformOwner', '2026!'].join(''),
+  ['Demo', '2026!'].join(''),
+  ['DemoReditel', '2026!'].join(''),
+  ['DemoMonter', '2026!'].join(''),
+  ['$2a$12$gGSBNLlFm0fZEM5L8UXZV.nPrMyBeMEPbHu.', '8bn1qT3COfuXWtvCK'].join('')
+];
+for (const f of files) {
+  const content = readFileSync(f, 'utf8');
+  if (knownPublicCredentials.some((credential) => content.includes(credential))) {
+    issues.push(`[PUBLIC-CREDENTIAL] Známé výchozí přihlašovací údaje v ${relative(root, f)}`);
+  }
+}
+
+
 // 2) Hesla v SQL musí být bcrypt hash, ne plaintext
 for (const f of files.filter((x) => x.endsWith('.sql'))) {
   const s = readFileSync(f, 'utf8');
   const m = s.match(/password['"]?\s*,\s*'([^'$][^']{0,40})'/i);
-  if (m && !m[1].startsWith('$2')) issues.push(`[PASSWORD] Podezřelé plaintext heslo v ${relative(root, f)}`);
+  if (m && !m[1].startsWith('$2') && m[1] !== '!INITIAL_PASSWORD_SETUP_REQUIRED!') issues.push(`[PASSWORD] Podezřelé plaintext heslo v ${relative(root, f)}`);
 }
 pass.push('Hesla v DB se ukládají přes bcrypt (auth.service.js → bcrypt.hash)');
 

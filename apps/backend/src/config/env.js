@@ -13,7 +13,8 @@ const corsOriginRaw = process.env.CORS_ORIGIN || '*';
 validateProductionConfig({
   nodeEnv,
   jwtSecret,
-  corsOrigin: corsOriginRaw.split(',').map((s) => s.trim()).filter(Boolean)
+  corsOrigin: corsOriginRaw.split(',').map((s) => s.trim()).filter(Boolean),
+  databaseUrl: process.env.DATABASE_URL
 });
 
 export const env = {

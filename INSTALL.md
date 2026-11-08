@@ -53,7 +53,7 @@ Pro mobilní build navíc: Android Studio (Android), Xcode (iOS – jen macOS).
 git clone <repo> zoom-pro && cd zoom-pro
 # nebo: unzip zoom-pro-installer.zip -d zoom-pro && cd zoom-pro
 
-# 2) spusť jednotný installer (spustí doctor + npm install + DB + seedy)
+# 2) spusť jednotný installer (spustí doctor + npm ci + DB + seedy)
 bash scripts/install.sh
 
 # 3) start dev serverů (dvě konzole nebo jedním příkazem)
@@ -62,8 +62,8 @@ npm run dev
 # 4) otevři v prohlížeči
 #    http://localhost:5173
 
-# 5) přihlas se demo účtem:
-#    owner@platform.local  ·  PlatformOwner2026!
+# 5) přihlas se účtem SUPERADMIN:
+#    owner@platform.local  ·  heslo se vygeneruje při prvním seedování
 ```
 
 Instalátor se zeptá na:
@@ -102,14 +102,14 @@ npm run docker:prod:up
 ### 1. Instalace balíčků
 
 ```bash
-npm install
+npm ci
 ```
 
 Nainstaluje web frontend + backend (jsou v npm workspace). Mobilní app má vlastní adresář:
 
 ```bash
 cd apps/mobile
-npm install
+npm ci
 cd ../..
 ```
 
@@ -150,7 +150,7 @@ Jedním příkazem spustí hlavní migrátor; nové DB získají také platformn
 npm run db:setup:full
 ```
 
-Hlavní migrátor načítá všechny kořenové soubory `NNN_*.sql`, eviduje je v `_migrations` a umí zavést baseline pro známé starší databáze. Před produkční aktualizací vždy vytvoř zálohu. Migrace se nespouštějí automaticky pouhým `npm install`.
+Hlavní migrátor načítá všechny kořenové soubory `NNN_*.sql`, eviduje je v `_migrations` a umí zavést baseline pro známé starší databáze. Před produkční aktualizací vždy vytvoř zálohu. Migrace se nespouštějí automaticky pouhým `npm ci`.
 
 Nebo ručně po částech (viz `package.json` sekce `db:*`).
 
@@ -190,18 +190,14 @@ Zkontroluje:
 
 ---
 
-## Přihlašovací údaje (po `db:seed:platform`)
+## Přihlášení po instalaci
 
-| Role        | E-mail                   | Heslo               |
-|-------------|--------------------------|---------------------|
-| SUPERADMIN  | owner@platform.local     | PlatformOwner2026!  |
-| REDITEL     | reditel@demo.local       | Demo2026!           |
-| VEDOUCI     | vedouci@demo.local       | Demo2026!           |
-| MONTER      | monter@demo.local        | Demo2026!           |
+Účet SUPERADMIN `owner@platform.local` se vytvoří při `npm run db:seed:platform`.
+Při prvním vytvoření se vygeneruje náhodné jednorázové heslo a zobrazí se pouze jednou
+v lokálním terminálu. Ihned ho ulož do správce hesel. Při opakovaném seedování se
+existující heslo zachová; žádné veřejné výchozí heslo se nepoužívá. Pro existující instalaci lze bezpečně ověřit a případně otočit pouze veřejně známé původní heslo příkazem `npm run db:rotate:public-admin` (bez opakování SQL seedu). Pro neinteraktivní instalaci
+nastav předem `INITIAL_ADMIN_PASSWORD` (minimálně 20 znaků) v chráněném prostředí.
 
-Změň hesla ihned po instalaci v **Team → uživatel → reset hesla**.
-
----
 
 ## Řešení běžných problémů
 

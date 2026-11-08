@@ -2,9 +2,7 @@ BEGIN;
 
 -- ============================================================================
 -- PLATFORM OWNER / SUPERADMIN
--- Plain login for first launch:
---   email: owner@platform.local
---   password: PlatformOwner2026!
+-- Initial SUPERADMIN account; the password is provisioned by seed-platform-admin.mjs.
 -- ============================================================================
 
 INSERT INTO "Company" (
@@ -63,7 +61,7 @@ INSERT INTO "User" (
 VALUES (
   '00000000-0000-4000-8000-000000000010',
   'owner@platform.local',
-  '$2a$12$gGSBNLlFm0fZEM5L8UXZV.nPrMyBeMEPbHu.8bn1qT3COfuXWtvCK',
+  '!INITIAL_PASSWORD_SETUP_REQUIRED!',
   'SUPERADMIN',
   TRUE,
   '00000000-0000-4000-8000-000000000001',
@@ -76,7 +74,6 @@ VALUES (
   NOW()
 )
 ON CONFLICT (email) DO UPDATE SET
-  password = EXCLUDED.password,
   role = EXCLUDED.role,
   "isApproved" = EXCLUDED."isApproved",
   "companyId" = EXCLUDED."companyId",

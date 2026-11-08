@@ -12,19 +12,19 @@ Multifiremní provozní aplikace pro projekty, docházku, stavební deník, skla
 
 ## Rychlý lokální start
 
-Požadavky: Node.js 20+, npm a PostgreSQL 15+ (nebo Docker Compose).
+Požadavky: Node.js 22.12+, npm a PostgreSQL 15+ (nebo Docker Compose).
 
 ```bash
-npm install
+npm ci
 cp .env.example .env
 cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env
 docker compose up -d postgres
-npm run db:migrate:all
+npm run db:setup:full
 npm run dev
 ```
 
-Web běží na `http://localhost:5173`, API na `http://localhost:5000`. Nastavte vlastní `DATABASE_URL` a silné `JWT_SECRET`; nepoužívejte demo účet v produkci.
+Web běží na `http://localhost:5173`, API na `http://localhost:5000`. Nastavte stejný `DATABASE_URL` a silný `JWT_SECRET` v root `.env` i `apps/backend/.env`. `db:setup:full` vytvoří SUPERADMIN s náhodným jednorázovým heslem; uložte ho do správce hesel.
 
 ## Migrace
 
@@ -57,7 +57,9 @@ Panel v **Platforma → Platební brána** umí uložit předvolbu poskytovatele
 
 - [Instalace](INSTALL.md)
 - [Architektura](docs/ARCHITEKTURA-PWA-APP.md)
+- [Cloudflare Pages + samostatný backend](SETUP-CLOUDFLARE-WINDOWS.md)
 - [Nasazení na VPS](docs/FINIS-DEPLOY-VPS.md)
+- [Rozhodnutí k závislostem a bezpečnostnímu auditu](docs/DEPENDENCY-SECURITY-DECISIONS-2026-11-08.md)
 - [Go-live checklist](docs/FINIS-GO-LIVE-CHECKLIST.md)
 - [Aktuální audit a doporučení](docs/REPOSITORY-AUDIT-2026-10-24.md)
 - [Přehled funkcí a migrací](docs/AKTUALIZACE-2026-10-11.md)

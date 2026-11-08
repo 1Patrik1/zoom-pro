@@ -59,6 +59,9 @@ export const authService = {
     if (!result.rows.length) throw new HttpError(401, 'Špatné údaje.');
 
     const user = result.rows[0];
+    if (user.password === '!INITIAL_PASSWORD_SETUP_REQUIRED!') {
+      throw new HttpError(403, 'Účet SUPERADMIN ještě nemá nastavené počáteční heslo. Spusť npm run db:seed:platform.');
+    }
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new HttpError(401, 'Špatné údaje.');
     if (!user.isApproved) throw new HttpError(403, 'Účet čeká na schválení ředitelem firmy.');

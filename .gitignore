@@ -14,3 +14,23 @@ backups/
 .DS_Store
 .vscode/
 .idea/
+
+# IDE-local state, caches, and AI/editor snapshots must never be committed.
+.vs/
+.local-secrets/
+
+# Cloudflare Tunnel and private deployment material
+.cloudflared/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Mobile signing and service-account credentials
+*.p8
+*.jks
+*.keystore
+*.mobileprovision
+**/*service-account*.json
+**/firebase-adminsdk*.json

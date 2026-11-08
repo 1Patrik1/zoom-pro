@@ -14,7 +14,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: zoom_user
-          POSTGRES_PASSWORD: zoom_pass
+          POSTGRES_PASSWORD: ci-only-zoom-pro-postgres-password-123456
           POSTGRES_DB: zoom_pro
         ports: ['5432:5432']
         options: >-
@@ -29,7 +29,7 @@ jobs:
           cache: 'npm'
 
       - name: Install
-        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Run migrations
         env:
@@ -46,6 +46,24 @@ jobs:
             echo "== $f =="
             psql -v ON_ERROR_STOP=1 -h localhost -U zoom_user -d zoom_pro -f "$f"
           done
+
+      - name: Provision test SUPERADMIN
+        env:
+          DATABASE_URL: postgresql://zoom_user:zoom_pass@localhost:5432/zoom_pro
+          INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-${{ github.run_id }}-initial-admin-secret
+        run: npm run db:seed:platform
+
+      - name: Verify SUPERADMIN seed idempotency
+        env:
+          DATABASE_URL: postgresql://zoom_user:zoom_pass@localhost:5432/zoom_pro
+          INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-${{ github.run_id }}-second-secret
+          EXPECTED_INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-${{ github.run_id }}-initial-admin-secret
+        run: |
+          npm run db:seed:platform
+          node scripts/verify-platform-admin-seed.mjs
+
+      - name: Security audit
+        run: npm run audit:security
 
       - name: Install mobile dependencies
         run: npm ci --prefix apps/mobile --no-audit --no-fund
@@ -69,3 +87,56 @@ jobs:
       - name: Lint backend syntax
         working-directory: apps/backend
         run: node --check src/server.js && node --check src/app.js
+
+      - name: Validate production Compose configuration
+        env:
+          POSTGRES_DB: zoom_pro
+          POSTGRES_USER: zoom_user
+          POSTGRES_PASSWORD: zoom_pass
+          JWT_SECRET: ci-only-zoom-pro-jwt-secret-with-more-than-32-characters
+          CORS_ORIGIN: https://pwa.zoom-pro.test
+          INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-initial-admin-password
+        run: docker compose -f docker-compose.prod.yml config --quiet
+
+      - name: Build production backend image
+        run: |
+          docker build --target backend -t zoom-pro-backend:latest .
+          docker build --target migrator -t zoom-pro-migrator:latest .
+
+      - name: Run production Compose smoke test
+        env:
+          POSTGRES_DB: zoom_pro
+          POSTGRES_USER: zoom_user
+          POSTGRES_PASSWORD: ci-only-zoom-pro-postgres-password-123456
+          JWT_SECRET: ci-only-zoom-pro-jwt-secret-with-more-than-32-characters
+          CORS_ORIGIN: https://pwa.zoom-pro.test
+          INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-initial-admin-password
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker compose -f docker-compose.prod.yml down -v --remove-orphans || true
+          }
+          trap cleanup EXIT
+
+          if ! docker compose -f docker-compose.prod.yml up -d --no-build; then
+            docker compose -f docker-compose.prod.yml logs --tail=120 migrate backend || true
+            exit 1
+          fi
+
+          health=""
+          for attempt in $(seq 1 30); do
+            health="$(docker inspect --format='{{.State.Health.Status}}' zoom-pro-backend 2>/dev/null || true)"
+            if [ "$health" = "healthy" ]; then
+              docker compose -f docker-compose.prod.yml ps
+              exit 0
+            fi
+            if [ "$health" = "unhealthy" ]; then
+              docker compose -f docker-compose.prod.yml logs --tail=120 migrate backend || true
+              exit 1
+            fi
+            sleep 5
+          done
+
+          docker compose -f docker-compose.prod.yml logs --tail=120 migrate backend || true
+          echo "Production Compose backend did not become healthy within 150 seconds." >&2
+          exit 1

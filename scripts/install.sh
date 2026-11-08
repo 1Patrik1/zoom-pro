@@ -57,16 +57,16 @@ if [ -n "${GKEY:-}" ]; then
   echo "✅ Uložen GEMINI_API_KEY"
 fi
 
-# 4) npm install (root workspace)
+# 4) deterministic install from package-lock (root workspace)
 echo ""
 echo "▶ Instaluji NPM balíky (root workspace)…"
-npm install --no-audit --no-fund
+npm ci --no-audit --no-fund
 
 # 5) Mobile — samostatný adresář
 if [ -f apps/mobile/package.json ]; then
   echo ""
   echo "▶ Instaluji NPM balíky pro mobile…"
-  (cd apps/mobile && npm install --no-audit --no-fund) || echo "⚠ Mobile install měl chyby — dokončí se ručně později."
+  (cd apps/mobile && npm ci --no-audit --no-fund) || echo "⚠ Mobile install měl chyby — dokončí se ručně později."
 fi
 
 # 6) Databáze — auto-detect Docker
@@ -99,7 +99,8 @@ DATABASE_URL="$DB_URL" node scripts/db-migrate-all.mjs
 # 8) Seed platform + demo
 echo ""
 echo "▶ Seed platform superadmin + demo data…"
-DATABASE_URL="$DB_URL" node scripts/db-run-sql.mjs 005_seed_platform_superadmin.sql 006_seed_demo_profiles_and_records.sql
+DATABASE_URL="$DB_URL" npm run db:seed:platform
+DATABASE_URL="$DB_URL" npm run db:seed:demo
 
 # 9) Volitelně seed distribuce
 read -r -p "Chceš naseedovat i vzorový katalog & dodavatele? [y/N]: " SEED_DIST || true
@@ -127,10 +128,8 @@ Web:            http://localhost:5173
 Backend API:    http://localhost:5000/health
 
 Přihlášení:
-  owner@platform.local  ·  PlatformOwner2026!
-  reditel@demo.local    ·  Demo2026!
-  vedouci@demo.local    ·  Demo2026!
-  monter@demo.local     ·  Demo2026!
+  SUPERADMIN: owner@platform.local
+  Počáteční heslo bylo zobrazeno jednou při seedování; ulož ho do správce hesel.
 
 Mobilní APK:
   cd apps/mobile && npm run android:apk

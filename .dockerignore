@@ -10,3 +10,23 @@ coverage
 **/.env
 /tmp
 .mnt
+
+# IDE state, local secrets, and private deployment credentials
+.vs/
+.local-secrets/
+.cloudflared/
+.ssh/
+.env*
+**/.env*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Firebase service accounts and mobile signing material
+**/*service-account*.json
+**/firebase-adminsdk*.json
+*.p8
+*.jks
+*.keystore
+*.mobileprovision

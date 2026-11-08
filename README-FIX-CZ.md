@@ -37,16 +37,16 @@
 - `node scripts/doctor.mjs` — 0 chyb ✅
 - `audit-functionality` — 11/11 endpointů OK ✅ (předtím 1× 500)
 - `audit-stability` — 200/200 požadavků ✅
-- `test-login` — owner@platform.local ✅ (heslo: PlatformOwner2026!)
+- `test-login` — owner@platform.local ✅ (ověřeno přes lokálně nastavené TEST_ADMIN_EMAIL a TEST_ADMIN_PASSWORD)
 
 ## Spuštění
 ```bash
 npm install                     # root (workspaces: frontend + backend)
 # 1) PostgreSQL: docker compose up -d postgres   (nebo vlastní instance)
 # 2) .env v rootu: DATABASE_URL, JWT_SECRET, CORS_ORIGIN
-npm run db:migrate:all          # migrace + seedy
+npm run db:setup:full           # migrace + bezpečný seed SUPERADMIN + demo data
 npm run dev                     # frontend :5173 + backend :5000
-# login: owner@platform.local / PlatformOwner2026!
+# login: owner@platform.local / jednorázové heslo vygenerované při prvním seedování
 ```
 
 ## Kolo 2 — opravy dle zpětné vazby (2026-09-29)
