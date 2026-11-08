@@ -28,7 +28,7 @@ services:
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
     command: >
       sh -c "
-        npm ci --no-audit --no-fund &&
+        npm ci --omit=dev --workspace=apps/backend --no-audit --no-fund &&
         node --input-type=module -e "import('./apps/backend/src/config/env.js')" &&
         node scripts/db-migrate-all.mjs &&
         node scripts/seed-platform-admin.mjs
