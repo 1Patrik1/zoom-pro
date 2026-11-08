@@ -39,6 +39,7 @@ describe('production environment validation', () => {
     expect(() => validateProductionConfig({ ...good, corsOrigin: ['*'] })).toThrow(/CORS_ORIGIN/);
     expect(() => validateProductionConfig({ ...good, corsOrigin: [] })).toThrow(/CORS_ORIGIN/);
     expect(() => validateProductionConfig({ ...good, corsOrigin: ['CHANGE_ME_TO_YOUR_CLOUDFLARE_PAGES_ORIGIN'] })).toThrow(/CORS_ORIGIN/);
+    expect(() => validateProductionConfig({ ...good, corsOrigin: ['http://localhost:5173'] })).toThrow(/CORS_ORIGIN/);
   });
 
   it('does not apply production-only checks in development', () => {
