@@ -21,7 +21,7 @@ Tento průvodce ti provede nastavením **Zoom Pro s Cloudflare Tunnel** na Windo
 
 1. **Stáhni**: https://www.postgresql.org/download/windows/
 2. **Spusť installer** → Next → Next
-3. **Password**: Zapamatuj si heslo (např. `PostgresPassword123!`)
+3. **Password**: Nastav silné jedinečné heslo ve správci hesel; nepoužívej hodnoty z dokumentace.
 4. **Port**: Nech default `5432`
 5. **Finish** → PostgreSQL běží jako služba
 
@@ -76,7 +76,7 @@ notepad apps/backend/.env
 NODE_ENV=production
 PORT=5000
 DATABASE_URL=postgresql://vzt_user:tvoje_silna_hesla_123!@127.0.0.1:5432/vzt_system
-JWT_SECRET=GenerujSuperSilneHeslo123456789!@#$%^&*
+JWT_SECRET=<náhodný tajný klíč vygenerovaný instalátorem>
 CORS_ORIGIN=https://app.tvoje-domena.cz,https://api.tvoje-domena.cz
 APP_NAME=zoom-pro
 TRUST_PROXY=true
@@ -155,7 +155,7 @@ npm run dev:frontend
 # Zkus se přihlásit
 curl -X POST http://localhost:5000/api/auth/login `
   -H "Content-Type: application/json" `
-  -d '{"email":"owner@platform.local","password":"PlatformOwner2026!"}'
+  -d '{"email":"owner@platform.local","password":"<PASSWORD_FROM_INITIAL_SETUP>"}'
 
 # Měl bys dostat JWT token
 ```
@@ -307,7 +307,7 @@ Měl bys vidět: `{"ok":true}`
 ```powershell
 curl -X POST https://api.tvoje-domena.cz/api/auth/login `
   -H "Content-Type: application/json" `
-  -d '{"email":"owner@platform.local","password":"PlatformOwner2026!"}'
+  -d '{"email":"owner@platform.local","password":"<PASSWORD_FROM_INITIAL_SETUP>"}'
 ```
 
 Měl bys dostat JWT token.
@@ -316,7 +316,7 @@ Měl bys dostat JWT token.
 
 ```
 Email: owner@platform.local
-Heslo: PlatformOwner2026!
+Heslo: <PASSWORD_FROM_INITIAL_SETUP>
 ```
 
 ---
