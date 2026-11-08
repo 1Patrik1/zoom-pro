@@ -1,0 +1,32 @@
+name: Signature provider safety
+
+on:
+  push:
+    branches:
+      - fix/signature-provider-safe-projection-2026-10-30
+    paths:
+      - "apps/backend/src/repositories/signatures.repo.js"
+      - "apps/backend/src/repositories/signatures.repo.test.js"
+      - ".github/workflows/signature-provider-safety.yml"
+  pull_request:
+    paths:
+      - "apps/backend/src/repositories/signatures.repo.js"
+      - "apps/backend/src/repositories/signatures.repo.test.js"
+      - ".github/workflows/signature-provider-safety.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install root workspaces
+        run: npm ci --no-audit --no-fund
+      - name: Test signature provider projection
+        run: npm run test -w apps/backend -- src/repositories/signatures.repo.test.js
