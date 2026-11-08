@@ -22,3 +22,11 @@ coverage
 *.key
 *.p12
 *.pfx
+
+# Firebase service accounts and mobile signing material
+**/*service-account*.json
+**/firebase-adminsdk*.json
+*.p8
+*.jks
+*.keystore
+*.mobileprovision
