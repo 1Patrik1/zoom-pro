@@ -33,7 +33,6 @@ for (const f of files) {
   }
 }
 if (!secretHits) pass.push('Žádné hardcoded API klíče / privátní klíče v kódu');
-if (!secretHits) pass.push('Žádné hardcoded API klíče / privátní klíče v kódu');
 
 // 1b) Known public demo/admin credentials must never return to tracked files.
 const knownPublicCredentials = [
@@ -55,7 +54,7 @@ for (const f of files) {
 for (const f of files.filter((x) => x.endsWith('.sql'))) {
   const s = readFileSync(f, 'utf8');
   const m = s.match(/password['"]?\s*,\s*'([^'$][^']{0,40})'/i);
-  if (m && !m[1].startsWith('$2')) issues.push(`[PASSWORD] Podezřelé plaintext heslo v ${relative(root, f)}`);
+  if (m && !m[1].startsWith('$2') && m[1] !== '!INITIAL_PASSWORD_SETUP_REQUIRED!') issues.push(`[PASSWORD] Podezřelé plaintext heslo v ${relative(root, f)}`);
 }
 pass.push('Hesla v DB se ukládají přes bcrypt (auth.service.js → bcrypt.hash)');
 
