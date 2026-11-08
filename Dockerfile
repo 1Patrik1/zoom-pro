@@ -29,7 +29,7 @@ COPY scripts ./scripts
 COPY [0-9][0-9][0-9]_*.sql ./
 COPY schema.prisma ./schema.prisma
 WORKDIR /workspace
-CMD ["sh", "-c", "node --input-type=module -e 'import(\"./apps/backend/src/config/env.js\")' && node scripts/db-migrate-all.mjs && node scripts/seed-platform-admin.mjs"]
+CMD ["sh", "-c", "node --input-type=module -e 'await import(\"./apps/backend/src/config/env.js\")' && node scripts/db-migrate-all.mjs && node scripts/seed-platform-admin.mjs"]
 
 FROM nginx:1.27-alpine AS frontend
 COPY deploy/nginx/frontend.conf /etc/nginx/conf.d/default.conf
