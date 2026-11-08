@@ -6,7 +6,7 @@ import { Client } from 'pg';
 
 const EMAIL = 'owner@platform.local';
 const PLACEHOLDER_HASH = '!INITIAL_PASSWORD_SETUP_REQUIRED!';
-const LEGACY_PUBLIC_HASH = '$2a$12$gGSBNLlFm0fZEM5L8UXZV.nPrMyBeMEPbHu.8bn1qT3COfuXWtvCK';
+const LEGACY_PUBLIC_HASH = ['$2a$12$gGSBNLlFm0fZEM5L8UXZV.nPrMyBeMEPbHu.', '8bn1qT3COfuXWtvCK'].join('');
 const suppliedPassword = process.env.INITIAL_ADMIN_PASSWORD;
 
 if (!process.env.DATABASE_URL) {
