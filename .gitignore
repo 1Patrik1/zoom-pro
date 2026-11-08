@@ -14,3 +14,7 @@ backups/
 .DS_Store
 .vscode/
 .idea/
+
+# IDE-local state, caches, and AI/editor snapshots must never be committed.
+.vs/
+.local-secrets/
