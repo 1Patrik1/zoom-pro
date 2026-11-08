@@ -22,6 +22,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Wait for successful CI and dependency audit for this commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required = ['build', 'Audit mobile npm dependencies', 'Audit root npm workspace'];
+            const deadline = Date.now() + 15 * 60 * 1000;
+            while (Date.now() < deadline) {
+              const { data } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.sha,
+                per_page: 100
+              });
+              const latest = required.map((name) => data.check_runs
+                .filter((check) => check.name === name)
+                .sort((a, b) => String(b.started_at || '').localeCompare(String(a.started_at || '')))[0]);
+              const failed = latest.find((check) =>
+                check && check.status === 'completed' && check.conclusion !== 'success'
+              );
+              if (failed) {
+                core.setFailed(`Required check failed for ${context.sha}: ${failed.name} (${failed.conclusion})`);
+                return;
+              }
+              if (latest.every((check) =>
+                check && check.status === 'completed' && check.conclusion === 'success'
+              )) return;
+              await new Promise((resolve) => setTimeout(resolve, 15000));
+            }
+            core.setFailed('CI and dependency audit did not complete successfully within 15 minutes.');
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
