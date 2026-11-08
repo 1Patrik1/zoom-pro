@@ -37,7 +37,12 @@ export function validateProductionConfig({ nodeEnv, jwtSecret, corsOrigin, datab
   }
 
   const origins = Array.isArray(corsOrigin) ? corsOrigin : [];
-  if (!origins.length || origins.includes('*')) {
+  const hasPlaceholderOrigin = origins.some((origin) =>
+    /^(change-me|https?:\/\/your-|https?:\/\/example\.)/i.test(origin)
+    || origin === 'http://localhost'
+    || origin === 'http://localhost:5173'
+  );
+  if (!origins.length || origins.includes('*') || hasPlaceholderOrigin) {
     throw new Error('CORS_ORIGIN must contain an explicit production origin allowlist; wildcard CORS is not allowed.');
   }
 }
