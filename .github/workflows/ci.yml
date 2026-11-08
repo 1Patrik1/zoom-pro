@@ -94,6 +94,7 @@ jobs:
           POSTGRES_USER: zoom_user
           POSTGRES_PASSWORD: zoom_pass
           JWT_SECRET: ci-only-zoom-pro-jwt-secret-with-more-than-32-characters
+          CORS_ORIGIN: https://pwa.zoom-pro.test
           INITIAL_ADMIN_PASSWORD: ci-only-zoom-pro-initial-admin-password
         run: docker compose -f docker-compose.prod.yml config --quiet
 
