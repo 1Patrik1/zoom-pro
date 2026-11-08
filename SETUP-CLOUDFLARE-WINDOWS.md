@@ -45,9 +45,9 @@ cp .env.production.example .env
 ```
 
 Uprav `.env`:
-- `POSTGRES_PASSWORD`: unikátní náhodné heslo.
-- `JWT_SECRET`: náhodný tajný klíč alespoň 32 znaků.
-- `CORS_ORIGIN`: přesná veřejná URL Cloudflare Pages (bez API domény).
+- `POSTGRES_PASSWORD`: unikátní náhodné heslo v hex formátu (např. `openssl rand -hex 32`, aby šlo bezpečně vložit do `DATABASE_URL`).
+- `JWT_SECRET`: náhodný tajný klíč alespoň 32 znaků (např. `openssl rand -hex 32`).
+- `CORS_ORIGIN`: přesná veřejná URL Cloudflare Pages (bez API domény); pro nativní Capacitor klienty případně přidej `capacitor://localhost,https://localhost`.
 - `BACKEND_PORT=5000`.
 - `INITIAL_ADMIN_PASSWORD`: jen pro první vytvoření/rotaci SUPERADMIN; nejméně 20 znaků.
 
