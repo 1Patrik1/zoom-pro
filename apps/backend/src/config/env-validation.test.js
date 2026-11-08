@@ -4,7 +4,7 @@ import { validateProductionConfig } from './env-validation.js';
 const good = {
   nodeEnv: 'production',
   jwtSecret: 'a-unique-random-secret-value-that-is-not-a-template',
-  corsOrigin: ['https://app.example.test', 'https://api.example.test'],
+  corsOrigin: ['https://pwa.zoom-pro.test', 'https://api.zoom-pro.test'],
   databaseUrl: 'postgresql://zoom_user:DB-Strong-Password-2026-XYZ@localhost:5432/zoom_pro'
 };
 
