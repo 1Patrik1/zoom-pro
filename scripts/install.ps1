@@ -49,15 +49,15 @@ if ((Test-Path apps\mobile\.env.example) -and -not (Test-Path apps\mobile\.env))
 $gemini = Read-Host "Zadej GEMINI_API_KEY (Enter = přeskočit)"
 if ($gemini) { Add-Content apps\backend\.env "GEMINI_API_KEY=$gemini"; Write-Host "✅ Uložen GEMINI_API_KEY" }
 
-# 4) npm install
+# 4) deterministic install from package-lock
 Write-Host ""
-Write-Host "▶ npm install (root workspace)…" -ForegroundColor Yellow
-npm install --no-audit --no-fund
+Write-Host "▶ npm ci (root workspace)…" -ForegroundColor Yellow
+npm ci --no-audit --no-fund
 
 if (Test-Path apps\mobile\package.json) {
-  Write-Host "▶ npm install (mobile)…" -ForegroundColor Yellow
+  Write-Host "▶ npm ci (mobile)…" -ForegroundColor Yellow
   Push-Location apps\mobile
-  npm install --no-audit --no-fund
+  npm ci --no-audit --no-fund
   Pop-Location
 }
 
