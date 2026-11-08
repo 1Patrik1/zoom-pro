@@ -26,6 +26,8 @@ CMD ["node", "src/server.js"]
 FROM backend-deps AS migrator
 COPY apps/backend ./apps/backend
 COPY scripts ./scripts
+COPY [0-9][0-9][0-9]_*.sql ./
+COPY schema.prisma ./schema.prisma
 WORKDIR /workspace
 CMD ["sh", "-c", "node --input-type=module -e 'import(\"./apps/backend/src/config/env.js\")' && node scripts/db-migrate-all.mjs && node scripts/seed-platform-admin.mjs"]
 
