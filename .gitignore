@@ -26,3 +26,11 @@ backups/
 *.key
 *.p12
 *.pfx
+
+# Mobile signing and service-account credentials
+*.p8
+*.jks
+*.keystore
+*.mobileprovision
+**/*service-account*.json
+**/firebase-adminsdk*.json
