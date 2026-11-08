@@ -246,14 +246,10 @@ docker exec -it zoom-pro-backend wget -qO- http://127.0.0.1:5000/health
 
 ### Přihlášení
 
-```text
-owner@platform.local
-PlatformOwner2026!
-```
+Účet `owner@platform.local` se vytvoří příkazem `npm run db:seed:platform`.
+Při prvním vytvoření se náhodné heslo zobrazí jednou v lokálním terminálu.
+Ulož ho do správce hesel. Opakované seedování existující heslo nemění.
 
-Po prvním loginu doporučeno ihned změnit heslo v další implementační fázi.
-
----
 
 ## 11. Upgrade / update aplikace
 
