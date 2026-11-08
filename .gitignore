@@ -18,3 +18,11 @@ backups/
 # IDE-local state, caches, and AI/editor snapshots must never be committed.
 .vs/
 .local-secrets/
+
+# Cloudflare Tunnel and private deployment material
+.cloudflared/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
