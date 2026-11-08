@@ -99,7 +99,9 @@ jobs:
         run: docker compose -f docker-compose.prod.yml config --quiet
 
       - name: Build production backend image
-        run: docker build --target backend -t zoom-pro-backend:latest .
+        run: |
+          docker build --target backend -t zoom-pro-backend:latest .
+          docker build --target migrator -t zoom-pro-migrator:latest .
 
       - name: Run production Compose smoke test
         env:
