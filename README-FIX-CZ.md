@@ -44,7 +44,7 @@
 npm install                     # root (workspaces: frontend + backend)
 # 1) PostgreSQL: docker compose up -d postgres   (nebo vlastní instance)
 # 2) .env v rootu: DATABASE_URL, JWT_SECRET, CORS_ORIGIN
-npm run db:migrate:all          # migrace + seedy
+npm run db:setup:full           # migrace + bezpečný seed SUPERADMIN + demo data
 npm run dev                     # frontend :5173 + backend :5000
 # login: owner@platform.local / jednorázové heslo vygenerované při prvním seedování
 ```
