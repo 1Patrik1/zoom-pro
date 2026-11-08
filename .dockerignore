@@ -10,3 +10,15 @@ coverage
 **/.env
 /tmp
 .mnt
+
+# IDE state, local secrets, and private deployment credentials
+.vs/
+.local-secrets/
+.cloudflared/
+.ssh/
+.env*
+**/.env*
+*.pem
+*.key
+*.p12
+*.pfx
