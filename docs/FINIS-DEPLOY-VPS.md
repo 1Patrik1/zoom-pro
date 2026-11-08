@@ -248,7 +248,7 @@ docker exec -it zoom-pro-backend wget -qO- http://127.0.0.1:5000/health
 
 Účet `owner@platform.local` se vytvoří příkazem `npm run db:seed:platform`.
 Při prvním vytvoření se náhodné heslo zobrazí jednou v lokálním terminálu.
-Ulož ho do správce hesel. Opakované seedování existující heslo nemění.
+Ulož ho do správce hesel. Opakované seedování existující heslo nemění. U již existující databáze lze zkontrolovat a případně otočit pouze staré veřejně známé heslo příkazem `npm run db:rotate:public-admin`; tento příkaz nespouští ostatní seed data.
 
 
 ## 11. Upgrade / update aplikace
