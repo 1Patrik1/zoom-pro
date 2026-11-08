@@ -13,16 +13,6 @@ if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is required.');
   process.exit(1);
 }
-if (suppliedPassword && suppliedPassword.length < 20) {
-  console.error('INITIAL_ADMIN_PASSWORD must contain at least 20 characters.');
-  process.exit(1);
-}
-if (!suppliedPassword && !process.stdout.isTTY) {
-  console.error('Non-interactive setup requires INITIAL_ADMIN_PASSWORD; refusing to print a generated password into CI logs.');
-  process.exit(1);
-}
-
-const password = suppliedPassword || randomBytes(32).toString('base64url');
 const client = new Client({ connectionString: process.env.DATABASE_URL });
 
 try {
@@ -34,6 +24,13 @@ try {
   if (![PLACEHOLDER_HASH, LEGACY_PUBLIC_HASH].includes(user.password)) {
     console.log('Existing SUPERADMIN password preserved; no password was changed.');
   } else {
+    if (suppliedPassword && suppliedPassword.length < 20) {
+      throw new Error('INITIAL_ADMIN_PASSWORD must contain at least 20 characters.');
+    }
+    if (!suppliedPassword && !process.stdout.isTTY) {
+      throw new Error('Non-interactive setup requires INITIAL_ADMIN_PASSWORD; refusing to print a generated password into CI logs.');
+    }
+    const password = suppliedPassword || randomBytes(32).toString('base64url');
     const hash = await bcrypt.hash(password, 12);
     const updated = await client.query('UPDATE "User" SET password = $1, "updatedAt" = NOW() WHERE id = $2 AND password = $3 RETURNING id', [hash, user.id, user.password]);
     if (updated.rowCount !== 1) throw new Error('Admin password changed concurrently; no credential was printed. Re-run after checking the account.');
