@@ -12,6 +12,9 @@ const TROUBLESHOOTING_CATEGORIES = ['COLLISION', 'MATERIAL', 'NOISE_HAPTIC', 'LE
 const TROUBLESHOOTING_SEVERITIES = ['INFO', 'WARNING', 'CRITICAL'];
 const COLLISION_STATUSES = ['OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'IGNORED'];
 const PRINT_DOCUMENT_TYPES = ['issue', 'receipt', 'inventory-audit'];
+const PLAN_FORMATS = ['IMAGE', 'PDF', 'DXF', 'DWG'];
+const PLAN_DISCIPLINES = ['VZT', 'ELEKTRO', 'VODA', 'TOPENI', 'STAVEBNI', 'SITUACE', 'OTHER'];
+const PLAN_STATUSES = ['ACTIVE', 'ARCHIVED'];
 
 function requiredString(value, field, min = 1) {
   if (typeof value !== 'string' || value.trim().length < min) return `${field} je povinný text`;
@@ -395,6 +398,52 @@ export const validators = {
       optionalEnum(body.employmentType, 'employmentType', ['INTERNAL', 'EXTERNAL']),
       ...['ico', 'dic', 'street', 'city', 'zip'].map((field) => body[field] !== undefined && typeof body[field] !== 'string' ? `${field} musí být text` : null),
       ...['ico', 'dic', 'street', 'city', 'zip'].map((field) => body[field] !== undefined && String(body[field]).trim().length > 160 ? `${field} je moc dlouhé` : null)
+    ]);
+  },
+  plansQuery(query) {
+    return collect([
+      query.projectId ? requiredUuidish(query.projectId, 'projectId') : null,
+      optionalEnum(query.discipline, 'discipline', PLAN_DISCIPLINES),
+      optionalEnum(query.status, 'status', PLAN_STATUSES)
+    ]);
+  },
+  planIdParam(params) {
+    return collect([requiredUuidish(params.id, 'id')]);
+  },
+  markerIdParam(params) {
+    return collect([requiredUuidish(params.markerId, 'markerId')]);
+  },
+  planCreate(body) {
+    return collect([
+      requiredUuidish(body.projectId, 'projectId'),
+      requiredString(body.title, 'title', 1),
+      typeof body.title === 'string' && body.title.trim().length > 200 ? 'title je moc dlouhý' : null,
+      optionalEnum(body.discipline, 'discipline', PLAN_DISCIPLINES),
+      optionalEnum(body.format, 'format', PLAN_FORMATS),
+      requiredString(body.fileUrl, 'fileUrl', 4),
+      body.fileName !== undefined && typeof body.fileName !== 'string' ? 'fileName musí být text' : null,
+      body.fileSizeBytes !== undefined ? optionalNumber(body.fileSizeBytes, 'fileSizeBytes') : null,
+      body.note !== undefined && typeof body.note !== 'string' ? 'note musí být text' : null
+    ]);
+  },
+  planVersionCreate(body) {
+    return collect([
+      requiredString(body.fileUrl, 'fileUrl', 4),
+      body.title !== undefined && typeof body.title !== 'string' ? 'title musí být text' : null,
+      optionalEnum(body.discipline, 'discipline', PLAN_DISCIPLINES),
+      optionalEnum(body.format, 'format', PLAN_FORMATS),
+      body.fileName !== undefined && typeof body.fileName !== 'string' ? 'fileName musí být text' : null,
+      body.fileSizeBytes !== undefined ? optionalNumber(body.fileSizeBytes, 'fileSizeBytes') : null,
+      body.note !== undefined && typeof body.note !== 'string' ? 'note musí být text' : null
+    ]);
+  },
+  planMarkerCreate(body) {
+    return collect([
+      requiredNumber(body.positionX, 'positionX') || (Number(body.positionX) < 0 || Number(body.positionX) > 1 ? 'positionX musí být mezi 0 a 1' : null),
+      requiredNumber(body.positionY, 'positionY') || (Number(body.positionY) < 0 || Number(body.positionY) > 1 ? 'positionY musí být mezi 0 a 1' : null),
+      body.pageNumber !== undefined ? optionalNumber(body.pageNumber, 'pageNumber') : null,
+      requiredString(body.text, 'text', 1),
+      typeof body.text === 'string' && body.text.trim().length > 2000 ? 'text je moc dlouhý' : null
     ]);
   }
 };
