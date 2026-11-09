@@ -14,6 +14,7 @@ import { InventoryPage } from './features/inventory/InventoryPage.jsx';
 import { TeamPage } from './features/team/TeamPage.jsx';
 import { SettingsPage } from './features/settings/SettingsPage.jsx';
 import { DocumentsPage } from './features/documents/DocumentsPage.jsx';
+import { PlanViewerPage } from './features/plans/PlanViewerPage.jsx';
 import { ImportsPage } from './features/imports/ImportsPage.jsx';
 import { ExportsPage } from './features/exports/ExportsPage.jsx';
 import { SignaturesPage } from './features/signatures/SignaturesPage.jsx';
@@ -152,6 +153,8 @@ export default function App() {
         }} />;
       case 'documents':
         return <DocumentsPage token={auth.token} />;
+      case 'vykresy':
+        return <PlanViewerPage db={db} token={auth.token} />;
       case 'imports':
         return <ImportsPage token={auth.token} />;
       case 'exports':

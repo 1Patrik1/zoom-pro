@@ -21,6 +21,7 @@ import printRoutes from './routes/print.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import vztRoutes from './routes/vzt.routes.js';
 import documentsRoutes from './routes/documents.routes.js';
+import plansRoutes from './routes/plans.routes.js';
 import importsRoutes from './routes/imports.routes.js';
 import exportsRoutes from './routes/exports.routes.js';
 import signaturesRoutes from './routes/signatures.routes.js';
@@ -85,6 +86,7 @@ export function createApp() {
   app.use('/api/settings', settingsRoutes);
   app.use('/api/vzt', vztRoutes);
   app.use('/api/documents', documentsRoutes);
+  app.use('/api/plans', plansRoutes);
   app.use('/api/imports', importsRoutes);
   app.use('/api/exports', exportsRoutes);
   app.use('/api/signatures', signaturesRoutes);

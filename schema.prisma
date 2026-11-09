@@ -349,8 +349,82 @@ model Project {
   projectChats ProjectChat[]
   assignments ProjectAssignment[]
   documents   Document[]
+  plans       ProjectPlan[]
 
   @@map("Project")
+}
+
+enum PlanFormat {
+  IMAGE
+  PDF
+  DXF
+  DWG
+
+  @@map("plan_format_enum")
+}
+
+enum PlanDiscipline {
+  VZT
+  ELEKTRO
+  VODA
+  TOPENI
+  STAVEBNI
+  SITUACE
+  OTHER
+
+  @@map("plan_discipline_enum")
+}
+
+enum PlanStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("plan_status_enum")
+}
+
+/// Výkres / plán projektu (modul PLAN VIEWER) — obrázek, PDF, DXF nebo DWG
+model ProjectPlan {
+  id              String         @id @default(uuid())
+  companyId       String
+  projectId       String
+  title           String
+  discipline      PlanDiscipline @default(OTHER)
+  format          PlanFormat
+  fileUrl         String
+  fileName        String?
+  fileSizeBytes   BigInt?
+  version         Int            @default(1)
+  parentPlanId    String?
+  status          PlanStatus     @default(ACTIVE)
+  uploadedBy      String
+  note            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  company         Company        @relation(fields: [companyId], references: [id])
+  project         Project        @relation(fields: [projectId], references: [id])
+  parentPlan      ProjectPlan?   @relation("PlanVersions", fields: [parentPlanId], references: [id])
+  childVersions    ProjectPlan[]  @relation("PlanVersions")
+  markers         ProjectPlanMarker[]
+
+  @@map("ProjectPlan")
+}
+
+/// Značka / komentář umístěný na konkrétní pozici výkresu
+model ProjectPlanMarker {
+  id          String   @id @default(uuid())
+  planId      String
+  companyId   String
+  authorId    String
+  positionX   Float
+  positionY   Float
+  pageNumber  Int      @default(1)
+  text        String
+  createdAt   DateTime @default(now())
+
+  plan        ProjectPlan @relation(fields: [planId], references: [id])
+
+  @@map("ProjectPlanMarker")
 }
 
 /// Přiřazení pracovníka na projekt

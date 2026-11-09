@@ -21,7 +21,8 @@ import {
   KeyRound,
   Sliders,
   Ruler,
-  Truck
+  Truck,
+  Map
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -40,6 +41,7 @@ export const NAV_ITEMS = [
   { id: 'kolize', icon: ShieldAlert, label: 'Kolize', roles: ['SUPERADMIN', 'REDITEL', 'ADMINISTRACE', 'VEDOUCI', 'MONTER'] },
   { id: 'projekt-asistent', icon: Stethoscope, label: 'AI troubleshooting', roles: ['SUPERADMIN', 'REDITEL', 'VEDOUCI', 'MONTER'] },
   { id: 'tlak', icon: Printer, label: 'Tisk dokumentů', roles: ['SUPERADMIN', 'REDITEL', 'ADMINISTRACE', 'VEDOUCI'] },
+  { id: 'vykresy', icon: Map, label: 'Výkresy', roles: ['SUPERADMIN', 'REDITEL', 'ADMINISTRACE', 'VEDOUCI', 'MONTER'] },
   { id: 'team', icon: Users, label: 'Team', roles: ['SUPERADMIN', 'REDITEL', 'ADMINISTRACE', 'VEDOUCI'] },
   { id: 'nastaveni', icon: Settings, label: 'Nastavení', roles: ['SUPERADMIN', 'REDITEL', 'ADMINISTRACE', 'VEDOUCI', 'MONTER'] },
   { id: 'documents', icon: FileText, label: 'Dokumenty', roles: ['SUPERADMIN', 'REDITEL', 'ADMINISTRACE', 'VEDOUCI'] },
