@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { auth } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { requireCapability } from '../middleware/require-capability.js';
@@ -7,6 +8,13 @@ import { validators } from '../validators/request-validators.js';
 import { plansService } from '../services/plans.service.js';
 
 const router = Router();
+
+// Plans carry base64-encoded files inline (up to ~4MB per upload) and are
+// tenant-scoped CRUD, so a moderate per-IP limit protects against abuse
+// without impeding normal upload/browse/annotate usage.
+const plansLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false });
+
+router.use(plansLimiter);
 
 router.get(
   '/',
