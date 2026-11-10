@@ -42,7 +42,7 @@
     "db:rotate:public-admin": "node scripts/seed-platform-admin.mjs"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "concurrently": "^10.0.6"
   },
   "type": "module"
 }
